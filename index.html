@@ -61,6 +61,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 .row output{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
 .row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--wing)}
 .row small{grid-column:1/-1;color:var(--muted);font-size:12px}
+.tgroup{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--wing);margin:6px 0 0}
 .checks{display:flex;gap:18px;flex-wrap:wrap}
 .checks label{display:flex;gap:8px;align-items:center}
 .checks input{accent-color:var(--wing);width:18px;height:18px}
@@ -99,10 +100,10 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Flight test v0.0.04 · Quest 2 &amp; 3 · Online</div>
+      <div class="eyebrow">Flight test v0.0.05 · Quest 2 &amp; 3 · Online</div>
       <h1>Like Flies</h1>
     </div>
-    <p class="lede">You're a fly in a giant backyard. Fly through 10 rings, from under the picnic table to the giant's nose. v0.0.04 lets you fly together online. Join the same room and you'll see each other as flies, wings flapping with your real arms. Flight is the same as v0.0.03.</p>
+    <p class="lede">You're a fly in a giant backyard. Fly through 10 rings, from under the picnic table to the giant's nose. v0.0.05 adds powered glide: keep your arms out and flap or flutter to fly faster where you look. Fly together online by joining the same room.</p>
     <div class="actions">
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
@@ -124,10 +125,11 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <h2>How to fly</h2>
       <p class="rule"><b>Push the air away from where you want to go.</b> Throw your arms the opposite way. A harder throw gives a bigger dash.</p>
       <dl class="how">
-        <dt>Lift</dt><dd>Flap down. Small flaps hover, big flaps jump you up.</dd>
+        <dt>Lift</dt><dd>Flap down hard. While gliding, only a strong stroke lifts you; gentle flaps power you forward instead.</dd>
         <dt>Dash</dt><dd>Throw both arms one way to dash the other way. Throw right to dash left.</dd>
         <dt>Drop</dt><dd>Throw both hands up over your head.</dd>
-        <dt>Glide</dt><dd>Hold your arms out. You buzz toward wherever you look, up and down included.</dd>
+        <dt>Glide</dt><dd>Hold your arms out. You buzz toward wherever you look, up and down included. No flapping needed.</dd>
+        <dt>Power</dt><dd>While gliding, flap your arms up and down or flutter your hands. Faster flapping goes faster. Stop and you coast, then settle back to glide speed.</dd>
         <dt>Dive</dt><dd>Glide and look down for extra speed.</dd>
         <dt>Rest</dt><dd>Stop flapping and you hover in place, drifting a little.</dd>
         <dt>Brake</dt><dd>Drop your arms to your sides for a soft stop.</dd>
@@ -169,26 +171,39 @@ const store = {
 
 /* ---------- tuning (shared by the page and the in-headset menu) ---------- */
 const TUNE = [
-  {k:'hoverLift', label:'Flap lift',          min:0,   max:200, step:5,    def:100, unit:'%', hint:'How far up each flap bursts you.'},
-  {k:'push',      label:'Dash push',          min:0,   max:200, step:5,    def:100, unit:'%', hint:'Strength of dashes forward, back, sideways and down.'},
-  {k:'dashDist',  label:'Dash distance',      min:1,   max:10,  step:0.5,  def:5,   unit:' ft', hint:'How far a big two-arm throw carries you.'},
+  {k:'hoverLift', label:'Flap lift',          min:0,   max:400, step:5,    def:200, unit:'%', hint:'How far up each strong flap bursts you.'},
+  {k:'push',      label:'Dash push',          min:0,   max:400, step:5,    def:200, unit:'%', hint:'Strength of dashes forward, back, sideways and down.'},
+  {k:'dashDist',  label:'Dash distance',      min:1,   max:20,  step:0.5,  def:10,  unit:' ft', hint:'How far a big two-arm throw carries you, before the push multiplier.'},
   {k:'dashSnap',  label:'Dash snap',          min:3,   max:15,  step:0.5,  def:8,   hint:'Higher is a shorter, sharper dash. Distance stays the same.'},
-  {k:'curve',     label:'Burst scaling',      min:0.5, max:2.5, step:0.1,  def:1.5, hint:'Higher makes small flaps gentler and big throws stronger.'},
-  {k:'carry',     label:'Momentum',           min:0,   max:80,  step:5,    def:30,  unit:'%', hint:'Share of each burst that keeps drifting after the dash.'},
-  {k:'drift',     label:'Post-flap drift',    min:0.2, max:4,   step:0.1,  def:1.2, unit:'s', hint:'How long leftover drift lasts at rest. Keep it short for comfort.'},
-  {k:'glideSpeed',label:'Glide buzz speed',   min:0,   max:12,  step:0.5,  def:5,   unit:' m/s', hint:'Cruise speed with arms out. 0 turns cruising off.'},
-  {k:'steer',     label:'Glide steering',     min:0.5, max:8,   step:0.1,  def:3.5, hint:'How fast a glide swings toward where you look.'},
-  {k:'lean',      label:'Dive boost',         min:0,   max:3,   step:0.05, def:1,   hint:'Extra speed when you glide and look down.'},
-  {k:'airDrag',   label:'Air drag',           min:0,   max:1,   step:0.05, def:0.3, hint:'How fast speed above the cruise speed bleeds off.'},
-  {k:'brake',     label:'Brake (arms down)',  min:0.5, max:6,   step:0.1,  def:2.5, hint:'How fast arms at your sides bring you to a hover.'},
-  {k:'gravity',   label:'Gravity',            min:0,   max:4,   step:0.1,  def:0,   hint:'0 means you hover in place when you stop flapping.'},
-  {k:'maxSpeed',  label:'Max speed',          min:5,   max:30,  step:0.5,  def:16,  unit:' m/s'},
-  {k:'turn',      label:'Wing turn rate',     min:0,   max:4,   step:0.1,  def:1.6, hint:'Turning speed when you dip one wing.'},
-  {k:'palm',      label:'Palm influence',     min:0,   max:1,   step:0.05, def:0.4, hint:'Weakens strokes led by the back of your hand, so return strokes push you less.'}
+  {k:'curve',     label:'Burst scaling',      min:0.5, max:4.5, step:0.1,  def:2.5, hint:'Higher makes small flaps gentler and big throws stronger.'},
+  {k:'carry',     label:'Momentum',           min:0,   max:100, step:5,    def:80,  unit:'%', hint:'Share of each burst that keeps drifting after the dash. 100% is the most possible.'},
+  {k:'drift',     label:'Post-flap drift',    min:0.2, max:4,   step:0.1,  def:1.0, unit:'s', hint:'How long leftover drift lasts at rest. Keep it short for comfort.'},
+  {k:'glideSpeed',label:'Glide buzz speed',   min:0,   max:24,  step:0.5,  def:12,  unit:' m/s', hint:'Cruise speed with arms out and no flapping. 0 turns cruising off.'},
+  {k:'steer',     label:'Glide steering',     min:0.5, max:10,  step:0.1,  def:5,   hint:'How fast a glide swings toward where you look.'},
+  {k:'lean',      label:'Dive boost',         min:0,   max:6,   step:0.05, def:3,   hint:'Extra speed when you glide and look down.'},
+  {k:'airDrag',   label:'Air drag',           min:0,   max:1,   step:0.05, def:0,   hint:'How fast speed above the cruise speed bleeds off. 0 is the least possible.'},
+  {k:'brake',     label:'Brake (arms down)',  min:0,   max:5,   step:0.1,  def:0.5, hint:'How fast arms at your sides bring you to a hover.'},
+  {k:'gravity',   label:'Gravity',            min:0,   max:4,   step:0.1,  def:1.0, hint:'0 means you hover in place when you stop flapping.'},
+  {k:'maxSpeed',  label:'Max speed',          min:5,   max:60,  step:0.5,  def:30,  unit:' m/s'},
+  {k:'turn',      label:'Wing turn rate',     min:0,   max:6,   step:0.1,  def:3,   hint:'Turning speed when you dip one wing.'},
+  {k:'palm',      label:'Palm influence',     min:0,   max:1,   step:0.05, def:0.2, hint:'Weakens strokes led by the back of your hand, so return strokes push you less.'},
+
+  {g:'Powered glide', k:'armSens',  label:'Arm flap sensitivity',  min:0, max:100, step:5, def:50, unit:'%', hint:'Higher means smaller up-and-down arm flaps count as powering.'},
+  {g:'Powered glide', k:'flutSens', label:'Flutter sensitivity',   min:0, max:100, step:5, def:50, unit:'%', hint:'Higher means smaller wrist or controller flutters count as powering.'},
+  {g:'Powered glide', k:'rhythm',   label:'Rhythm window',         min:0.3, max:1.5, step:0.05, def:0.7, unit:'s', hint:'How far back recent flaps count. Shorter reacts faster, longer is smoother.'},
+  {g:'Powered glide', k:'freqInf',  label:'Cadence influence',     min:0, max:2, step:0.05, def:1, hint:'How much faster flapping adds speed.'},
+  {g:'Powered glide', k:'intInf',   label:'Stroke strength influence', min:0, max:2, step:0.05, def:1, hint:'How much bigger, harder strokes add speed.'},
+  {g:'Powered glide', k:'boostAccel', label:'Boost acceleration',  min:2, max:40, step:1, def:14, unit:' m/s²', hint:'How quickly powered glide speeds you up.'},
+  {g:'Powered glide', k:'boostCap', label:'Boost speed cap',       min:0, max:30, step:0.5, def:10, unit:' m/s', hint:'Most extra speed flapping can add on top of glide speed.'},
+  {g:'Powered glide', k:'coastHold', label:'Coast hold',           min:0, max:2, step:0.05, def:0.5, unit:'s', hint:'How long extra speed holds after you stop flapping.'},
+  {g:'Powered glide', k:'boostDecay', label:'Boost decay',         min:0.2, max:5, step:0.1, def:1.2, hint:'How quickly extra speed eases back to glide speed after the coast.'},
+  {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'}
 ];
+const groupOf = t => t.g || 'Flight';
+const PAGES = ['Flight', 'Powered glide'];
 const DEFAULTS = {vignette:true, sound:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
-const TUNE_KEY = 'likeflies.tune.v0.0.03';
+const TUNE_KEY = 'likeflies.tune.v0.0.05';
 let tune = Object.assign({}, DEFAULTS, store.get(TUNE_KEY, {}));
 const saveTune = () => store.set(TUNE_KEY, tune);
 const fmtVal = t => Number(tune[t.k]).toFixed(t.step >= 1 ? 0 : t.step >= 0.1 ? 1 : 2) + (t.unit || '');
@@ -374,7 +389,8 @@ function mkHand(side){
   return {side, obj, has:false, isHand:false, wasHand:null, pos:new V3(), q:new THREE.Quaternion(), palm:new V3(),
     prev:new V3(), prevT:0, prevOk:false, power:0, wasPower:false, speed:0, src:null,
     tip:new V3(), tipOk:false, pinch:false, trig:false, btnA:false, btnB:false, prevA:false, prevB:false, stickX:0, snap:false,
-    rayO:new V3(), rayD:new V3(), rayOk:false};
+    rayO:new V3(), rayD:new V3(), rayOk:false,
+    sigArm:0, sigFlut:0, prevPalmY:0, trArm:{sign:0, peak:0, spd:0, t0:0}, trFlut:{sign:0, peak:0, spd:0, t0:0}};
 }
 const HAND = {left:mkHand('left'), right:mkHand('right')};
 const HANDS = [HAND.left, HAND.right];
@@ -412,8 +428,11 @@ const vig = (() => {
 })();
 
 /* ---------- in-headset settings panel ---------- */
-const PW = 800, ROW = 52, ROW0 = 96;
-const TOG_Y = ROW0 + TUNE.length*ROW + 6, BTN_Y = TOG_Y + 70, PH = BTN_Y + 150;
+const PW = 800, ROW = 52, ROW0 = 156, TAB_Y = 86;
+const ROWS_MAX = Math.max(...PAGES.map(pg => TUNE.filter(t => groupOf(t) === pg).length));
+const TOG_Y = ROW0 + ROWS_MAX*ROW + 6, BTN_Y = TOG_Y + 70, PH = BTN_Y + 150;
+let panelPage = 'Flight';
+const pageRows = () => TUNE.filter(t => groupOf(t) === panelPage);
 const PLANE_H = 0.8 * PH / PW;
 const pCanvas = document.createElement('canvas'); pCanvas.width = PW; pCanvas.height = PH;
 const pctx = pCanvas.getContext('2d');
@@ -434,8 +453,13 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.04 · ' + inputMode, PW - 30, 60);
-  TUNE.forEach((t, i) => {
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.05 · ' + inputMode, PW - 30, 60);
+  PAGES.forEach((pg, i) => {
+    const x = 30 + i*375, on = pg === panelPage;
+    c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, 365, 52, 12); c.fill();
+    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold 26px system-ui, sans-serif'; c.fillText(pg, x + 182, TAB_Y + 35);
+  });
+  pageRows().forEach((t, i) => {
     const y = ROW0 + i*ROW, f = (tune[t.k] - t.min) / (t.max - t.min);
     c.textAlign = 'left'; c.fillStyle = i === activeRow ? '#ffd23f' : '#eef5ea'; c.font = '25px system-ui, sans-serif'; c.fillText(t.label, 30, y + 24);
     c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px ui-monospace, monospace'; c.fillText(fmtVal(t), PW - 30, y + 24);
@@ -458,7 +482,8 @@ function drawPanel(){
 function panelPress(px, py, start){
   if (start){
     activeRow = null;
-    if (py >= ROW0 && py < ROW0 + TUNE.length*ROW) activeRow = Math.floor((py - ROW0) / ROW);
+    if (py >= TAB_Y && py < TAB_Y + 52){ panelPage = PAGES[px < PW/2 ? 0 : 1]; drawPanel(); return; }
+    if (py >= ROW0 && py < ROW0 + pageRows().length*ROW) activeRow = Math.floor((py - ROW0) / ROW);
     else if (py >= TOG_Y && py < TOG_Y + 54){ if (px < PW/2) tune.vignette = !tune.vignette; else { tune.sound = !tune.sound; if (tune.sound) startAudio(); } }
     else if (py >= BTN_Y && py < BTN_Y + 70){
       if (px < 270){ resetCourse(); closeMenu(); return; }
@@ -467,7 +492,7 @@ function panelPress(px, py, start){
     }
   }
   if (activeRow != null){
-    const t = TUNE[activeRow];
+    const t = pageRows()[activeRow];
     const f = Math.max(0, Math.min(1, (px - 30) / (PW - 60)));
     tune[t.k] = Math.round((t.min + f*(t.max - t.min)) / t.step) * t.step;
     tune[t.k] = Math.max(t.min, Math.min(t.max, +tune[t.k].toFixed(4)));
@@ -549,8 +574,12 @@ function pulse(h){
 /* ---------- game state ---------- */
 const START = new V3(0, 0, 44);
 const vel = new V3(), vDash = new V3(), vMove = new V3();   // vel = vDash (short bursts) + vMove (momentum)
-const POOLS = [vDash, vMove], nTmp = new V3();
-function stopAll(){ vel.set(0, 0, 0); vDash.set(0, 0, 0); vMove.set(0, 0, 0); }
+const boostVec = new V3();                                  // powered-glide extra speed along your gaze
+let boost = 0, lastPowerT = -9, lastDashStrokeT = -9, glideHoldT = -9, turnDiff = 0;
+const strokes = {arm:[], flut:[], any:[]};
+function dashSepNow(now){ const W = tune.rhythm; while (strokes.any.length && now - strokes.any[0] > W) strokes.any.shift(); return tune.dashSep * (strokes.any.length >= 2 ? 2 : 1); }
+const POOLS = [vDash, vMove, boostVec], nTmp = new V3();
+function stopAll(){ vel.set(0, 0, 0); vDash.set(0, 0, 0); vMove.set(0, 0, 0); boostVec.set(0, 0, 0); boost = 0; strokes.arm.length = 0; strokes.flut.length = 0; }
 function stopAlong(x, y, z){ nTmp.set(x, y, z); for (const v of POOLS){ const d = v.dot(nTmp); if (d < 0) v.addScaledVector(nTmp, -d); } const d = vel.dot(nTmp); if (d < 0) vel.addScaledVector(nTmp, -d); }
 function burstGain(){
   // Calibrated so a big two-arm throw (hands at about 4 m/s for 0.15 s) carries you the "Dash distance".
@@ -712,36 +741,7 @@ function simulateXR(dt, now, frame){
 
   if (menuOpen){ stopAll(); updateMenuPointer(); HANDS.forEach(h => h.prevOk = false); return false; }
 
-  /* 1. Bursts: every push of the air sends you the opposite way. Harder throws give bigger bursts. */
-  const G = burstGain(), THR = 0.6;
-  burst.set(0, 0, 0);
-  let effort = 0, flapNow = false;
-  for (const h of HANDS){
-    if (!h.has){ if (now - h.prevT > 0.25) h.prevOk = false; h.speed = 0; continue; }
-    if (!h.prevOk){ h.prev.copy(h.pos); h.prevT = now; h.prevOk = true; h.speed = 0; continue; }
-    const hdt = Math.min(0.25, Math.max(1e-3, now - h.prevT));    // covers short tracking gaps
-    hv.subVectors(h.pos, h.prev).divideScalar(hdt).sub(headVelL);  // hand motion relative to the body
-    h.prev.copy(h.pos); h.prevT = now;
-    const sp = hv.length(); h.speed = sp; effort += sp;
-    const e = sp - THR;
-    if (e > 0){
-      let gate = 1 - tune.palm * (1 - Math.max(0, hv.dot(h.palm) / sp));   // back-of-hand strokes push less
-      if (hv.y > 0.5*sp){                                                   // hands going up: only a throw over the head drops you
-        const u = Math.max(0, Math.min(1, (h.pos.y - (headL.y - 0.35)) / 0.4));
-        gate *= 0.15 + 0.85*u;
-      }
-      td.copy(hv).multiplyScalar(-G * Math.pow(e, tune.curve) * gate * hdt / sp);
-      burst.add(td.applyQuaternion(rig.quaternion));
-    }
-    const strong = e > 0.4;
-    if (strong){ flapNow = true; if (!h.wasPower) pulse(h); }
-    h.wasPower = strong;
-  }
-  if (flapNow) lastFlapT = now;
-  addBurst(burst);
-  const flapping = now - lastFlapT < 0.3;
-
-  /* 2. Body-relative pose */
+  /* 1. Pose first, so bursts know whether you are gliding */
   let armsOut = false, armsDown = false;
   if (L.has && R.has){
     const span = L.pos.distanceTo(R.pos);
@@ -750,8 +750,52 @@ function simulateXR(dt, now, frame){
     armsOut = span > 0.72 * calSpan && Math.abs(avgY - headL.y) < 0.55;
     armsDown = L.pos.y < headL.y - 0.55 && R.pos.y < headL.y - 0.55 && span < 0.75 * calSpan;
   }
+  if (armsOut) glideHoldT = now;
+  const gliding = !grounded && now - glideHoldT < 0.35;      // short grace so a flap stroke doesn't break the glide
   camera.getWorldDirection(headFwd);
-  const gliding = armsOut && !grounded;
+
+  /* 2. Bursts and rhythm. Every push of the air sends you the opposite way.
+        While gliding, strokes slower than "Dash separation" power the glide instead of bursting you. */
+  const G = burstGain(), THR = 0.6;
+  const armThr = 0.35 * Math.pow(2, (0.5 - tune.armSens/100) * 4);
+  const flutThr = 2.5 * Math.pow(2, (0.5 - tune.flutSens/100) * 4);
+  const sm = 1 - Math.exp(-dt / 0.04), smF = 1 - Math.exp(-dt / 0.06);
+  burst.set(0, 0, 0);
+  let effort = 0, flapNow = false;
+  for (const h of HANDS){
+    if (!h.has){ if (now - h.prevT > 0.25) h.prevOk = false; h.speed = 0; continue; }
+    if (!h.prevOk){ resetHandSignals(h, now); continue; }
+    const hdt = Math.min(0.25, Math.max(1e-3, now - h.prevT));    // covers short tracking gaps
+    hv.subVectors(h.pos, h.prev).divideScalar(hdt).sub(headVelL);  // hand motion relative to the body
+    const sp = hv.length();
+    if (sp > 9){ resetHandSignals(h, now); continue; }              // tracking jump, not a real swing
+    const palmRate = (h.palm.y - h.prevPalmY) / hdt;
+    h.prev.copy(h.pos); h.prevT = now; h.prevPalmY = h.palm.y;
+    h.speed = sp; effort += sp;
+
+    const e = sp - THR;
+    if (e > 0){
+      let gate = 1 - tune.palm * (1 - Math.max(0, hv.dot(h.palm) / sp));   // back-of-hand strokes push less
+      if (hv.y > 0.5*sp){                                                   // hands going up: only a throw over the head drops you
+        const u = Math.max(0, Math.min(1, (h.pos.y - (headL.y - 0.35)) / 0.4));
+        gate *= 0.15 + 0.85*u;
+      }
+      if (gliding){ const sep = dashSepNow(now); gate *= smoothstep(0.75 * sep, sep, sp); }  // gentle strokes power the glide instead
+      td.copy(hv).multiplyScalar(-G * Math.pow(e, tune.curve) * gate * hdt / sp);
+      burst.add(td.applyQuaternion(rig.quaternion));
+    }
+    const strong = e > 0.4;
+    if (strong){ flapNow = true; if (!h.wasPower) pulse(h); }
+    h.wasPower = strong;
+
+    h.sigArm += (hv.y - h.sigArm) * sm;
+    h.sigFlut += (palmRate - h.sigFlut) * smF;
+    trackStroke(h.trArm, h.sigArm, armThr, sp, now, strokes.arm, gliding);
+    trackStroke(h.trFlut, h.sigFlut, flutThr, sp, now, strokes.flut, gliding);
+  }
+  if (flapNow) lastFlapT = now;
+  addBurst(burst);
+  const flapping = now - lastFlapT < 0.3;
   const braking = armsDown && !flapping && !grounded;
 
   /* 3. Momentum */
@@ -759,17 +803,79 @@ function simulateXR(dt, now, frame){
   if (gliding) glideStep(dt, 1);
   else vMove.multiplyScalar(Math.exp(-(3 / Math.max(0.2, tune.drift) + (braking ? tune.brake : 0)) * dt));
   vMove.y -= tune.gravity * dt;
+  const power = updateBoost(dt, now, gliding);
 
-  /* 4. Lean-to-turn, unchanged */
+  /* 4. Lean-to-turn. The wing height difference is smoothed so flapping doesn't steer you. */
   let turnAmt = 0;
-  if (L.has && R.has && !grounded && armsOut && effort < 3.5){
-    const avgY = (L.pos.y + R.pos.y) / 2;
-    if (Math.abs(avgY - headL.y) < 0.5){ turnAmt = -(L.pos.y - R.pos.y) * tune.turn * dt; turnAroundHead(turnAmt); }
-  }
+  if (L.has && R.has && gliding){
+    turnDiff += ((L.pos.y - R.pos.y) - turnDiff) * (1 - Math.exp(-dt / 0.18));
+    turnAmt = -turnDiff * tune.turn * dt; turnAroundHead(turnAmt);
+  } else turnDiff = 0;
   turnRate += (Math.abs(turnAmt)/dt - turnRate) * Math.min(1, dt*5);
   flapLevel += (Math.min(1, effort / 6) - flapLevel) * Math.min(1, dt*6);
-  flightState = vDash.length() > 2.5 ? 'dash' : (grounded && !flapping) ? 'ground' : braking ? 'brake' : gliding ? (headFwd.y < -0.3 ? 'dive' : headFwd.y > 0.3 ? 'climb' : 'glide') : flapping ? 'hover' : 'drift';
+  flightState = vDash.length() > 2.5 ? 'dash' : (grounded && !flapping) ? 'ground' : braking ? 'brake'
+    : gliding ? (boost > 0.5 ? (power > 0 ? 'powered +' : 'coast +') + boost.toFixed(1) : headFwd.y < -0.3 ? 'dive' : headFwd.y > 0.3 ? 'climb' : 'glide')
+    : flapping ? 'hover' : 'drift';
   return true;
+}
+
+function smoothstep(a, b, x){ const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+function resetHandSignals(h, now){
+  h.prev.copy(h.pos); h.prevT = now; h.prevOk = true; h.speed = 0; h.prevPalmY = h.palm.y;
+  h.sigArm = 0; h.sigFlut = 0;
+  for (const tr of [h.trArm, h.trFlut]){ tr.sign = 0; tr.peak = 0; tr.spd = 0; tr.t0 = now; }
+}
+
+/* A stroke is one half of a flap: the signal swings one way past the threshold, then reverses.
+   Strokes made while hands move faster than "Dash separation" are dashes, not powering. */
+function trackStroke(tr, sig, thr, handSpeed, now, list, gliding){
+  const mag = Math.abs(sig);
+  const sgn = mag > 0.3 * thr ? Math.sign(sig) : 0;
+  if (sgn && tr.sign && sgn !== tr.sign){
+    if (now - tr.t0 < 0.05){ tr.sign = sgn; tr.t0 = now; return; }   // too quick to be a real stroke: tracking jitter
+    if (tr.peak >= thr && gliding){
+      const sep = dashSepNow(now);
+      strokes.any.push(now);
+      if (tr.spd > sep) lastDashStrokeT = now;
+      else if (now - lastDashStrokeT > 0.3) list.push({t:now, a:tr.peak / thr});
+    }
+    tr.peak = mag; tr.spd = handSpeed; tr.t0 = now; tr.sign = sgn;
+    return;
+  }
+  if (sgn && !tr.sign){ tr.sign = sgn; tr.t0 = now; tr.peak = 0; tr.spd = 0; }
+  if (now - tr.t0 > 1.2){ tr.peak = 0; tr.spd = 0; tr.t0 = now; }   // a slow drift is not a stroke
+  if (mag > tr.peak) tr.peak = mag;
+  if (handSpeed > tr.spd) tr.spd = handSpeed;
+}
+
+/* Turns recent strokes into propulsion. Arm flaps and hand flutters are alternatives:
+   the stronger of the two counts, so doing both doesn't double the speed. */
+function rhythmPower(list, now){
+  const W = tune.rhythm;
+  while (list.length && now - list[0].t > W) list.shift();
+  const n = list.length; if (!n) return 0;
+  let a = 0; for (const st of list) a += Math.min(8, st.a); a /= n;
+  const ifac = 1 + tune.intInf * (a - 1) / 7;
+  if (n < 2) return 0.5 * ifac;                               // responsive from the first stroke
+  const cfac = Math.max(0.25, Math.min(3, 1 + tune.freqInf * ((n / W) / 4 - 1)));   // 4 strokes/s = 2 full flaps/s is "normal"
+  return cfac * ifac;
+}
+function updateBoost(dt, now, gliding){
+  const P = Math.max(rhythmPower(strokes.arm, now), rhythmPower(strokes.flut, now));
+  if (!gliding){
+    if (boost > 0) vMove.add(boostVec);                       // leaving the glide keeps the speed as momentum
+    boost = 0; boostVec.set(0, 0, 0); strokes.arm.length = 0; strokes.flut.length = 0; strokes.any.length = 0;
+    return 0;
+  }
+  if (P > 0){
+    lastPowerT = now;
+    const target = tune.boostCap * Math.min(1, P / 3);
+    if (boost < target) boost = Math.min(target, boost + tune.boostAccel * dt);
+    else boost += (target - boost) * (1 - Math.exp(-0.5 * tune.boostDecay * dt));
+  } else if (now - lastPowerT > tune.coastHold) boost *= Math.exp(-tune.boostDecay * dt);
+  if (boost < 0.02) boost = 0;
+  boostVec.copy(headFwd).multiplyScalar(boost);
+  return P;
 }
 
 /* Glide: arms out, you buzz toward where you look (3D, so up and down are free). */
@@ -790,7 +896,11 @@ function glideStep(dt, amount){
 const keys = {};
 let dragging = false, lx = 0, ly = 0, fwdHeld = false;
 function flatBurst(x, y, z){ if (state !== 'flat') return; td.set(x, y, z).applyQuaternion(rig.quaternion); addBurst(td); flapLevel = 1; lastFlapT = clock.elapsedTime; }
-function flatFlap(){ flatBurst(0, 4.5, 0); }
+function flatFlap(){
+  if (state !== 'flat') return;
+  if ((keys.KeyW || keys.ArrowUp || fwdHeld) && !grounded){ const t = clock.elapsedTime; strokes.arm.push({t, a:1.6}); strokes.arm.push({t, a:1.6}); flapLevel = 1; return; }
+  flatBurst(0, 4.5, 0);
+}
 addEventListener('keydown', e => {
   if (state !== 'flat') return;
   keys[e.code] = true;
@@ -825,15 +935,16 @@ function simulateFlat(dt){
   if (gliding) glideStep(dt, 1);
   else vMove.multiplyScalar(Math.exp(-(3 / Math.max(0.2, tune.drift) + ((keys.KeyS || keys.ArrowDown) ? tune.brake : 0)) * dt));
   vMove.y -= tune.gravity * dt;
+  const power = updateBoost(dt, clock.elapsedTime, gliding);
   flapLevel *= Math.exp(-3*dt);
-  flightState = vDash.length() > 2.5 ? 'dash' : grounded ? 'ground' : gliding ? 'glide' : 'hover';
+  flightState = vDash.length() > 2.5 ? 'dash' : grounded ? 'ground' : gliding ? (boost > 0.5 ? (power > 0 ? 'powered +' : 'coast +') + boost.toFixed(1) : 'glide') : 'hover';
 }
 
 /* ---------- shared step: move, collide, rings, HUD ---------- */
 function integrate(dt, now, xr){
-  vel.copy(vMove).add(vDash);
+  vel.copy(vMove).add(vDash).add(boostVec);
   const sp0 = vel.length();
-  if (sp0 > tune.maxSpeed){ const k = tune.maxSpeed / sp0; vel.multiplyScalar(k); vDash.multiplyScalar(k); vMove.multiplyScalar(k); }
+  if (sp0 > tune.maxSpeed){ const k = tune.maxSpeed / sp0; vel.multiplyScalar(k); vDash.multiplyScalar(k); vMove.multiplyScalar(k); boostVec.multiplyScalar(k); boost *= k; }
   rig.position.addScaledVector(vel, dt);
 
   grounded = false;
@@ -854,7 +965,8 @@ function integrate(dt, now, xr){
   if (cur < rings.length && head.distanceTo(rings[cur].mesh.position) < rings[cur].rad + 0.7) passRing(now);
   if (resetAt && now > resetAt){ cur = 0; startT = 0; finishT = 0; resetAt = 0; }
 
-  vel.copy(vMove).add(vDash);
+  boost = Math.min(boost, boostVec.length());           // a wall or the ground also stops the boost
+  vel.copy(vMove).add(vDash).add(boostVec);
   const speed = vel.length();
   setBuzz(grounded ? 0 : 0.025 + flapLevel*0.08, speed);
   vig.material.opacity = (xr && tune.vignette) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
@@ -1182,7 +1294,9 @@ if (navigator.xr && navigator.xr.isSessionSupported){
 
 /* ---------- page tuning panel ---------- */
 const rowsEl = $('#tuneRows');
+let lastGroup = '';
 TUNE.forEach(t => {
+  if (groupOf(t) !== lastGroup){ lastGroup = groupOf(t); const hd = document.createElement('p'); hd.className = 'tgroup'; hd.textContent = lastGroup; rowsEl.append(hd); }
   const row = document.createElement('div'); row.className = 'row';
   const lab = document.createElement('label'); lab.htmlFor = 't_' + t.k; lab.textContent = t.label;
   const out = document.createElement('output'); out.id = 'o_' + t.k;
