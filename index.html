@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+</head>
+<body>
+<title>Like Flies</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: live 3D backyard fills the screen; one glassy card floats over it like a wing. Single dark look by choice. */
+:root{
+  --bg:#0e1712;
+  --panel:rgba(12,22,17,.84);
+  --fg:#eef5ea;
+  --muted:#a7baa6;
+  --line:rgba(185,230,210,.18);
+  --wing:#7fe3d6;
+  --wing-2:#b9a2ff;
+  --ink:#062420;
+  --warn:#ffd23f;
+  --display:'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif;
+  --body:'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --mono:ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+.menu{position:fixed;inset:0;overflow-y:auto;display:flex;flex-direction:column;
+  padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:linear-gradient(180deg,rgba(8,16,12,.05),rgba(8,16,12,.55))}
+.card{margin:auto;width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;
+  padding:22px;display:flex;flex-direction:column;gap:18px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--wing)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,11vw,56px);line-height:.95;margin:4px 0 0;letter-spacing:-.02em;text-wrap:balance;
+  background:linear-gradient(100deg,var(--wing),var(--wing-2) 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{margin:0;color:var(--fg);max-width:60ch}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);padding:12px 16px;font-weight:700;color:var(--fg);background:transparent}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--wing);outline-offset:2px}
+.primary{background:var(--wing);color:var(--ink);border-color:transparent;flex:1 1 160px;font-size:17px}
+.secondary{flex:1 1 140px}
+.note{margin:0;font-size:13px;color:var(--muted);min-height:1em}
+.note.warn{color:var(--warn)}
+h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
+.how{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0}
+.how dt{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--wing);padding-top:2px}
+.how dd{margin:0;min-width:0}
+details{border-top:1px solid var(--line);padding-top:14px}
+summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px}
+.tune{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.row{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.row label{font-weight:700}
+.row output{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--wing)}
+.row small{grid-column:1/-1;color:var(--muted);font-size:12px}
+.checks{display:flex;gap:18px;flex-wrap:wrap}
+.checks label{display:flex;gap:8px;align-items:center}
+.checks input{accent-color:var(--wing);width:18px;height:18px}
+.foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.foot b{font-family:var(--mono);color:var(--fg);font-variant-numeric:tabular-nums}
+
+.hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;
+  padding-top:calc(12px + env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.hud button{pointer-events:auto;padding:6px 14px;border-radius:999px;background:var(--panel);font-size:13px}
+.pad{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;gap:12px;pointer-events:none;
+  padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.pad button{pointer-events:auto;width:96px;height:96px;border-radius:50%;background:var(--panel);font-size:14px;user-select:none;-webkit-user-select:none;touch-action:none}
+.pad .flap{background:var(--wing);color:var(--ink);border-color:transparent;font-size:17px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<canvas id="c" tabindex="0" aria-label="3D backyard flight test"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <span class="pill" id="hudText">Ring 1 / 10</span>
+  <button id="toMenu" type="button">Menu</button>
+</div>
+<div class="pad" id="pad" hidden>
+  <button id="fwdBtn" type="button">Buzz<br>forward</button>
+  <button id="flapBtn" class="flap" type="button">FLAP</button>
+</div>
+
+<div class="menu" id="menu">
+  <div class="card">
+    <div>
+      <div class="eyebrow">Flight test 01 · Quest 3</div>
+      <h1>Like Flies</h1>
+    </div>
+    <p class="lede">You're a fly in a giant backyard. Flap your arms to fly through 10 rings, from under the picnic table to the giant's nose. This test is only about one thing: does flying feel good?</p>
+    <div class="actions">
+      <button class="primary" id="vrBtn" type="button">Enter VR</button>
+      <button class="secondary" id="flatBtn" type="button">Play on screen</button>
+    </div>
+    <p class="note" id="vrNote">Checking for a VR headset…</p>
+
+    <div>
+      <h2>How to fly</h2>
+      <dl class="how" style="margin-top:10px">
+        <dt>Flap</dt><dd>Swing both arms down hard. Faster swings lift you higher.</dd>
+        <dt>Glide</dt><dd>Hold both arms straight out at shoulder height.</dd>
+        <dt>Turn</dt><dd>While gliding, dip one wing. Or flick the right thumbstick.</dd>
+        <dt>Reset</dt><dd>Press A or X to start over.</dd>
+        <dt>Guide</dt><dd>Your left wrist shows the next ring and your time.</dd>
+      </dl>
+    </div>
+
+    <details id="tuneBox">
+      <summary>Tuning</summary>
+      <div class="tune">
+        <div class="row"><label for="tFlap">Flap power</label><output id="oFlap"></output>
+          <input type="range" id="tFlap" min="0.6" max="3" step="0.1"><small>Raise it if flying feels exhausting.</small></div>
+        <div class="row"><label for="tGrav">Gravity</label><output id="oGrav"></output>
+          <input type="range" id="tGrav" min="1" max="8" step="0.2"><small>Lower feels floaty. Higher feels heavy and twitchy.</small></div>
+        <div class="row"><label for="tDrag">Air drag</label><output id="oDrag"></output>
+          <input type="range" id="tDrag" min="0.1" max="1" step="0.05"><small>Higher stops you faster and lowers your top speed.</small></div>
+        <div class="checks">
+          <label><input type="checkbox" id="tVig">Comfort vignette</label>
+          <label><input type="checkbox" id="tSnd">Buzz sound</label>
+        </div>
+        <button type="button" id="tReset">Reset to defaults</button>
+      </div>
+    </details>
+
+    <div class="foot">
+      <span>Best time: <b id="bestTime">none yet</b></span>
+      <span>Screen: Space flap · W forward · A/D turn · drag to look</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const $ = s => document.querySelector(s);
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const DEFAULTS = {flap:1.6, gravity:3.2, drag:0.35, vignette:true, sound:true};
+let tune = Object.assign({}, DEFAULTS, store.get('likeflies.tune', {}));
+let best = store.get('likeflies.best', null);
+
+/* ---------- renderer, scene, rig ---------- */
+const canvas = $('#c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.xr.enabled = true;
+renderer.xr.setReferenceSpaceType('local-floor');
+if (typeof renderer.xr.setFoveation === 'function') renderer.xr.setFoveation(1);
+
+const scene = new THREE.Scene();
+const SKY = 0xa8d6ec;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 80, 290);
+const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 700);
+const rig = new THREE.Group();
+scene.add(rig); rig.add(camera);
+camera.position.set(0, 1.6, 0);
+
+scene.add(new THREE.HemisphereLight(0xe2f4ff, 0x4a6a2a, 0.95));
+const sun = new THREE.DirectionalLight(0xfff0d2, 0.75); sun.position.set(60, 120, 40); scene.add(sun);
+
+/* ---------- world helpers ---------- */
+let seed = 11;
+function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+const mats = {};
+const mat = c => mats[c] || (mats[c] = new THREE.MeshLambertMaterial({color:c}));
+const solids = [];
+function box(w,h,d,color,x,y,z,solid=true){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(color));
+  m.position.set(x, y + h/2, z); scene.add(m);
+  if (solid){ m.updateMatrixWorld(); solids.push({box:new THREE.Box3().setFromObject(m)}); }
+  return m;
+}
+function ball(r,color,x,y,z,solid=true,sy=1){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 14), mat(color));
+  m.position.set(x,y,z); m.scale.y = sy; scene.add(m);
+  if (solid) solids.push({c:new THREE.Vector3(x,y,z), r:r*Math.min(1,sy)});
+  return m;
+}
+function post(r,h,color,x,y,z,solid=true){
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 10), mat(color));
+  m.position.set(x, y + h/2, z); scene.add(m);
+  if (solid){ m.updateMatrixWorld(); solids.push({box:new THREE.Box3().setFromObject(m)}); }
+  return m;
+}
+
+/* ---------- the backyard (everything is giant: you are a fly) ---------- */
+{ // lawn
+  const g = new THREE.PlaneGeometry(420, 420, 42, 42); g.rotateX(-Math.PI/2);
+  const col = new THREE.Color(), arr = [];
+  for (let i = 0; i < g.attributes.position.count; i++){ col.setHSL(0.25 + rnd()*0.05, 0.5, 0.26 + rnd()*0.08); arr.push(col.r, col.g, col.b); }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(arr, 3));
+  scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({vertexColors:true})));
+}
+
+const RINGS = [
+  {p:[0,3,32],     name:'Lift off'},
+  {p:[-12,3,16],   name:'Through the grass'},
+  {p:[-30,6,5],    name:'Under the table', r:2.8},
+  {p:[-24,18,-14], name:'Over the table edge'},
+  {p:[0,9,-30],    name:'Between the giant’s legs', r:2.5, face:[0,0,-1]},
+  {p:[16,14,-50],  name:'Behind the giant'},
+  {p:[21,20,7],    name:'Past the tomatoes'},
+  {p:[12,32,22],   name:'High pass'},
+  {p:[0,40,-6],    name:'Climb'},
+  {p:[0,50.5,-22], name:'Buzz the nose'}
+];
+
+{ // grass blades
+  const N = 950;
+  const geo = new THREE.ConeGeometry(0.35, 1, 4); geo.translate(0, 0.5, 0);
+  const grass = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff}), N);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
+  let n = 0, guard = 0;
+  while (n < N && guard++ < 20000){
+    const x = (rnd()*2 - 1) * 98, z = -92 + rnd()*200;
+    if (Math.hypot(x, z - 44) < 9) continue;
+    if (Math.abs(x) < 11 && Math.abs(z + 30) < 9) continue;
+    if (Math.hypot(x - 28, z) < 4) continue;
+    if (RINGS.some(r => r.p[1] < 9 && Math.hypot(x - r.p[0], z - r.p[2]) < 5)) continue;
+    const h = 2 + rnd()*5.5;
+    p.set(x, 0, z); e.set((rnd() - .5)*.35, rnd()*6.3, (rnd() - .5)*.35); q.setFromEuler(e); s.set(.6 + rnd()*.6, h, .6 + rnd()*.6);
+    grass.setMatrixAt(n, m.compose(p, q, s));
+    grass.setColorAt(n, col.setHSL(0.23 + rnd()*0.07, 0.55, 0.27 + rnd()*0.16));
+    n++;
+  }
+  grass.count = n; scene.add(grass);
+}
+
+{ // wooden fence: back and both sides
+  const geo = new THREE.BoxGeometry(5.6, 1, 1.2); geo.translate(0, 0.5, 0);
+  const planks = [];
+  for (let x = -99; x <= 99; x += 6) planks.push([x, -95, 0]);
+  for (let z = -92; z <= 104; z += 6){ planks.push([-100, z, Math.PI/2]); planks.push([100, z, Math.PI/2]); }
+  const fence = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff}), planks.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color(), up = new THREE.Vector3(0,1,0);
+  planks.forEach((pl, i) => {
+    p.set(pl[0], 0, pl[1]); q.setFromAxisAngle(up, pl[2]); s.set(1, 33 + rnd()*3, 1);
+    fence.setMatrixAt(i, m.compose(p, q, s));
+    fence.setColorAt(i, col.setHSL(0.08, 0.32, 0.42 + rnd()*0.08));
+  });
+  scene.add(fence);
+}
+
+{ // red picnic table
+  const R = 0xb84a2e, cx = -30, cz = 5;
+  box(26, 1.4, 12, R, cx, 12, cz);
+  box(26, 1, 4, R, cx, 7, cz - 10); box(26, 1, 4, R, cx, 7, cz + 10);
+  for (const sx of [-11, 11]){
+    for (const sz of [-4.5, 4.5]) box(1.4, 12, 1.4, 0x8f3a24, cx + sx, 0, cz + sz);
+    for (const sz of [-10, 10]) box(1, 7, 1, 0x8f3a24, cx + sx, 0, cz + sz);
+  }
+}
+
+{ // tomato plant on its stake
+  const cx = 28, cz = 0;
+  post(0.5, 38, 0x8a6a42, cx + 1.5, 0, cz - 1.5);
+  post(0.9, 32, 0x4f7f2e, cx, 0, cz);
+  for (const [x,y,z] of [[-4,12,2],[4,18,-3],[-3,24,-2],[3,29,3]]) ball(3.4, 0x3f7a2a, cx + x, y, cz + z, false, 0.35);
+  for (const [x,y,z,c] of [[-3,14,3,0xd9342b],[3.5,20,-2,0xd9342b],[-2,26,4,0xe0452f],[4,9,2,0xc92f26],[1,30,1,0x7fae3a]]) ball(3, c, cx + x, y, cz + z);
+}
+
+{ // dandelions
+  for (const [x,z,h] of [[-14,30,13],[40,30,16],[-52,-40,18],[56,-50,14],[-70,40,12]]){
+    post(0.3, h, 0x5c8a35, x, 0, z, false);
+    ball(2.3, 0xf2c629, x, h + 1.2, z);
+  }
+}
+
+{ // the giant (practice dummy for now), holding a fly swatter
+  const gz = -30, skin = 0xd9a27a;
+  box(7, 3, 11, 0x333336, -6, 0, gz + 1.5); box(7, 3, 11, 0x333336, 6, 0, gz + 1.5);
+  box(5.5, 22, 6, 0x3f5f8f, -6, 3, gz); box(5.5, 22, 6, 0x3f5f8f, 6, 3, gz);
+  box(19, 18, 9, 0xe0a530, 0, 25, gz);
+  box(4.5, 17, 5, 0xe0a530, -12, 26, gz); box(4.5, 17, 5, 0xe0a530, 12, 26, gz);
+  ball(2.6, skin, -12, 25, gz); ball(2.6, skin, 12, 25, gz);
+  box(4, 3, 4, skin, 0, 43, gz);
+  ball(5.5, skin, 0, 50.5, gz);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(5.8, 18, 10, 0, Math.PI*2, 0, Math.PI/2), mat(0x3b2a1e));
+  hair.position.set(0, 51, gz); scene.add(hair);
+  ball(0.7, 0x111111, -2, 51.5, gz + 5.1, false); ball(0.7, 0x111111, 2, 51.5, gz + 5.1, false);
+  post(0.45, 20, 0x2b2b2b, 12, 25, gz + 1);
+  box(8, 9, 0.5, 0xe6463c, 12, 44.5, gz + 1);
+}
+
+/* ---------- rings ---------- */
+const ringMatTarget = new THREE.MeshBasicMaterial({color:0xffd23f});
+const ringMatNext = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.45});
+const ringMatDone = new THREE.MeshBasicMaterial({color:0x6fe39a, transparent:true, opacity:0.3});
+const rings = RINGS.map((r, i) => {
+  const rad = r.r || 3;
+  const mesh = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.32, 10, 40), ringMatNext);
+  mesh.position.set(...r.p); scene.add(mesh);
+  const pos = mesh.position, look = new THREE.Vector3();
+  if (r.face) look.set(...r.face).add(pos);
+  else {
+    const prev = new THREE.Vector3(...(RINGS[i-1] || {p:[0,1.6,44]}).p);
+    const next = RINGS[i+1] ? new THREE.Vector3(...RINGS[i+1].p) : pos.clone().multiplyScalar(2).sub(prev);
+    const d1 = pos.clone().sub(prev).normalize(), d2 = next.clone().sub(pos).normalize();
+    look.copy(d1.add(d2)).add(pos);
+  }
+  mesh.lookAt(look);
+  return {mesh, rad, name:r.name};
+});
+
+/* ---------- wings on the controllers, wrist HUD, arrow ---------- */
+function wingGeo(side){
+  const s = new THREE.Shape(); s.absellipse(0.24*side, 0, 0.25, 0.085, 0, Math.PI*2, false, 0);
+  const g = new THREE.ShapeGeometry(s, 24); g.rotateX(-Math.PI/2); return g;
+}
+const wingMat = new THREE.MeshBasicMaterial({color:0x9fe9df, transparent:true, opacity:0.42, side:THREE.DoubleSide, depthWrite:false});
+const wingMat2 = new THREE.MeshBasicMaterial({color:0xc6b4ff, transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false});
+
+const hudCanvas = document.createElement('canvas'); hudCanvas.width = 512; hudCanvas.height = 200;
+const hudCtx = hudCanvas.getContext('2d');
+const hudTex = new THREE.CanvasTexture(hudCanvas);
+const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.0625), new THREE.MeshBasicMaterial({map:hudTex, transparent:true, depthTest:false}));
+hudMesh.renderOrder = 998; hudMesh.position.set(0, 0.03, 0.07); hudMesh.rotation.x = -Math.PI/2.6;
+const arrowGeo = new THREE.ConeGeometry(0.014, 0.05, 10); arrowGeo.rotateX(Math.PI/2);
+const arrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xffd23f, depthTest:false}));
+arrow.renderOrder = 999; arrow.position.set(0, 0.075, 0.02);
+let lastHud = '';
+function drawHud(a, b){
+  const key = a + '|' + b; if (key === lastHud) return; lastHud = key;
+  const c = hudCtx; c.clearRect(0, 0, 512, 200);
+  c.fillStyle = 'rgba(10,20,16,0.82)'; c.beginPath();
+  if (c.roundRect) c.roundRect(4, 4, 504, 192, 36); else c.rect(4, 4, 504, 192); c.fill();
+  c.fillStyle = '#7fe3d6'; c.font = 'bold 66px system-ui, sans-serif'; c.fillText(a, 30, 86);
+  c.fillStyle = '#eef5ea'; c.font = '40px system-ui, sans-serif'; c.fillText(b, 30, 160);
+  hudTex.needsUpdate = true;
+}
+
+const controllers = [0, 1].map(i => {
+  const c = renderer.xr.getController(i);
+  c.userData = {prev:new THREE.Vector3(), prevOk:false, src:null, hand:'', btn:false};
+  c.addEventListener('connected', e => {
+    const d = c.userData; d.src = e.data; d.hand = e.data.handedness; d.prevOk = false;
+    while (c.children.length) c.remove(c.children[0]);
+    const side = d.hand === 'left' ? -1 : 1;
+    c.add(new THREE.Mesh(wingGeo(side), wingMat));
+    const inner = new THREE.Mesh(wingGeo(side), wingMat2); inner.scale.set(0.6, 1, 0.6); inner.position.z = 0.04; c.add(inner);
+    if (d.hand === 'left'){ c.add(hudMesh); c.add(arrow); }
+  });
+  c.addEventListener('disconnected', () => { c.userData.src = null; c.userData.prevOk = false; });
+  rig.add(c); return c;
+});
+
+/* ---------- comfort vignette ---------- */
+const vig = (() => {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const g = cv.getContext('2d'), grd = g.createRadialGradient(128, 128, 40, 128, 128, 128);
+  grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.55, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(0,0,0,1)');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 256);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv), transparent:true, opacity:0, depthTest:false, depthWrite:false}));
+  m.position.z = -0.16; m.renderOrder = 1000; camera.add(m); return m;
+})();
+
+/* ---------- sound ---------- */
+let audio = null;
+function startAudio(){
+  if (!tune.sound || audio) return;
+  try{
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator(), o2 = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'sawtooth'; o2.type = 'square'; o.frequency.value = 170; o2.frequency.value = 174;
+    f.type = 'bandpass'; f.frequency.value = 850; f.Q.value = 1.1; g.gain.value = 0;
+    o.connect(f); o2.connect(f); f.connect(g); g.connect(ac.destination); o.start(); o2.start();
+    audio = {ac, o, o2, g};
+  }catch(e){}
+}
+function setBuzz(level, speed){
+  if (!audio) return;
+  const t = audio.ac.currentTime;
+  audio.g.gain.setTargetAtTime(tune.sound ? Math.min(0.11, level) : 0, t, 0.06);
+  audio.o.frequency.setTargetAtTime(150 + speed*9, t, 0.1);
+  audio.o2.frequency.setTargetAtTime(154 + speed*9, t, 0.1);
+}
+function ding(final){
+  if (!audio || !tune.sound) return;
+  const ac = audio.ac, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  o.type = 'triangle'; o.frequency.setValueAtTime(final ? 660 : 880, t); o.frequency.exponentialRampToValueAtTime(final ? 1320 : 1320, t + 0.12);
+  g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + (final ? 0.7 : 0.25));
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.8);
+}
+
+/* ---------- game state ---------- */
+const START = new THREE.Vector3(0, 0, 44);
+const vel = new THREE.Vector3();
+let state = 'menu', cur = 0, startT = 0, finishT = 0, resetAt = 0, grounded = true, flapLevel = 0;
+let yaw = 0, pitch = 0.1;
+const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
+function resetCourse(){
+  rig.position.copy(START); rig.rotation.set(0, 0, 0); yaw = 0; pitch = 0.05; vel.set(0, 0, 0);
+  cur = 0; startT = 0; finishT = 0; resetAt = 0;
+  controllers.forEach(c => c.userData.prevOk = false);
+}
+function passRing(now){
+  if (cur === 0) startT = now;
+  cur++;
+  if (cur >= rings.length){
+    finishT = now - startT; resetAt = now + 7; ding(true);
+    if (best == null || finishT < best){ best = finishT; store.set('likeflies.best', best); }
+    $('#bestTime').textContent = fmt(best);
+  } else ding(false);
+}
+
+const tA = new THREE.Vector3(), tB = new THREE.Vector3(), tmp = new THREE.Vector3(), push = new THREE.Vector3(), head = new THREE.Vector3(), fwd = new THREE.Vector3();
+function turnAroundHead(a){
+  camera.getWorldPosition(tA); rig.rotation.y += a; rig.updateMatrixWorld(true); camera.getWorldPosition(tB);
+  rig.position.x += tA.x - tB.x; rig.position.z += tA.z - tB.z;
+}
+
+function collide(pt, r){
+  for (const s of solids){
+    if (s.box){
+      const b = s.box;
+      if (pt.x > b.min.x - r && pt.x < b.max.x + r && pt.y > b.min.y - r && pt.y < b.max.y + r && pt.z > b.min.z - r && pt.z < b.max.z + r){
+        const opts = [
+          [b.max.x + r - pt.x, 'x', 1], [pt.x - (b.min.x - r), 'x', -1],
+          [b.max.y + r - pt.y, 'y', 1], [pt.y - (b.min.y - r), 'y', -1],
+          [b.max.z + r - pt.z, 'z', 1], [pt.z - (b.min.z - r), 'z', -1]];
+        opts.sort((a, b2) => a[0] - b2[0]);
+        const [d, ax, sg] = opts[0];
+        rig.position[ax] += d*sg; pt[ax] += d*sg;
+        if (vel[ax]*sg < 0) vel[ax] = 0;
+        if (ax === 'y' && sg > 0) grounded = true;
+      }
+    } else {
+      const dist = pt.distanceTo(s.c), min = s.r + r;
+      if (dist < min && dist > 1e-4){
+        tmp.subVectors(pt, s.c).divideScalar(dist);
+        const d = min - dist; rig.position.addScaledVector(tmp, d); pt.addScaledVector(tmp, d);
+        const vn = vel.dot(tmp); if (vn < 0) vel.addScaledVector(tmp, -vn);
+        if (tmp.y > 0.6) grounded = true;
+      }
+    }
+  }
+}
+
+/* ---------- input: screen ---------- */
+const keys = {};
+let dragging = false, lx = 0, ly = 0, fwdHeld = false;
+function flatFlap(){
+  if (state !== 'flat') return;
+  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+  vel.y += 4.4 * tune.flap / 1.6; vel.addScaledVector(fwd, 1.1);
+  flapLevel = 1;
+}
+addEventListener('keydown', e => {
+  if (state !== 'flat') return;
+  keys[e.code] = true;
+  if (e.code === 'Space'){ e.preventDefault(); if (!e.repeat) flatFlap(); }
+  if (e.code === 'KeyR') resetCourse();
+  if (e.code === 'Escape') showMenu();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+canvas.addEventListener('pointerdown', e => { if (state !== 'flat') return; dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  yaw -= (e.clientX - lx) * 0.005; pitch -= (e.clientY - ly) * 0.005; pitch = Math.max(-1.3, Math.min(1.3, pitch));
+  lx = e.clientX; ly = e.clientY;
+});
+canvas.addEventListener('pointerup', () => dragging = false);
+canvas.addEventListener('pointercancel', () => dragging = false);
+$('#flapBtn').addEventListener('pointerdown', e => { e.preventDefault(); flatFlap(); });
+const fb = $('#fwdBtn');
+fb.addEventListener('pointerdown', e => { e.preventDefault(); fwdHeld = true; });
+['pointerup','pointercancel','pointerleave'].forEach(t => fb.addEventListener(t, () => fwdHeld = false));
+
+/* ---------- simulation ---------- */
+function simulate(dt, now, xr){
+  let gravity = tune.gravity, gliding = false, effort = 0;
+
+  if (xr){
+    const live = controllers.filter(c => c.userData.src);
+    for (const c of live){
+      const d = c.userData, p = c.position;
+      if (!d.prevOk){ d.prev.copy(p); d.prevOk = true; continue; }
+      tmp.subVectors(p, d.prev).divideScalar(dt); d.prev.copy(p);
+      tmp.applyQuaternion(rig.quaternion);
+      const sp = tmp.length(); effort += sp;
+      const TH = 0.7;
+      if (sp > TH){
+        push.copy(tmp).multiplyScalar(-1);
+        push.x *= 0.5; push.z *= 0.5; if (push.y < 0) push.y *= 0.25;
+        vel.addScaledVector(push, tune.flap * 2.0 * (sp - TH) / sp * dt);
+      }
+      const gp = d.src.gamepad;
+      if (gp){
+        const pressed = !!(gp.buttons[4] && gp.buttons[4].pressed);
+        if (pressed && !d.btn) resetCourse();
+        d.btn = pressed;
+        if (d.hand === 'right'){
+          const ax = gp.axes.length >= 4 ? gp.axes[2] : (gp.axes[0] || 0);
+          if (Math.abs(ax) > 0.7 && !d.snap){ turnAroundHead(-Math.sign(ax) * Math.PI/6); d.snap = true; }
+          if (Math.abs(ax) < 0.3) d.snap = false;
+        }
+      }
+    }
+    const L = live.find(c => c.userData.hand === 'left'), R = live.find(c => c.userData.hand === 'right');
+    if (L && R && !grounded){
+      const span = Math.hypot(L.position.x - R.position.x, L.position.z - R.position.z);
+      const headY = camera.position.y, avgY = (L.position.y + R.position.y) / 2;
+      if (span > 1.0 && Math.abs(avgY - headY) < 0.5 && effort < 3.5){
+        gliding = true;
+        camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+        const sink = Math.max(0, -vel.y);
+        vel.y += sink * 2.2 * dt;
+        vel.addScaledVector(fwd, (1.6 + sink*0.7) * dt);
+        turnAroundHead(-(L.position.y - R.position.y) * 1.6 * dt);
+      }
+    }
+  } else {
+    rig.rotation.y = yaw; camera.rotation.set(pitch, 0, 0);
+    if (keys.KeyA || keys.ArrowLeft) yaw += 1.8*dt;
+    if (keys.KeyD || keys.ArrowRight) yaw -= 1.8*dt;
+    if (keys.KeyW || keys.ArrowUp || fwdHeld){ camera.getWorldDirection(fwd); vel.addScaledVector(fwd, 6*dt); effort += 1.5; }
+    if (keys.KeyS || keys.ArrowDown) vel.multiplyScalar(Math.exp(-3*dt));
+    if (keys.ShiftLeft || keys.ShiftRight) gravity *= 3;
+  }
+
+  vel.y -= gravity * dt * (gliding ? 0.35 : 1);
+  vel.multiplyScalar(Math.exp(-tune.drag * dt));
+  const sp = vel.length(); if (sp > 20) vel.multiplyScalar(20 / sp);
+  rig.position.addScaledVector(vel, dt);
+
+  grounded = false;
+  if (rig.position.y < 0){ rig.position.y = 0; if (vel.y < 0) vel.y = 0; grounded = true; }
+  if (rig.position.y > 88){ rig.position.y = 88; if (vel.y > 0) vel.y = 0; }
+  const P = rig.position;
+  if (P.x < -97){ P.x = -97; vel.x = Math.max(0, vel.x); } if (P.x > 97){ P.x = 97; vel.x = Math.min(0, vel.x); }
+  if (P.z < -92){ P.z = -92; vel.z = Math.max(0, vel.z); } if (P.z > 106){ P.z = 106; vel.z = Math.min(0, vel.z); }
+
+  rig.updateMatrixWorld(true);
+  camera.getWorldPosition(head);
+  collide(head, 0.35);
+  tmp.set(head.x, rig.position.y + 0.5, head.z); collide(tmp, 0.5);
+  if (grounded){ const f = Math.exp(-6*dt); vel.x *= f; vel.z *= f; }
+
+  rig.updateMatrixWorld(true);
+  camera.getWorldPosition(head);
+  if (cur < rings.length && head.distanceTo(rings[cur].mesh.position) < rings[cur].rad + 0.7) passRing(now);
+  if (resetAt && now > resetAt){ cur = 0; startT = 0; finishT = 0; resetAt = 0; }
+
+  flapLevel += (Math.min(1, effort / 6) - flapLevel) * Math.min(1, dt*6);
+  const speed = vel.length();
+  setBuzz(grounded ? 0 : 0.025 + flapLevel*0.08, speed);
+  vig.material.opacity = (xr && tune.vignette) ? Math.max(0, Math.min(0.8, (speed - 3) / 9)) : 0;
+
+  let a, b;
+  if (cur >= rings.length){ a = 'DONE ' + fmt(finishT); b = 'Best ' + fmt(best); }
+  else { a = 'RING ' + (cur + 1) + ' / ' + rings.length + (startT ? '  ' + fmt(now - startT) : ''); b = rings[cur].name; }
+  if (xr){
+    drawHud(a, b);
+    arrow.visible = cur < rings.length;
+    if (arrow.visible) arrow.lookAt(rings[cur].mesh.position);
+  } else {
+    $('#hudText').textContent = a + ' · ' + b;
+  }
+}
+
+function idle(t){
+  rig.position.set(0, 0, 52); rig.rotation.set(0, Math.sin(t*0.12)*0.35, 0);
+  camera.position.set(0, 6 + Math.sin(t*0.5)*0.6, 0); camera.rotation.set(0.12, 0, 0);
+  setBuzz(0, 0);
+}
+
+function animateRings(t){
+  rings.forEach((r, i) => {
+    if (i < cur){ r.mesh.material = ringMatDone; r.mesh.scale.setScalar(0.85); }
+    else if (i === cur){ r.mesh.material = ringMatTarget; r.mesh.scale.setScalar(1 + Math.sin(t*5)*0.06); }
+    else { r.mesh.material = ringMatNext; r.mesh.scale.setScalar(1); }
+  });
+}
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  const xr = renderer.xr.isPresenting;
+  if (xr || state === 'flat') simulate(dt, t, xr); else idle(t);
+  animateRings(t);
+  renderer.render(scene, camera);
+});
+
+function resize(){
+  if (renderer.xr.isPresenting) return;
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+/* ---------- menu, VR entry ---------- */
+const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
+const isTouch = matchMedia('(pointer: coarse)').matches;
+function setNote(text, warn){ note.textContent = text; note.classList.toggle('warn', !!warn); }
+function showMenu(){ state = 'menu'; menu.hidden = false; hud.hidden = true; pad.hidden = true; camera.position.set(0, 1.6, 0); }
+function playFlat(){
+  startAudio(); resetCourse(); state = 'flat';
+  menu.hidden = true; hud.hidden = false; pad.hidden = !isTouch;
+  camera.position.set(0, 1.6, 0); canvas.focus();
+}
+$('#flatBtn').addEventListener('click', playFlat);
+$('#toMenu').addEventListener('click', showMenu);
+
+async function enterVR(){
+  if (!navigator.xr){ setNote('This browser has no WebXR. Open this page in the Quest 3 browser.', true); return; }
+  try{
+    const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor', 'bounded-floor']});
+    startAudio(); resetCourse();
+    camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
+    await renderer.xr.setSession(session);
+    state = 'xr'; lastHud = '';
+    session.addEventListener('end', () => { showMenu(); resize(); });
+  }catch(err){
+    setNote('The headset would not start VR here (' + (err && err.name || 'error') + '). If you opened this inside the Claude app, open the standalone link in the Quest browser instead.', true);
+  }
+}
+$('#vrBtn').addEventListener('click', enterVR);
+
+if (navigator.xr && navigator.xr.isSessionSupported){
+  navigator.xr.isSessionSupported('immersive-vr').then(ok => {
+    setNote(ok ? 'Headset found. Clear some space around you, then tap Enter VR.' : 'No headset found. Use "Play on screen" to look around, or open this page on your Quest 3.', !ok);
+  }).catch(() => setNote('Could not check for a headset. Try Enter VR anyway.', true));
+} else setNote('No headset found. Use "Play on screen" to look around, or open this page on your Quest 3.', true);
+
+/* ---------- tuning panel ---------- */
+const sliders = [['tFlap','oFlap','flap'],['tGrav','oGrav','gravity'],['tDrag','oDrag','drag']];
+function syncTune(){
+  sliders.forEach(([i, o, k]) => { $('#' + i).value = tune[k]; $('#' + o).textContent = Number(tune[k]).toFixed(2); });
+  $('#tVig').checked = tune.vignette; $('#tSnd').checked = tune.sound;
+}
+sliders.forEach(([i, o, k]) => $('#' + i).addEventListener('input', e => { tune[k] = parseFloat(e.target.value); $('#' + o).textContent = tune[k].toFixed(2); store.set('likeflies.tune', tune); }));
+$('#tVig').addEventListener('change', e => { tune.vignette = e.target.checked; store.set('likeflies.tune', tune); });
+$('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; store.set('likeflies.tune', tune); if (tune.sound) startAudio(); });
+$('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); store.set('likeflies.tune', tune); syncTune(); });
+syncTune();
+if (best != null) $('#bestTime').textContent = fmt(best);
+})();
+</script>
+
+</body>
+</html>
