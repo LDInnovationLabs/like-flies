@@ -14,7 +14,7 @@
 /* Layout: live 3D backyard fills the screen; one glassy card floats over it like a wing. Single dark look by choice. */
 :root{
   --bg:#0e1712;
-  --panel:rgba(12,22,17,.84);
+  --panel:rgba(12,22,17,.86);
   --fg:#eef5ea;
   --muted:#a7baa6;
   --line:rgba(185,230,210,.18);
@@ -35,12 +35,12 @@ body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px
   padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   background:linear-gradient(180deg,rgba(8,16,12,.05),rgba(8,16,12,.55))}
-.card{margin:auto;width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;
+.card{margin:auto;width:min(480px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;
   padding:22px;display:flex;flex-direction:column;gap:18px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--wing)}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,11vw,56px);line-height:.95;margin:4px 0 0;letter-spacing:-.02em;text-wrap:balance;
   background:linear-gradient(100deg,var(--wing),var(--wing-2) 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.lede{margin:0;color:var(--fg);max-width:60ch}
+.lede{margin:0;max-width:60ch}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);padding:12px 16px;font-weight:700;color:var(--fg);background:transparent}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--wing);outline-offset:2px}
@@ -49,9 +49,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid
 .note{margin:0;font-size:13px;color:var(--muted);min-height:1em}
 .note.warn{color:var(--warn)}
 h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
-.how{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0}
+.how{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:10px 0 0}
 .how dt{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--wing);padding-top:2px}
 .how dd{margin:0;min-width:0}
+.rule{margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--wing);background:rgba(127,227,214,.07);border-radius:0 10px 10px 0}
 details{border-top:1px solid var(--line);padding-top:14px}
 summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px}
 .tune{display:flex;flex-direction:column;gap:14px;margin-top:14px}
@@ -68,13 +69,12 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
 .hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;
   padding-top:calc(12px + env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;min-width:0}
 .hud button{pointer-events:auto;padding:6px 14px;border-radius:999px;background:var(--panel);font-size:13px}
 .pad{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;gap:12px;pointer-events:none;
   padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .pad button{pointer-events:auto;width:96px;height:96px;border-radius:50%;background:var(--panel);font-size:14px;user-select:none;-webkit-user-select:none;touch-action:none}
 .pad .flap{background:var(--wing);color:var(--ink);border-color:transparent;font-size:17px}
-@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>
 
 <canvas id="c" tabindex="0" aria-label="3D backyard flight test"></canvas>
@@ -91,10 +91,10 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Flight test 01 · Quest 3</div>
+      <div class="eyebrow">Flight test v0.2 · Quest 2 &amp; 3</div>
       <h1>Like Flies</h1>
     </div>
-    <p class="lede">You're a fly in a giant backyard. Flap your arms to fly through 10 rings, from under the picnic table to the giant's nose. This test is only about one thing: does flying feel good?</p>
+    <p class="lede">You're a fly in a giant backyard. Fly through 10 rings, from under the picnic table to the giant's nose. v0.2 rebuilds flight around momentum and works with controllers or bare hands.</p>
     <div class="actions">
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
@@ -103,24 +103,25 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
     <div>
       <h2>How to fly</h2>
-      <dl class="how" style="margin-top:10px">
-        <dt>Flap</dt><dd>Swing both arms down hard. Faster swings lift you higher.</dd>
-        <dt>Glide</dt><dd>Hold both arms straight out at shoulder height.</dd>
+      <p class="rule"><b>Push the air away from where you want to go.</b> Flapping always gives power. The way your palms face decides where it pushes you.</p>
+      <dl class="how">
+        <dt>Hover</dt><dd>Arms out, palms down, flap.</dd>
+        <dt>Forward</dt><dd>Tilt your palms back as you flap.</dd>
+        <dt>Dive</dt><dd>Arms out, look down. You trade height for speed.</dd>
+        <dt>Climb</dt><dd>Arms out, look up, keep flapping.</dd>
+        <dt>Glide</dt><dd>Arms out, stop flapping. Your glide bends toward where you look.</dd>
+        <dt>Back</dt><dd>Hands together in front, palms forward, flap.</dd>
+        <dt>Brake</dt><dd>Tuck your arms in and stop flapping.</dd>
         <dt>Turn</dt><dd>While gliding, dip one wing. Or flick the right thumbstick.</dd>
-        <dt>Reset</dt><dd>Press A or X to start over.</dd>
-        <dt>Guide</dt><dd>Your left wrist shows the next ring and your time.</dd>
+        <dt>Settings</dt><dd>B or Y opens settings in VR. With bare hands, pinch your left thumb and finger for one second.</dd>
+        <dt>Reset</dt><dd>A or X, or the Reset button in settings.</dd>
       </dl>
     </div>
 
     <details id="tuneBox">
       <summary>Tuning</summary>
       <div class="tune">
-        <div class="row"><label for="tFlap">Flap power</label><output id="oFlap"></output>
-          <input type="range" id="tFlap" min="0.6" max="3" step="0.1"><small>Raise it if flying feels exhausting.</small></div>
-        <div class="row"><label for="tGrav">Gravity</label><output id="oGrav"></output>
-          <input type="range" id="tGrav" min="1" max="8" step="0.2"><small>Lower feels floaty. Higher feels heavy and twitchy.</small></div>
-        <div class="row"><label for="tDrag">Air drag</label><output id="oDrag"></output>
-          <input type="range" id="tDrag" min="0.1" max="1" step="0.05"><small>Higher stops you faster and lowers your top speed.</small></div>
+        <div id="tuneRows" class="tune" style="margin-top:0"></div>
         <div class="checks">
           <label><input type="checkbox" id="tVig">Comfort vignette</label>
           <label><input type="checkbox" id="tSnd">Buzz sound</label>
@@ -140,12 +141,34 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <script>
 (function(){
 const $ = s => document.querySelector(s);
+const V3 = THREE.Vector3;
 const store = {
   get(k,d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
-const DEFAULTS = {flap:1.6, gravity:3.2, drag:0.35, vignette:true, sound:true};
-let tune = Object.assign({}, DEFAULTS, store.get('likeflies.tune', {}));
+
+/* ---------- tuning (shared by the page and the in-headset menu) ---------- */
+const TUNE = [
+  {k:'hoverLift',   label:'Hover lift',         min:0.5, max:12, step:0.1,  def:4.5,  hint:'Upward push from each flap.'},
+  {k:'forwardLift', label:'Forward flap lift',  min:0,   max:12, step:0.1,  def:4.0,  hint:'Push from tilted palms while flapping.'},
+  {k:'palm',        label:'Palm influence',     min:0,   max:1,  step:0.05, def:0.85, hint:'1 = palms fully steer each flap. 0 = every flap pushes straight up.'},
+  {k:'gravity',     label:'Gravity',            min:0.5, max:8,  step:0.1,  def:3.0,  hint:'How fast you fall when you stop flapping.'},
+  {k:'momentum',    label:'Momentum',           min:0,   max:1,  step:0.05, def:0.7,  hint:'How much speed you keep while gliding.'},
+  {k:'airDrag',     label:'Air drag',           min:0,   max:1.5,step:0.05, def:0.25, hint:'How fast speed bleeds off in the air.'},
+  {k:'drift',       label:'Post-flap drift',    min:0.2, max:6,  step:0.1,  def:1.5,  unit:'s', hint:'How long you keep drifting after you stop flapping. Lower is more comfortable.'},
+  {k:'maxSpeed',    label:'Max speed',          min:4,   max:30, step:0.5,  def:14,   unit:' m/s'},
+  {k:'brake',       label:'Brake strength',     min:0.5, max:8,  step:0.1,  def:3.0,  hint:'How fast tucking your arms stops you.'},
+  {k:'lean',        label:'Lean strength',      min:0,   max:3,  step:0.05, def:1.0,  hint:'Dive speed from looking down, climb help from looking up.'},
+  {k:'steer',       label:'Look steering',      min:0,   max:4,  step:0.1,  def:1.2,  hint:'How fast a glide swings toward where you look.'},
+  {k:'turn',        label:'Wing turn rate',     min:0,   max:4,  step:0.1,  def:1.6,  hint:'Turning speed when you dip one wing.'},
+  {k:'deadzone',    label:'Palm tilt deadzone', min:0,   max:40, step:1,    def:15,   unit:'°', hint:'Palm tilts smaller than this still hover straight up.'}
+];
+const DEFAULTS = {vignette:true, sound:true};
+TUNE.forEach(t => DEFAULTS[t.k] = t.def);
+const TUNE_KEY = 'likeflies.tune.v02';
+let tune = Object.assign({}, DEFAULTS, store.get(TUNE_KEY, {}));
+const saveTune = () => store.set(TUNE_KEY, tune);
+const fmtVal = t => Number(tune[t.k]).toFixed(t.step >= 1 ? 0 : t.step >= 0.1 ? 1 : 2) + (t.unit || '');
 let best = store.get('likeflies.best', null);
 
 /* ---------- renderer, scene, rig ---------- */
@@ -183,7 +206,7 @@ function box(w,h,d,color,x,y,z,solid=true){
 function ball(r,color,x,y,z,solid=true,sy=1){
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 14), mat(color));
   m.position.set(x,y,z); m.scale.y = sy; scene.add(m);
-  if (solid) solids.push({c:new THREE.Vector3(x,y,z), r:r*Math.min(1,sy)});
+  if (solid) solids.push({c:new V3(x,y,z), r:r*Math.min(1,sy)});
   return m;
 }
 function post(r,h,color,x,y,z,solid=true){
@@ -219,7 +242,7 @@ const RINGS = [
   const N = 950;
   const geo = new THREE.ConeGeometry(0.35, 1, 4); geo.translate(0, 0.5, 0);
   const grass = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff}), N);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new V3(), p = new V3(), col = new THREE.Color();
   let n = 0, guard = 0;
   while (n < N && guard++ < 20000){
     const x = (rnd()*2 - 1) * 98, z = -92 + rnd()*200;
@@ -242,7 +265,7 @@ const RINGS = [
   for (let x = -99; x <= 99; x += 6) planks.push([x, -95, 0]);
   for (let z = -92; z <= 104; z += 6){ planks.push([-100, z, Math.PI/2]); planks.push([100, z, Math.PI/2]); }
   const fence = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff}), planks.length);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color(), up = new THREE.Vector3(0,1,0);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new V3(), p = new V3(), col = new THREE.Color(), up = new V3(0,1,0);
   planks.forEach((pl, i) => {
     p.set(pl[0], 0, pl[1]); q.setFromAxisAngle(up, pl[2]); s.set(1, 33 + rnd()*3, 1);
     fence.setMatrixAt(i, m.compose(p, q, s));
@@ -300,11 +323,11 @@ const rings = RINGS.map((r, i) => {
   const rad = r.r || 3;
   const mesh = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.32, 10, 40), ringMatNext);
   mesh.position.set(...r.p); scene.add(mesh);
-  const pos = mesh.position, look = new THREE.Vector3();
+  const pos = mesh.position, look = new V3();
   if (r.face) look.set(...r.face).add(pos);
   else {
-    const prev = new THREE.Vector3(...(RINGS[i-1] || {p:[0,1.6,44]}).p);
-    const next = RINGS[i+1] ? new THREE.Vector3(...RINGS[i+1].p) : pos.clone().multiplyScalar(2).sub(prev);
+    const prev = new V3(...(RINGS[i-1] || {p:[0,1.6,44]}).p);
+    const next = RINGS[i+1] ? new V3(...RINGS[i+1].p) : pos.clone().multiplyScalar(2).sub(prev);
     const d1 = pos.clone().sub(prev).normalize(), d2 = next.clone().sub(pos).normalize();
     look.copy(d1.add(d2)).add(pos);
   }
@@ -312,47 +335,46 @@ const rings = RINGS.map((r, i) => {
   return {mesh, rad, name:r.name};
 });
 
-/* ---------- wings on the controllers, wrist HUD, arrow ---------- */
-function wingGeo(side){
-  const s = new THREE.Shape(); s.absellipse(0.24*side, 0, 0.25, 0.085, 0, Math.PI*2, false, 0);
+/* ---------- wings, wrist HUD, guide arrow ---------- */
+const wingGeo = (() => {
+  const s = new THREE.Shape(); s.absellipse(0.22, 0, 0.24, 0.08, 0, Math.PI*2, false, 0);
   const g = new THREE.ShapeGeometry(s, 24); g.rotateX(-Math.PI/2); return g;
-}
+})();
 const wingMat = new THREE.MeshBasicMaterial({color:0x9fe9df, transparent:true, opacity:0.42, side:THREE.DoubleSide, depthWrite:false});
 const wingMat2 = new THREE.MeshBasicMaterial({color:0xc6b4ff, transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false});
 
-const hudCanvas = document.createElement('canvas'); hudCanvas.width = 512; hudCanvas.height = 200;
+function mkHand(side){
+  const obj = new THREE.Group(); obj.visible = false;
+  obj.add(new THREE.Mesh(wingGeo, wingMat));
+  const inner = new THREE.Mesh(wingGeo, wingMat2); inner.scale.set(0.6, 1, 0.6); inner.position.y = 0.003; obj.add(inner);
+  rig.add(obj);
+  return {side, obj, has:false, isHand:false, wasHand:null, pos:new V3(), q:new THREE.Quaternion(), palm:new V3(),
+    prev:new V3(), prevT:0, prevOk:false, power:0, wasPower:false, speed:0, src:null,
+    tip:new V3(), tipOk:false, pinch:false, trig:false, btnA:false, btnB:false, prevA:false, prevB:false, stickX:0, snap:false,
+    rayO:new V3(), rayD:new V3(), rayOk:false};
+}
+const HAND = {left:mkHand('left'), right:mkHand('right')};
+const HANDS = [HAND.left, HAND.right];
+
+const hudCanvas = document.createElement('canvas'); hudCanvas.width = 512; hudCanvas.height = 240;
 const hudCtx = hudCanvas.getContext('2d');
 const hudTex = new THREE.CanvasTexture(hudCanvas);
-const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.0625), new THREE.MeshBasicMaterial({map:hudTex, transparent:true, depthTest:false}));
-hudMesh.renderOrder = 998; hudMesh.position.set(0, 0.03, 0.07); hudMesh.rotation.x = -Math.PI/2.6;
+const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.075), new THREE.MeshBasicMaterial({map:hudTex, transparent:true, depthTest:false}));
+hudMesh.renderOrder = 998; hudMesh.visible = false; rig.add(hudMesh);
 const arrowGeo = new THREE.ConeGeometry(0.014, 0.05, 10); arrowGeo.rotateX(Math.PI/2);
 const arrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xffd23f, depthTest:false}));
-arrow.renderOrder = 999; arrow.position.set(0, 0.075, 0.02);
+arrow.renderOrder = 999; arrow.visible = false; rig.add(arrow);
 let lastHud = '';
-function drawHud(a, b){
-  const key = a + '|' + b; if (key === lastHud) return; lastHud = key;
-  const c = hudCtx; c.clearRect(0, 0, 512, 200);
-  c.fillStyle = 'rgba(10,20,16,0.82)'; c.beginPath();
-  if (c.roundRect) c.roundRect(4, 4, 504, 192, 36); else c.rect(4, 4, 504, 192); c.fill();
-  c.fillStyle = '#7fe3d6'; c.font = 'bold 66px system-ui, sans-serif'; c.fillText(a, 30, 86);
-  c.fillStyle = '#eef5ea'; c.font = '40px system-ui, sans-serif'; c.fillText(b, 30, 160);
+function drawHud(a, b, c3){
+  const key = a + '|' + b + '|' + c3; if (key === lastHud) return; lastHud = key;
+  const c = hudCtx; c.clearRect(0, 0, 512, 240);
+  c.fillStyle = 'rgba(10,20,16,0.85)'; c.beginPath();
+  if (c.roundRect) c.roundRect(4, 4, 504, 232, 36); else c.rect(4, 4, 504, 232); c.fill();
+  c.fillStyle = '#7fe3d6'; c.font = 'bold 62px system-ui, sans-serif'; c.fillText(a, 28, 78);
+  c.fillStyle = '#eef5ea'; c.font = '38px system-ui, sans-serif'; c.fillText(b, 28, 140);
+  c.fillStyle = '#a7baa6'; c.font = '30px ui-monospace, monospace'; c.fillText(c3, 28, 200);
   hudTex.needsUpdate = true;
 }
-
-const controllers = [0, 1].map(i => {
-  const c = renderer.xr.getController(i);
-  c.userData = {prev:new THREE.Vector3(), prevOk:false, src:null, hand:'', btn:false};
-  c.addEventListener('connected', e => {
-    const d = c.userData; d.src = e.data; d.hand = e.data.handedness; d.prevOk = false;
-    while (c.children.length) c.remove(c.children[0]);
-    const side = d.hand === 'left' ? -1 : 1;
-    c.add(new THREE.Mesh(wingGeo(side), wingMat));
-    const inner = new THREE.Mesh(wingGeo(side), wingMat2); inner.scale.set(0.6, 1, 0.6); inner.position.z = 0.04; c.add(inner);
-    if (d.hand === 'left'){ c.add(hudMesh); c.add(arrow); }
-  });
-  c.addEventListener('disconnected', () => { c.userData.src = null; c.userData.prevOk = false; });
-  rig.add(c); return c;
-});
 
 /* ---------- comfort vignette ---------- */
 const vig = (() => {
@@ -363,6 +385,109 @@ const vig = (() => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv), transparent:true, opacity:0, depthTest:false, depthWrite:false}));
   m.position.z = -0.16; m.renderOrder = 1000; camera.add(m); return m;
 })();
+
+/* ---------- in-headset settings panel ---------- */
+const PW = 800, PH = 1100, ROW = 58, ROW0 = 96;
+const TOG_Y = ROW0 + TUNE.length*ROW + 6, BTN_Y = TOG_Y + 70;
+const pCanvas = document.createElement('canvas'); pCanvas.width = PW; pCanvas.height = PH;
+const pctx = pCanvas.getContext('2d');
+const pTex = new THREE.CanvasTexture(pCanvas);
+const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.1), new THREE.MeshBasicMaterial({map:pTex}));
+panel.visible = false; scene.add(panel);
+const laserGeo = new THREE.BufferGeometry().setFromPoints([new V3(), new V3(0,0,-1)]);
+const laser = new THREE.Line(laserGeo, new THREE.LineBasicMaterial({color:0x7fe3d6}));
+laser.visible = false; laser.frustumCulled = false; scene.add(laser);
+const dot = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), new THREE.MeshBasicMaterial({color:0xffd23f, depthTest:false}));
+dot.renderOrder = 1001; dot.visible = false; scene.add(dot);
+const raycaster = new THREE.Raycaster();
+let menuOpen = false, ptrDown = false, activeRow = null, inputMode = 'No tracking';
+
+function rr(c, x, y, w, h, r){ c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
+function drawPanel(){
+  const c = pctx;
+  c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
+  c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
+  c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.2 · ' + inputMode, PW - 30, 60);
+  TUNE.forEach((t, i) => {
+    const y = ROW0 + i*ROW, f = (tune[t.k] - t.min) / (t.max - t.min);
+    c.textAlign = 'left'; c.fillStyle = i === activeRow ? '#ffd23f' : '#eef5ea'; c.font = '25px system-ui, sans-serif'; c.fillText(t.label, 30, y + 24);
+    c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px ui-monospace, monospace'; c.fillText(fmtVal(t), PW - 30, y + 24);
+    c.fillStyle = 'rgba(238,245,234,0.15)'; rr(c, 30, y + 36, PW - 60, 10, 5); c.fill();
+    c.fillStyle = '#7fe3d6'; rr(c, 30, y + 36, (PW - 60)*f, 10, 5); c.fill();
+    c.beginPath(); c.arc(30 + (PW - 60)*f, y + 41, 13, 0, Math.PI*2); c.fillStyle = '#eef5ea'; c.fill();
+  });
+  [['Vignette', tune.vignette, 30], ['Sound', tune.sound, PW/2 + 10]].forEach(([label, on, x]) => {
+    c.fillStyle = on ? 'rgba(127,227,214,0.22)' : 'rgba(238,245,234,0.06)'; rr(c, x, TOG_Y, PW/2 - 40, 54, 12); c.fill();
+    c.textAlign = 'left'; c.fillStyle = '#eef5ea'; c.font = '26px system-ui, sans-serif'; c.fillText(label + ': ' + (on ? 'On' : 'Off'), x + 20, TOG_Y + 36);
+  });
+  [['Reset course', 30], ['Defaults', 285], ['Close', 540]].forEach(([label, x], i) => {
+    c.fillStyle = i === 2 ? '#7fe3d6' : 'rgba(238,245,234,0.1)'; rr(c, x, BTN_Y, 230, 70, 14); c.fill();
+    c.textAlign = 'center'; c.fillStyle = i === 2 ? '#062420' : '#eef5ea'; c.font = 'bold 28px system-ui, sans-serif'; c.fillText(label, x + 115, BTN_Y + 45);
+  });
+  c.textAlign = 'center'; c.fillStyle = '#a7baa6'; c.font = '22px system-ui, sans-serif';
+  c.fillText('Point and pull the trigger, or poke with a finger. B or Y closes.', PW/2, BTN_Y + 112);
+  pTex.needsUpdate = true;
+}
+function panelPress(px, py, start){
+  if (start){
+    activeRow = null;
+    if (py >= ROW0 && py < ROW0 + TUNE.length*ROW) activeRow = Math.floor((py - ROW0) / ROW);
+    else if (py >= TOG_Y && py < TOG_Y + 54){ if (px < PW/2) tune.vignette = !tune.vignette; else { tune.sound = !tune.sound; if (tune.sound) startAudio(); } }
+    else if (py >= BTN_Y && py < BTN_Y + 70){
+      if (px < 270){ resetCourse(); closeMenu(); return; }
+      else if (px < 525){ tune = Object.assign({}, DEFAULTS); }
+      else { closeMenu(); return; }
+    }
+  }
+  if (activeRow != null){
+    const t = TUNE[activeRow];
+    const f = Math.max(0, Math.min(1, (px - 30) / (PW - 60)));
+    tune[t.k] = Math.round((t.min + f*(t.max - t.min)) / t.step) * t.step;
+    tune[t.k] = Math.max(t.min, Math.min(t.max, +tune[t.k].toFixed(4)));
+  }
+  saveTune(); syncDom(); drawPanel();
+}
+const headW = new V3(), headFwd = new V3(), fwdFlat = new V3();
+function openMenu(){
+  camera.getWorldPosition(headW); camera.getWorldDirection(headFwd);
+  fwdFlat.set(headFwd.x, 0, headFwd.z); if (fwdFlat.lengthSq() < 1e-6) fwdFlat.set(0, 0, -1); fwdFlat.normalize();
+  panel.position.copy(headW).addScaledVector(fwdFlat, 0.62); panel.position.y -= 0.12;
+  panel.lookAt(headW.x, panel.position.y, headW.z); panel.updateMatrixWorld(true);
+  panel.visible = true; menuOpen = true; ptrDown = false; activeRow = null; vel.set(0, 0, 0); drawPanel();
+}
+function closeMenu(){ menuOpen = false; panel.visible = false; laser.visible = false; dot.visible = false; activeRow = null; ptrDown = false; HANDS.forEach(h => h.prevOk = false); }
+
+const mO = new V3(), mD = new V3(), mW = new V3(), mL = new V3();
+function updateMenuPointer(){
+  const P = (HAND.right.has || HAND.right.rayOk) ? HAND.right : HAND.left;
+  let hit = null, pressed = false;
+  laser.visible = false; dot.visible = false;
+  rig.updateMatrixWorld(true);
+  if (P.rayOk){
+    mO.copy(P.rayO).applyMatrix4(rig.matrixWorld); mD.copy(P.rayD).applyQuaternion(rig.quaternion).normalize();
+    raycaster.set(mO, mD);
+    const hits = raycaster.intersectObject(panel);
+    const end = hits.length ? hits[0].point : mO.clone().addScaledVector(mD, 1.5);
+    if (hits.length){ hit = {x:hits[0].uv.x, y:hits[0].uv.y}; dot.position.copy(hits[0].point); }
+    const pos = laserGeo.attributes.position; pos.setXYZ(0, mO.x, mO.y, mO.z); pos.setXYZ(1, end.x, end.y, end.z); pos.needsUpdate = true;
+    laser.visible = true; pressed = P.trig;
+  } else if (P.tipOk){
+    mW.copy(P.tip).applyMatrix4(rig.matrixWorld); dot.position.copy(mW); dot.visible = true;
+    mL.copy(mW); panel.worldToLocal(mL);
+    if (Math.abs(mL.x) < 0.4 && Math.abs(mL.y) < 0.55 && mL.z < 0.3 && mL.z > -0.1){
+      hit = {x:mL.x/0.8 + 0.5, y:mL.y/1.1 + 0.5};
+      pressed = mL.z < 0.02;
+    }
+  }
+  if (hit){
+    dot.visible = true;
+    const px = hit.x*PW, py = (1 - hit.y)*PH;
+    if (pressed) panelPress(px, py, !ptrDown);
+  }
+  if (!pressed && activeRow != null){ activeRow = null; drawPanel(); }
+  ptrDown = pressed;
+}
 
 /* ---------- sound ---------- */
 let audio = null;
@@ -387,21 +512,24 @@ function setBuzz(level, speed){
 function ding(final){
   if (!audio || !tune.sound) return;
   const ac = audio.ac, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
-  o.type = 'triangle'; o.frequency.setValueAtTime(final ? 660 : 880, t); o.frequency.exponentialRampToValueAtTime(final ? 1320 : 1320, t + 0.12);
+  o.type = 'triangle'; o.frequency.setValueAtTime(final ? 660 : 880, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.12);
   g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + (final ? 0.7 : 0.25));
   o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.8);
 }
+function pulse(h){
+  try{ const a = h.src && h.src.gamepad && h.src.gamepad.hapticActuators && h.src.gamepad.hapticActuators[0]; if (a && a.pulse) a.pulse(0.25, 22); }catch(e){}
+}
 
 /* ---------- game state ---------- */
-const START = new THREE.Vector3(0, 0, 44);
-const vel = new THREE.Vector3();
-let state = 'menu', cur = 0, startT = 0, finishT = 0, resetAt = 0, grounded = true, flapLevel = 0;
-let yaw = 0, pitch = 0.1;
+const START = new V3(0, 0, 44);
+const vel = new V3();
+let state = 'menu', cur = 0, startT = 0, finishT = 0, resetAt = 0, grounded = true, flapLevel = 0, turnRate = 0;
+let yaw = 0, pitch = 0.1, lastFlapT = -9, calSpan = 1.4, flightState = 'ground', pinchT = 0, pinchLatch = false;
 const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
 function resetCourse(){
   rig.position.copy(START); rig.rotation.set(0, 0, 0); yaw = 0; pitch = 0.05; vel.set(0, 0, 0);
   cur = 0; startT = 0; finishT = 0; resetAt = 0;
-  controllers.forEach(c => c.userData.prevOk = false);
+  HANDS.forEach(h => h.prevOk = false); headPrevOk = false; thrustSm.set(0, 0, 0);
 }
 function passRing(now){
   if (cur === 0) startT = now;
@@ -413,7 +541,7 @@ function passRing(now){
   } else ding(false);
 }
 
-const tA = new THREE.Vector3(), tB = new THREE.Vector3(), tmp = new THREE.Vector3(), push = new THREE.Vector3(), head = new THREE.Vector3(), fwd = new THREE.Vector3();
+const tA = new V3(), tB = new V3(), tmp = new V3(), head = new V3();
 function turnAroundHead(a){
   camera.getWorldPosition(tA); rig.rotation.y += a; rig.updateMatrixWorld(true); camera.getWorldPosition(tB);
   rig.position.x += tA.x - tB.x; rig.position.z += tA.z - tB.z;
@@ -446,15 +574,195 @@ function collide(pt, r){
   }
 }
 
-/* ---------- input: screen ---------- */
+/* ---------- VR input: controllers and hands, read straight from the XR frame ---------- */
+const qTmp = new THREE.Quaternion();
+function readInputs(frame){
+  for (const h of HANDS){ h.has = false; h.rayOk = false; h.tipOk = false; h.pinch = false; h.trig = false; h.btnA = false; h.btnB = false; h.stickX = 0; }
+  const session = renderer.xr.getSession(), ref = renderer.xr.getReferenceSpace();
+  if (!session || !ref || !frame) return;
+  let nh = 0, nc = 0;
+  for (const src of session.inputSources){
+    const h = src.handedness === 'left' ? HAND.left : src.handedness === 'right' ? HAND.right : null;
+    if (!h) continue;
+    h.src = src;
+    if (src.hand){
+      const jp = name => { const js = src.hand.get(name); return js ? frame.getJointPose(js, ref) : null; };
+      const mc = jp('middle-finger-metacarpal');
+      if (mc){
+        const p = mc.transform.position, o = mc.transform.orientation;
+        h.pos.set(p.x, p.y, p.z); h.q.set(o.x, o.y, o.z, o.w);
+        h.palm.set(0, -1, 0).applyQuaternion(h.q);           // hand joints: -Y points out of the palm
+        h.has = true; h.isHand = true; nh++;
+      }
+      const ti = jp('index-finger-tip'), th = jp('thumb-tip');
+      if (ti){ const p = ti.transform.position; h.tip.set(p.x, p.y, p.z); h.tipOk = true; }
+      if (ti && th){ const a = ti.transform.position, b = th.transform.position; h.pinch = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 0.02; }
+    } else {
+      if (src.gripSpace){
+        const gp = frame.getPose(src.gripSpace, ref);
+        if (gp){
+          const p = gp.transform.position, o = gp.transform.orientation;
+          h.pos.set(p.x, p.y, p.z); h.q.set(o.x, o.y, o.z, o.w);
+          h.palm.set(h.side === 'right' ? -1 : 1, 0, 0).applyQuaternion(h.q); // grip space: palm faces -X (right), +X (left)
+          h.has = true; h.isHand = false; nc++;
+        }
+      }
+      if (src.targetRaySpace){
+        const rp = frame.getPose(src.targetRaySpace, ref);
+        if (rp){ const p = rp.transform.position, o = rp.transform.orientation; h.rayO.set(p.x, p.y, p.z); h.rayD.set(0, 0, -1).applyQuaternion(qTmp.set(o.x, o.y, o.z, o.w)); h.rayOk = true; }
+      }
+      const g = src.gamepad;
+      if (g){ const b = i => !!(g.buttons[i] && g.buttons[i].pressed); h.trig = b(0); h.btnA = b(4); h.btnB = b(5); h.stickX = g.axes.length >= 4 ? g.axes[2] : (g.axes[0] || 0); }
+    }
+    if (h.has && h.wasHand !== h.isHand){ h.prevOk = false; h.wasHand = h.isHand; }
+  }
+  inputMode = nh && nc ? 'Hands + controller' : nh ? 'Hands' : nc ? 'Controllers' : 'No tracking';
+}
+
+const bx = new V3(), by = new V3(), bz = new V3(), m4 = new THREE.Matrix4();
+function updateHandVisuals(headL){
+  for (const h of HANDS){
+    h.obj.visible = h.has; if (!h.has) continue;
+    h.obj.position.copy(h.pos);
+    bx.subVectors(h.pos, headL); bx.addScaledVector(h.palm, -bx.dot(h.palm));
+    if (bx.lengthSq() < 1e-6) bx.set(h.side === 'left' ? -1 : 1, 0, 0);
+    bx.normalize(); by.copy(h.palm).normalize(); bz.crossVectors(bx, by).normalize();
+    m4.makeBasis(bx, by, bz); h.obj.quaternion.setFromRotationMatrix(m4);
+  }
+  const L = HAND.left;
+  hudMesh.visible = arrow.visible = L.has;
+  if (L.has){
+    camera.getWorldPosition(headW);
+    hudMesh.position.copy(L.pos).add(tmp.set(0, 0.13, 0)); hudMesh.lookAt(headW);
+    arrow.position.copy(L.pos).add(tmp.set(0, 0.21, 0));
+    arrow.visible = cur < rings.length;
+    if (arrow.visible) arrow.lookAt(rings[cur].mesh.position);
+  }
+}
+
+const headPrev = new V3(), headVelL = new V3(), hv = new V3(), pw = new V3(), td = new V3(), thrustRaw = new V3(), thrustSm = new V3(), sDir = new V3();
+let headPrevOk = false;
+function steerToward(dir, maxAngle){
+  const sp = vel.length(); if (sp < 1 || maxAngle <= 0) return;
+  sDir.copy(vel).divideScalar(sp);
+  const ang = sDir.angleTo(dir); if (ang < 1e-4) return;
+  sDir.lerp(dir, Math.min(1, maxAngle / ang)).normalize();
+  vel.copy(sDir).multiplyScalar(sp);
+}
+
+function simulateXR(dt, now, frame){
+  readInputs(frame);
+  const L = HAND.left, R = HAND.right;
+
+  for (const h of HANDS){
+    if (h.btnA && !h.prevA){ if (menuOpen) closeMenu(); resetCourse(); }
+    if (h.btnB && !h.prevB){ menuOpen ? closeMenu() : openMenu(); }
+    h.prevA = h.btnA; h.prevB = h.btnB;
+  }
+  if (L.isHand && L.pinch){
+    pinchT += dt;
+    if (pinchT > 0.8 && !pinchLatch){ pinchLatch = true; menuOpen ? closeMenu() : openMenu(); }
+  } else { pinchT = 0; pinchLatch = false; }
+  if (!menuOpen){
+    const ax = R.stickX;
+    if (Math.abs(ax) > 0.7 && !R.snap){ turnAroundHead(-Math.sign(ax) * Math.PI/6); R.snap = true; }
+    if (Math.abs(ax) < 0.3) R.snap = false;
+  }
+
+  const headL = camera.position;
+  if (headPrevOk) headVelL.subVectors(headL, headPrev).divideScalar(dt); else { headVelL.set(0, 0, 0); headPrevOk = true; }
+  headPrev.copy(headL);
+  updateHandVisuals(headL);
+
+  if (menuOpen){ vel.set(0, 0, 0); updateMenuPointer(); HANDS.forEach(h => h.prevOk = false); return false; }
+
+  /* 1. Flap power and thrust direction: push the air away */
+  thrustRaw.set(0, 0, 0);
+  let effort = 0, flapNow = false;
+  const dz = Math.sin(tune.deadzone * Math.PI / 180);
+  for (const h of HANDS){
+    if (!h.has){ if (now - h.prevT > 0.25) h.prevOk = false; h.power = 0; h.speed = 0; continue; }
+    if (!h.prevOk){ h.prev.copy(h.pos); h.prevT = now; h.prevOk = true; h.power = 0; h.speed = 0; continue; }
+    const hdt = Math.min(0.25, Math.max(1e-3, now - h.prevT));   // covers short tracking gaps
+    hv.subVectors(h.pos, h.prev).divideScalar(hdt).sub(headVelL);  // hand motion relative to the body
+    h.prev.copy(h.pos); h.prevT = now;
+    hv.applyQuaternion(rig.quaternion);
+    pw.copy(h.palm).applyQuaternion(rig.quaternion);
+    h.speed = hv.length(); effort += h.speed;
+    const stroke = Math.max(-hv.y, hv.dot(pw));   // a downstroke, or a push in the direction the palm faces
+    h.power = Math.max(0, stroke - 0.55);
+    if (h.power > 0){
+      flapNow = true;
+      td.copy(pw).multiplyScalar(-tune.palm); td.y += 1 - tune.palm;
+      const hk = Math.hypot(td.x, td.z) < dz ? 0 : 1;
+      const k = h.power * Math.min(4, hdt / dt);
+      thrustRaw.x += td.x * hk * tune.forwardLift * k;
+      thrustRaw.z += td.z * hk * tune.forwardLift * k;
+      thrustRaw.y += td.y * tune.hoverLift * k;
+      if (!h.wasPower) pulse(h);
+    }
+    h.wasPower = h.power > 0;
+  }
+  if (flapNow) lastFlapT = now;
+  const isFlapping = now - lastFlapT < 0.25;
+  thrustSm.lerp(thrustRaw, Math.min(1, dt / 0.08));   // soft ease in and out
+
+  /* 2. Body-relative pose */
+  let armsOut = false, compact = false;
+  if (L.has && R.has){
+    const span = L.pos.distanceTo(R.pos);
+    calSpan = Math.min(2.2, Math.max(1.2, Math.max(calSpan - 0.01*dt, span)));
+    armsOut = span > 0.72 * calSpan;
+    compact = span < 0.42 * calSpan;
+  }
+  camera.getWorldDirection(headFwd);
+  fwdFlat.set(headFwd.x, 0, headFwd.z); if (fwdFlat.lengthSq() < 1e-6) fwdFlat.set(0, 0, -1); fwdFlat.normalize();
+  const look = Math.asin(Math.max(-1, Math.min(1, -headFwd.y)));       // + looking down, - looking up
+  const lean = Math.max(-1, Math.min(1, Math.sign(look) * Math.max(0, Math.abs(look) - 0.17)));
+  const hTh = Math.hypot(thrustSm.x, thrustSm.z);
+  const reverse = isFlapping && hTh > 0.5 && (thrustSm.x*fwdFlat.x + thrustSm.z*fwdFlat.z) < -0.4*hTh;
+  const braking = compact && !isFlapping && !grounded;
+  const gliding = armsOut && !isFlapping && !grounded;
+  const climbing = armsOut && isFlapping && lean < 0;
+  flightState = grounded && !isFlapping ? 'ground' : braking ? 'brake' : gliding ? (lean > 0 ? 'dive' : 'glide') : isFlapping ? (reverse ? 'reverse' : climbing ? 'climb' : 'flap') : 'drift';
+
+  /* 3. Momentum */
+  vel.addScaledVector(thrustSm, dt);
+  if (climbing && thrustSm.y > 0) vel.y += thrustSm.y * (-lean) * tune.lean * dt;
+  if (armsOut && lean > 0 && !grounded){
+    const s = Math.sin(lean) * tune.lean;
+    vel.addScaledVector(headFwd, 7*s*dt); vel.addScaledVector(fwdFlat, 3*s*dt);
+  }
+  vel.y -= tune.gravity * dt * (braking ? 0.2 : gliding ? 0.4 : 1);
+
+  const steerK = (reverse || braking) ? 0 : gliding ? 1 : (isFlapping && armsOut ? 0.3 : 0);
+  if (steerK > 0) steerToward(headFwd, tune.steer * steerK * dt);
+
+  let dragH = tune.airDrag, dragV = tune.airDrag;
+  if (gliding){ dragH *= 1 - tune.momentum; dragV *= 1 - tune.momentum; }
+  if (climbing) dragH = 0;
+  const settle = 3 / Math.max(0.2, tune.drift);
+  if (braking){ dragH += tune.brake; dragV += tune.brake; }
+  else if (!isFlapping && !gliding) dragH += settle;     // post-flap drift fades over the drift setting
+  else if (isFlapping && hTh < 0.3) dragH += settle*0.5; // gentle settle while hovering
+  const kh = Math.exp(-dragH*dt), kv = Math.exp(-dragV*dt);
+  vel.x *= kh; vel.z *= kh; vel.y *= kv;
+
+  /* 4. Lean-to-turn, unchanged from v0.1 */
+  let turnAmt = 0;
+  if (L.has && R.has && !grounded && armsOut && effort < 3.5){
+    const avgY = (L.pos.y + R.pos.y) / 2;
+    if (Math.abs(avgY - headL.y) < 0.5){ turnAmt = -(L.pos.y - R.pos.y) * tune.turn * dt; turnAroundHead(turnAmt); }
+  }
+  turnRate += (Math.abs(turnAmt)/dt - turnRate) * Math.min(1, dt*5);
+  flapLevel += (Math.min(1, effort / 6) - flapLevel) * Math.min(1, dt*6);
+  return true;
+}
+
+/* ---------- on-screen preview controls ---------- */
 const keys = {};
 let dragging = false, lx = 0, ly = 0, fwdHeld = false;
-function flatFlap(){
-  if (state !== 'flat') return;
-  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
-  vel.y += 4.4 * tune.flap / 1.6; vel.addScaledVector(fwd, 1.1);
-  flapLevel = 1;
-}
+function flatFlap(){ if (state !== 'flat') return; vel.y += 0.9 * tune.hoverLift; flapLevel = 1; lastFlapT = clock.elapsedTime; }
 addEventListener('keydown', e => {
   if (state !== 'flat') return;
   keys[e.code] = true;
@@ -476,61 +784,21 @@ const fb = $('#fwdBtn');
 fb.addEventListener('pointerdown', e => { e.preventDefault(); fwdHeld = true; });
 ['pointerup','pointercancel','pointerleave'].forEach(t => fb.addEventListener(t, () => fwdHeld = false));
 
-/* ---------- simulation ---------- */
-function simulate(dt, now, xr){
-  let gravity = tune.gravity, gliding = false, effort = 0;
+function simulateFlat(dt){
+  rig.rotation.y = yaw; camera.rotation.set(pitch, 0, 0);
+  if (keys.KeyA || keys.ArrowLeft) yaw += 1.8*dt;
+  if (keys.KeyD || keys.ArrowRight) yaw -= 1.8*dt;
+  if (keys.KeyW || keys.ArrowUp || fwdHeld){ camera.getWorldDirection(headFwd); vel.addScaledVector(headFwd, 1.5*tune.forwardLift*dt); flapLevel = Math.max(flapLevel, 0.4); }
+  if (keys.KeyS || keys.ArrowDown) vel.multiplyScalar(Math.exp(-tune.brake*dt));
+  vel.y -= tune.gravity * dt * ((keys.ShiftLeft || keys.ShiftRight) ? 3 : 1);
+  vel.multiplyScalar(Math.exp(-tune.airDrag*dt));
+  flapLevel *= Math.exp(-3*dt);
+  flightState = grounded ? 'ground' : 'flap';
+}
 
-  if (xr){
-    const live = controllers.filter(c => c.userData.src);
-    for (const c of live){
-      const d = c.userData, p = c.position;
-      if (!d.prevOk){ d.prev.copy(p); d.prevOk = true; continue; }
-      tmp.subVectors(p, d.prev).divideScalar(dt); d.prev.copy(p);
-      tmp.applyQuaternion(rig.quaternion);
-      const sp = tmp.length(); effort += sp;
-      const TH = 0.7;
-      if (sp > TH){
-        push.copy(tmp).multiplyScalar(-1);
-        push.x *= 0.5; push.z *= 0.5; if (push.y < 0) push.y *= 0.25;
-        vel.addScaledVector(push, tune.flap * 2.0 * (sp - TH) / sp * dt);
-      }
-      const gp = d.src.gamepad;
-      if (gp){
-        const pressed = !!(gp.buttons[4] && gp.buttons[4].pressed);
-        if (pressed && !d.btn) resetCourse();
-        d.btn = pressed;
-        if (d.hand === 'right'){
-          const ax = gp.axes.length >= 4 ? gp.axes[2] : (gp.axes[0] || 0);
-          if (Math.abs(ax) > 0.7 && !d.snap){ turnAroundHead(-Math.sign(ax) * Math.PI/6); d.snap = true; }
-          if (Math.abs(ax) < 0.3) d.snap = false;
-        }
-      }
-    }
-    const L = live.find(c => c.userData.hand === 'left'), R = live.find(c => c.userData.hand === 'right');
-    if (L && R && !grounded){
-      const span = Math.hypot(L.position.x - R.position.x, L.position.z - R.position.z);
-      const headY = camera.position.y, avgY = (L.position.y + R.position.y) / 2;
-      if (span > 1.0 && Math.abs(avgY - headY) < 0.5 && effort < 3.5){
-        gliding = true;
-        camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
-        const sink = Math.max(0, -vel.y);
-        vel.y += sink * 2.2 * dt;
-        vel.addScaledVector(fwd, (1.6 + sink*0.7) * dt);
-        turnAroundHead(-(L.position.y - R.position.y) * 1.6 * dt);
-      }
-    }
-  } else {
-    rig.rotation.y = yaw; camera.rotation.set(pitch, 0, 0);
-    if (keys.KeyA || keys.ArrowLeft) yaw += 1.8*dt;
-    if (keys.KeyD || keys.ArrowRight) yaw -= 1.8*dt;
-    if (keys.KeyW || keys.ArrowUp || fwdHeld){ camera.getWorldDirection(fwd); vel.addScaledVector(fwd, 6*dt); effort += 1.5; }
-    if (keys.KeyS || keys.ArrowDown) vel.multiplyScalar(Math.exp(-3*dt));
-    if (keys.ShiftLeft || keys.ShiftRight) gravity *= 3;
-  }
-
-  vel.y -= gravity * dt * (gliding ? 0.35 : 1);
-  vel.multiplyScalar(Math.exp(-tune.drag * dt));
-  const sp = vel.length(); if (sp > 20) vel.multiplyScalar(20 / sp);
+/* ---------- shared step: move, collide, rings, HUD ---------- */
+function integrate(dt, now, xr){
+  const sp0 = vel.length(); if (sp0 > tune.maxSpeed) vel.multiplyScalar(tune.maxSpeed / sp0);
   rig.position.addScaledVector(vel, dt);
 
   grounded = false;
@@ -551,21 +819,16 @@ function simulate(dt, now, xr){
   if (cur < rings.length && head.distanceTo(rings[cur].mesh.position) < rings[cur].rad + 0.7) passRing(now);
   if (resetAt && now > resetAt){ cur = 0; startT = 0; finishT = 0; resetAt = 0; }
 
-  flapLevel += (Math.min(1, effort / 6) - flapLevel) * Math.min(1, dt*6);
   const speed = vel.length();
   setBuzz(grounded ? 0 : 0.025 + flapLevel*0.08, speed);
-  vig.material.opacity = (xr && tune.vignette) ? Math.max(0, Math.min(0.8, (speed - 3) / 9)) : 0;
+  vig.material.opacity = (xr && tune.vignette) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
 
   let a, b;
   if (cur >= rings.length){ a = 'DONE ' + fmt(finishT); b = 'Best ' + fmt(best); }
   else { a = 'RING ' + (cur + 1) + ' / ' + rings.length + (startT ? '  ' + fmt(now - startT) : ''); b = rings[cur].name; }
-  if (xr){
-    drawHud(a, b);
-    arrow.visible = cur < rings.length;
-    if (arrow.visible) arrow.lookAt(rings[cur].mesh.position);
-  } else {
-    $('#hudText').textContent = a + ' · ' + b;
-  }
+  const c3 = flightState + ' · ' + speed.toFixed(1) + ' m/s';
+  if (xr) drawHud(a, b, inputMode + ' · ' + c3);
+  else $('#hudText').textContent = a + ' · ' + c3;
 }
 
 function idle(t){
@@ -583,10 +846,12 @@ function animateRings(t){
 }
 
 const clock = new THREE.Clock();
-renderer.setAnimationLoop(() => {
+renderer.setAnimationLoop((time, frame) => {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   const xr = renderer.xr.isPresenting;
-  if (xr || state === 'flat') simulate(dt, t, xr); else idle(t);
+  if (xr && frame){ if (simulateXR(dt, t, frame)) integrate(dt, t, true); }
+  else if (state === 'flat'){ simulateFlat(dt); integrate(dt, t, false); }
+  else idle(t);
   animateRings(t);
   renderer.render(scene, camera);
 });
@@ -598,7 +863,7 @@ function resize(){
 }
 addEventListener('resize', resize); resize();
 
-/* ---------- menu, VR entry ---------- */
+/* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
 const isTouch = matchMedia('(pointer: coarse)').matches;
 function setNote(text, warn){ note.textContent = text; note.classList.toggle('warn', !!warn); }
@@ -612,37 +877,46 @@ $('#flatBtn').addEventListener('click', playFlat);
 $('#toMenu').addEventListener('click', showMenu);
 
 async function enterVR(){
-  if (!navigator.xr){ setNote('This browser has no WebXR. Open this page in the Quest 3 browser.', true); return; }
+  if (!navigator.xr){ setNote('This browser has no WebXR. Open this page in the Quest browser.', true); return; }
   try{
-    const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor', 'bounded-floor']});
-    startAudio(); resetCourse();
+    const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor', 'bounded-floor', 'hand-tracking']});
+    startAudio(); resetCourse(); closeMenu();
     camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
     await renderer.xr.setSession(session);
     state = 'xr'; lastHud = '';
-    session.addEventListener('end', () => { showMenu(); resize(); });
+    session.addEventListener('end', () => { closeMenu(); hudMesh.visible = arrow.visible = false; HANDS.forEach(h => h.obj.visible = false); showMenu(); resize(); });
   }catch(err){
-    setNote('The headset would not start VR here (' + (err && err.name || 'error') + '). If you opened this inside the Claude app, open the standalone link in the Quest browser instead.', true);
+    setNote('The headset would not start VR here (' + (err && err.name || 'error') + '). Open the standalone link in the Quest browser instead.', true);
   }
 }
 $('#vrBtn').addEventListener('click', enterVR);
 
 if (navigator.xr && navigator.xr.isSessionSupported){
   navigator.xr.isSessionSupported('immersive-vr').then(ok => {
-    setNote(ok ? 'Headset found. Clear some space around you, then tap Enter VR.' : 'No headset found. Use "Play on screen" to look around, or open this page on your Quest 3.', !ok);
+    setNote(ok ? 'Headset found. Clear some space around you, then tap Enter VR.' : 'No headset found. Use "Play on screen" to look around, or open this page on your Quest.', !ok);
   }).catch(() => setNote('Could not check for a headset. Try Enter VR anyway.', true));
-} else setNote('No headset found. Use "Play on screen" to look around, or open this page on your Quest 3.', true);
+} else setNote('No headset found. Use "Play on screen" to look around, or open this page on your Quest.', true);
 
-/* ---------- tuning panel ---------- */
-const sliders = [['tFlap','oFlap','flap'],['tGrav','oGrav','gravity'],['tDrag','oDrag','drag']];
-function syncTune(){
-  sliders.forEach(([i, o, k]) => { $('#' + i).value = tune[k]; $('#' + o).textContent = Number(tune[k]).toFixed(2); });
+/* ---------- page tuning panel ---------- */
+const rowsEl = $('#tuneRows');
+TUNE.forEach(t => {
+  const row = document.createElement('div'); row.className = 'row';
+  const lab = document.createElement('label'); lab.htmlFor = 't_' + t.k; lab.textContent = t.label;
+  const out = document.createElement('output'); out.id = 'o_' + t.k;
+  const inp = document.createElement('input'); inp.type = 'range'; inp.id = 't_' + t.k; inp.min = t.min; inp.max = t.max; inp.step = t.step;
+  inp.addEventListener('input', () => { tune[t.k] = parseFloat(inp.value); out.textContent = fmtVal(t); saveTune(); });
+  row.append(lab, out, inp);
+  if (t.hint){ const sm = document.createElement('small'); sm.textContent = t.hint; row.append(sm); }
+  rowsEl.append(row);
+});
+function syncDom(){
+  TUNE.forEach(t => { $('#t_' + t.k).value = tune[t.k]; $('#o_' + t.k).textContent = fmtVal(t); });
   $('#tVig').checked = tune.vignette; $('#tSnd').checked = tune.sound;
 }
-sliders.forEach(([i, o, k]) => $('#' + i).addEventListener('input', e => { tune[k] = parseFloat(e.target.value); $('#' + o).textContent = tune[k].toFixed(2); store.set('likeflies.tune', tune); }));
-$('#tVig').addEventListener('change', e => { tune.vignette = e.target.checked; store.set('likeflies.tune', tune); });
-$('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; store.set('likeflies.tune', tune); if (tune.sound) startAudio(); });
-$('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); store.set('likeflies.tune', tune); syncTune(); });
-syncTune();
+$('#tVig').addEventListener('change', e => { tune.vignette = e.target.checked; saveTune(); });
+$('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; saveTune(); if (tune.sound) startAudio(); });
+$('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });
+syncDom();
 if (best != null) $('#bestTime').textContent = fmt(best);
 })();
 </script>
