@@ -64,6 +64,14 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 .checks{display:flex;gap:18px;flex-wrap:wrap}
 .checks label{display:flex;gap:8px;align-items:center}
 .checks input{accent-color:var(--wing);width:18px;height:18px}
+.together{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.fields input{font:inherit;font-size:16px;color:var(--fg);background:rgba(238,245,234,.06);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.share{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.share code{font-family:var(--mono);font-size:12px;background:rgba(238,245,234,.06);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere;flex:1 1 220px;min-width:0;user-select:all}
+.share button{padding:8px 14px}
+@media (max-width:420px){.fields{grid-template-columns:1fr}}
 .foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .foot b{font-family:var(--mono);color:var(--fg);font-variant-numeric:tabular-nums}
 
@@ -91,15 +99,26 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Flight test v0.0.03 · Quest 2 &amp; 3</div>
+      <div class="eyebrow">Flight test v0.0.04 · Quest 2 &amp; 3 · Online</div>
       <h1>Like Flies</h1>
     </div>
-    <p class="lede">You're a fly in a giant backyard. Fly through 10 rings, from under the picnic table to the giant's nose. v0.0.03 turns every push into a burst: small flaps to hover, big throws to dash and dodge, arms out to buzz around. Works with controllers or bare hands.</p>
+    <p class="lede">You're a fly in a giant backyard. Fly through 10 rings, from under the picnic table to the giant's nose. v0.0.04 lets you fly together online. Join the same room and you'll see each other as flies, wings flapping with your real arms. Flight is the same as v0.0.03.</p>
     <div class="actions">
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
     <p class="note" id="vrNote">Checking for a VR headset…</p>
+
+    <div class="together">
+      <h2>Fly together</h2>
+      <div class="fields">
+        <label for="mpName">Your name<input id="mpName" maxlength="12" autocomplete="off" placeholder="Job"></label>
+        <label for="mpRoom">Room<input id="mpRoom" maxlength="24" autocomplete="off" placeholder="a secret word"></label>
+      </div>
+      <div class="actions"><button class="secondary" id="mpJoin" type="button">Join room</button></div>
+      <p class="note" id="mpStatus">Flying solo. Pick a room name, join, and send the link to a friend.</p>
+      <div class="share" id="mpShare" hidden><code id="mpLink"></code><button id="mpCopy" type="button">Copy link</button></div>
+    </div>
 
     <div>
       <h2>How to fly</h2>
@@ -138,6 +157,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (function(){
 const $ = s => document.querySelector(s);
@@ -367,6 +387,8 @@ hudMesh.renderOrder = 998; hudMesh.visible = false; rig.add(hudMesh);
 const arrowGeo = new THREE.ConeGeometry(0.014, 0.05, 10); arrowGeo.rotateX(Math.PI/2);
 const arrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xffd23f, depthTest:false}));
 arrow.renderOrder = 999; arrow.visible = false; rig.add(arrow);
+const friendArrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xff7ad9, depthTest:false}));
+friendArrow.renderOrder = 999; friendArrow.visible = false; rig.add(friendArrow);
 let lastHud = '';
 function drawHud(a, b, c3){
   const key = a + '|' + b + '|' + c3; if (key === lastHud) return; lastHud = key;
@@ -412,7 +434,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.03 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.04 · ' + inputMode, PW - 30, 60);
   TUNE.forEach((t, i) => {
     const y = ROW0 + i*ROW, f = (tune[t.k] - t.min) / (t.max - t.min);
     c.textAlign = 'left'; c.fillStyle = i === activeRow ? '#ffd23f' : '#eef5ea'; c.font = '25px system-ui, sans-serif'; c.fillText(t.label, 30, y + 24);
@@ -546,7 +568,7 @@ let state = 'menu', cur = 0, startT = 0, finishT = 0, resetAt = 0, grounded = tr
 let yaw = 0, pitch = 0.1, lastFlapT = -9, calSpan = 1.4, flightState = 'ground', pinchT = 0, pinchLatch = false;
 const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
 function resetCourse(){
-  rig.position.copy(START); rig.rotation.set(0, 0, 0); yaw = 0; pitch = 0.05; stopAll();
+  rig.position.copy(START); rig.position.x += net.slot ? ((net.slot - 1) % 4 - 1.5) * 1.8 : 0; rig.rotation.set(0, 0, 0); yaw = 0; pitch = 0.05; stopAll();
   cur = 0; startT = 0; finishT = 0; resetAt = 0;
   HANDS.forEach(h => h.prevOk = false); headPrevOk = false;
 }
@@ -656,7 +678,10 @@ function updateHandVisuals(headL){
     arrow.position.copy(L.pos).add(tmp.set(0, 0.21, 0));
     arrow.visible = cur < rings.length;
     if (arrow.visible) arrow.lookAt(rings[cur].mesh.position);
-  }
+    const f = nearestFriend();
+    friendArrow.visible = !!f;
+    if (f){ friendArrow.position.copy(L.pos).add(tmp.set(0.06, 0.2, 0)); friendArrow.lookAt(f); }
+  } else friendArrow.visible = false;
 }
 
 const headPrev = new V3(), headVelL = new V3(), hv = new V3(), td = new V3(), burst = new V3(), sDir = new V3();
@@ -838,8 +863,9 @@ function integrate(dt, now, xr){
   if (cur >= rings.length){ a = 'DONE ' + fmt(finishT); b = 'Best ' + fmt(best); }
   else { a = 'RING ' + (cur + 1) + ' / ' + rings.length + (startT ? '  ' + fmt(now - startT) : ''); b = rings[cur].name; }
   const c3 = flightState + ' · ' + speed.toFixed(1) + ' m/s';
-  if (xr) drawHud(a, b, inputMode + ' · ' + c3);
-  else $('#hudText').textContent = a + ' · ' + c3;
+  const who = net.remotes.size ? (net.remotes.size + 1) + ' flying' : inputMode;
+  if (xr) drawHud(a, b, who + ' · ' + c3);
+  else $('#hudText').textContent = a + ' · ' + (net.remotes.size ? (net.remotes.size + 1) + ' flying · ' : '') + c3;
 }
 
 function idle(t){
@@ -863,6 +889,7 @@ renderer.setAnimationLoop((time, frame) => {
   if (xr && frame){ if (simulateXR(dt, t, frame)) integrate(dt, t, true); }
   else if (state === 'flat'){ simulateFlat(dt); integrate(dt, t, false); }
   else idle(t);
+  netTick(dt, t, xr || state === 'flat');
   animateRings(t);
   renderer.render(scene, camera);
 });
@@ -873,6 +900,251 @@ function resize(){
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
+
+
+/* ---------- multiplayer: rooms over PeerJS (peer to peer, no game server) ---------- */
+const MAX_SLOTS = 8, PREFIX = 'ldil-likeflies-', SEND_HZ = 15;
+const SLOT_COLORS = [0xff5a4e, 0x7fe3d6, 0xffd23f, 0xb9a2ff, 0x6fe39a, 0xff9f43, 0x5fb3ff, 0xff7ad9];
+const qs = new URLSearchParams(location.search);
+const net = {peer:null, slot:0, room:'', gen:0, conns:new Map(), pending:new Map(), remotes:new Map(), dialTimer:null, sendAcc:0, name:''};
+const cleanRoom = r => (r || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 24);
+const slotId = i => PREFIX + net.room + '-' + i;
+const slotOf = id => parseInt(String(id).split('-').pop(), 10) || 0;
+const r3 = x => Math.round(x * 1000) / 1000;
+
+function peerOpts(){
+  const o = {debug:0};
+  const ph = qs.get('peerhost');       // only for local testing
+  if (ph){ const [h, pt] = ph.split(':'); Object.assign(o, {host:h, port:+pt || 9000, path:'/', secure:false}); }
+  return o;
+}
+function mpStatus(text, warn){ const el = $('#mpStatus'); el.textContent = text; el.classList.toggle('warn', !!warn); }
+function shareLink(){ return location.origin + location.pathname + '?room=' + encodeURIComponent(net.room); }
+function updateStatus(){
+  if (!net.peer){ return; }
+  const n = net.remotes.size;
+  mpStatus('In room "' + net.room + '" as fly #' + net.slot + '. ' + (n ? n + (n === 1 ? ' other fly' : ' other flies') + ' here.' : 'Waiting for someone to join.'));
+}
+
+function joinRoom(room){
+  leaveRoom(true);
+  room = cleanRoom(room);
+  if (!room){ mpStatus('Type a room name first. Letters and numbers only.', true); return; }
+  if (typeof Peer === 'undefined'){ mpStatus('The multiplayer library did not load. Check your connection and reload the page.', true); return; }
+  net.room = room;
+  try{ store.set('likeflies.room', room); history.replaceState(null, '', location.pathname + '?room=' + encodeURIComponent(room)); }catch(e){}
+  $('#mpJoin').textContent = 'Leave room';
+  mpStatus('Joining "' + room + '"…');
+  claim(1, ++net.gen);
+}
+function claim(i, gen){
+  if (gen !== net.gen) return;
+  if (i > MAX_SLOTS){ mpStatus('Room "' + net.room + '" is full (' + MAX_SLOTS + ' flies).', true); return; }
+  let peer, opened = false;
+  try{ peer = new Peer(slotId(i), peerOpts()); }catch(e){ mpStatus('Could not start online play here.', true); return; }
+  peer.on('open', () => {
+    if (gen !== net.gen){ peer.destroy(); return; }
+    opened = true; net.peer = peer; net.slot = i;
+    $('#mpShare').hidden = false; $('#mpLink').textContent = shareLink();
+    updateStatus();
+    if (state === 'menu') resetCourse();
+    dial(); net.dialTimer = setInterval(dial, 4000);
+  });
+  peer.on('connection', conn => { if (gen === net.gen) setupConn(conn); });
+  peer.on('disconnected', () => {
+    if (gen !== net.gen || peer.destroyed) return;
+    mpStatus('Lost the connection service. Reconnecting…', true);
+    setTimeout(() => { if (gen === net.gen && !peer.destroyed){ try{ peer.reconnect(); }catch(e){} } }, 2000);
+  });
+  peer.on('error', err => {
+    if (gen !== net.gen) return;
+    const type = err && err.type;
+    if (type === 'peer-unavailable') return;                 // nobody in that slot yet: normal
+    if (!opened && type === 'unavailable-id'){ peer.destroy(); claim(i + 1, gen); return; }
+    if (!opened){
+      peer.destroy();
+      mpStatus("Can't reach the online service from here (" + (type || 'error') + '). Online play works from your GitHub link. Retrying in 10 seconds…', true);
+      setTimeout(() => claim(i, gen), 10000);
+    }
+  });
+}
+function dial(){
+  if (!net.peer || net.peer.destroyed || net.peer.disconnected) return;
+  for (let j = net.slot + 1; j <= MAX_SLOTS; j++){           // lower slot calls higher slots, so each pair connects once
+    if (net.conns.has(j) || net.pending.has(j)) continue;
+    let conn;
+    try{ conn = net.peer.connect(slotId(j), {serialization:'json', reliable:true}); }catch(e){ continue; }
+    if (!conn) continue;
+    net.pending.set(j, conn);
+    setupConn(conn);
+    setTimeout(() => { if (net.pending.get(j) === conn){ net.pending.delete(j); try{ conn.close(); }catch(e){} } }, 6000);
+  }
+}
+function setupConn(conn){
+  const j = slotOf(conn.peer);
+  const gen = net.gen;
+  conn.on('open', () => {
+    if (gen !== net.gen){ try{ conn.close(); }catch(e){} return; }
+    net.pending.delete(j);
+    const old = net.conns.get(j); if (old && old !== conn){ try{ old.close(); }catch(e){} }
+    net.conns.set(j, conn);
+    sendState(true);
+  });
+  conn.on('data', d => { if (gen === net.gen && d && d.t === 's') onState(j, d); });
+  const gone = () => { if (net.conns.get(j) === conn){ net.conns.delete(j); dropRemote(j); } if (net.pending.get(j) === conn) net.pending.delete(j); };
+  conn.on('close', gone); conn.on('error', gone);
+}
+function leaveRoom(quiet){
+  net.gen++;
+  clearInterval(net.dialTimer); net.dialTimer = null;
+  for (const c of net.conns.values()){ try{ c.close(); }catch(e){} }
+  for (const c of net.pending.values()){ try{ c.close(); }catch(e){} }
+  net.conns.clear(); net.pending.clear();
+  for (const j of [...net.remotes.keys()]) dropRemote(j);
+  if (net.peer){ try{ net.peer.destroy(); }catch(e){} }
+  net.peer = null; net.slot = 0; net.room = '';
+  $('#mpShare').hidden = true; $('#mpJoin').textContent = 'Join room';
+  if (!quiet){ mpStatus('Flying solo. Pick a room name, join, and send the link to a friend.'); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
+}
+
+/* what we send: head pose, velocity, hands relative to the head, flight state */
+const sHead = new V3(), sQ = new THREE.Quaternion(), sHand = new V3();
+function sendState(force){
+  if (!net.peer || !net.conns.size) return;
+  if (!force && state === 'menu') return;
+  camera.getWorldPosition(sHead); camera.getWorldQuaternion(sQ);
+  rig.updateMatrixWorld(true);
+  const hand = h => { if (!renderer.xr.isPresenting || !h.has) return 0; sHand.copy(h.pos).applyMatrix4(rig.matrixWorld).sub(sHead); return [r3(sHand.x), r3(sHand.y), r3(sHand.z)]; };
+  const msg = {t:'s', n:net.name || ('Fly ' + net.slot), c:net.slot, on:state !== 'menu' ? 1 : 0,
+    p:[r3(sHead.x), r3(sHead.y), r3(sHead.z)], v:[r3(vel.x), r3(vel.y), r3(vel.z)], q:[r3(sQ.x), r3(sQ.y), r3(sQ.z), r3(sQ.w)],
+    l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:cur};
+  for (const c of net.conns.values()){ if (c.open){ try{ c.send(msg); }catch(e){} } }
+}
+
+/* remote flies */
+const flyBodyGeo = new THREE.SphereGeometry(0.16, 16, 12), flyEyeGeo = new THREE.SphereGeometry(0.085, 14, 10);
+const flyBodyMat = new THREE.MeshLambertMaterial({color:0x2a2e35});
+function makeLabel(text, color){
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
+  const c = cv.getContext('2d');
+  c.fillStyle = 'rgba(10,20,16,0.78)'; c.beginPath(); if (c.roundRect) c.roundRect(8, 20, 496, 88, 44); else c.rect(8, 20, 496, 88); c.fill();
+  c.fillStyle = '#' + color.toString(16).padStart(6, '0'); c.font = 'bold 54px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(text, 256, 84);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), depthTest:true, transparent:true}));
+  sp.scale.set(0.8, 0.2, 1); return sp;
+}
+function makeRemote(j){
+  const color = SLOT_COLORS[(j - 1) % SLOT_COLORS.length];
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(flyBodyGeo, flyBodyMat); body.scale.set(1, 0.9, 1.8); body.position.set(0, -0.12, 0.2); g.add(body);
+  const thorax = new THREE.Mesh(flyBodyGeo, flyBodyMat); thorax.scale.set(0.8, 0.8, 0.8); thorax.position.set(0, -0.08, 0.02); g.add(thorax);
+  const eyeMat = new THREE.MeshLambertMaterial({color, emissive:color, emissiveIntensity:0.35});
+  for (const sx of [-1, 1]){ const e = new THREE.Mesh(flyEyeGeo, eyeMat); e.position.set(0.08*sx, 0.0, -0.1); e.scale.set(1, 1.1, 0.9); g.add(e); }
+  scene.add(g);
+  const wings = [0, 1].map(() => { const w = new THREE.Mesh(wingGeo, wingMat); scene.add(w); return w; });
+  const r = {j, g, wings, color, label:null, name:'', pos:new V3(), tgt:new V3(), v:new V3(), q:new THREE.Quaternion(), tq:new THREE.Quaternion(),
+    l:new V3(-0.6, -0.1, 0.1), r:new V3(0.6, -0.1, 0.1), tl:null, tr:null, recv:0, first:true, f:0, st:'', rg:0, buzz:null, on:1};
+  net.remotes.set(j, r); updateStatus();
+  return r;
+}
+function dropRemote(j){
+  const r = net.remotes.get(j); if (!r) return;
+  scene.remove(r.g); r.wings.forEach(w => scene.remove(w)); if (r.label) scene.remove(r.label);
+  if (r.buzz){ try{ r.buzz.g.gain.value = 0; r.buzz.o.stop(); }catch(e){} }
+  net.remotes.delete(j); updateStatus();
+}
+function onState(j, d){
+  const r = net.remotes.get(j) || makeRemote(j);
+  const name = String(d.n || ('Fly ' + j)).slice(0, 12);
+  if (name !== r.name){ r.name = name; if (r.label) scene.remove(r.label); r.label = makeLabel(name, r.color); scene.add(r.label); }
+  if (Array.isArray(d.p)) r.tgt.fromArray(d.p);
+  if (Array.isArray(d.v)) r.v.fromArray(d.v);
+  if (Array.isArray(d.q)) r.tq.fromArray(d.q).normalize();
+  r.tl = Array.isArray(d.l) ? new V3().fromArray(d.l) : null;
+  r.tr = Array.isArray(d.r) ? new V3().fromArray(d.r) : null;
+  r.f = +d.f || 0; r.st = d.st || ''; r.rg = d.rg | 0; r.on = d.on ? 1 : 0;
+  r.recv = clock.elapsedTime;
+  if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
+}
+
+const wTmp = new V3(), wShoulder = new V3(), wHand = new V3(), wDir = new V3(), X_AXIS = new V3(1, 0, 0), yawQ = new THREE.Quaternion(), eul = new THREE.Euler();
+function updateRemotes(dt, now){
+  for (const r of [...net.remotes.values()]){
+    if (now - r.recv > 6){ dropRemote(r.j); continue; }
+    const vis = r.on === 1;
+    r.g.visible = vis; r.wings.forEach(w => w.visible = vis); if (r.label) r.label.visible = vis;
+    if (!vis) continue;
+    wTmp.copy(r.tgt).addScaledVector(r.v, Math.min(0.25, now - r.recv));      // predict a little ahead
+    const k = 1 - Math.exp(-14 * dt);
+    if (r.pos.distanceTo(wTmp) > 15) r.pos.copy(wTmp); else r.pos.lerp(wTmp, k);
+    r.q.slerp(r.tq, k);
+    r.g.position.copy(r.pos); r.g.quaternion.copy(r.q);
+    if (r.label){ r.label.position.copy(r.pos); r.label.position.y += 0.42; }
+    eul.setFromQuaternion(r.q, 'YXZ'); yawQ.setFromAxisAngle(V3UP, eul.y);
+    const flutter = Math.sin(now * 38 + r.j) * 0.12 * (0.3 + r.f);
+    [[r.l, r.tl, -1], [r.r, r.tr, 1]].forEach(([cur, tgt, side], i) => {
+      if (tgt) cur.lerp(tgt, k);
+      else cur.lerp(wTmp.set(0.62*side, -0.1 + flutter*side, 0.12).applyQuaternion(yawQ), k);
+      wShoulder.set(0.1*side, -0.12, 0.05).applyQuaternion(yawQ).add(r.pos);
+      wHand.copy(r.pos).add(cur);
+      wDir.subVectors(wHand, wShoulder);
+      const len = Math.max(0.15, wDir.length());
+      const w = r.wings[i];
+      w.position.copy(wShoulder);
+      w.quaternion.setFromUnitVectors(X_AXIS, wDir.normalize());
+      w.scale.set(len / 0.46, 1, 1.5);
+    });
+    remoteBuzz(r);
+  }
+}
+const V3UP = new V3(0, 1, 0);
+
+/* each friend buzzes from where they are, so you can find them by ear */
+function remoteBuzz(r){
+  if (!audio || !tune.sound) { if (r.buzz) r.buzz.g.gain.value = 0; return; }
+  const ac = audio.ac;
+  if (!r.buzz){
+    try{
+      const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(), pn = ac.createPanner();
+      o.type = 'sawtooth'; o.frequency.value = 190 + r.j*13; f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 1.2; g.gain.value = 0;
+      pn.panningModel = 'HRTF'; pn.distanceModel = 'inverse'; pn.refDistance = 1.5; pn.rolloffFactor = 1.3; pn.maxDistance = 200;
+      o.connect(f); f.connect(g); g.connect(pn); pn.connect(ac.destination); o.start();
+      r.buzz = {o, g, pn};
+    }catch(e){ return; }
+  }
+  const t = ac.currentTime, pn = r.buzz.pn;
+  if (pn.positionX){ pn.positionX.setTargetAtTime(r.pos.x, t, 0.05); pn.positionY.setTargetAtTime(r.pos.y, t, 0.05); pn.positionZ.setTargetAtTime(r.pos.z, t, 0.05); }
+  else pn.setPosition(r.pos.x, r.pos.y, r.pos.z);
+  r.buzz.g.gain.setTargetAtTime(0.05 + r.f * 0.12, t, 0.08);
+}
+const lisPos = new V3(), lisFwd = new V3(), lisUp = new V3();
+function updateListener(){
+  if (!audio) return;
+  const L = audio.ac.listener, t = audio.ac.currentTime;
+  camera.getWorldPosition(lisPos); camera.getWorldDirection(lisFwd); lisUp.set(0, 1, 0).applyQuaternion(camera.getWorldQuaternion(sQ));
+  if (L.positionX){
+    L.positionX.setTargetAtTime(lisPos.x, t, 0.03); L.positionY.setTargetAtTime(lisPos.y, t, 0.03); L.positionZ.setTargetAtTime(lisPos.z, t, 0.03);
+    L.forwardX.setTargetAtTime(lisFwd.x, t, 0.03); L.forwardY.setTargetAtTime(lisFwd.y, t, 0.03); L.forwardZ.setTargetAtTime(lisFwd.z, t, 0.03);
+    L.upX.setTargetAtTime(lisUp.x, t, 0.03); L.upY.setTargetAtTime(lisUp.y, t, 0.03); L.upZ.setTargetAtTime(lisUp.z, t, 0.03);
+  } else { try{ L.setPosition(lisPos.x, lisPos.y, lisPos.z); L.setOrientation(lisFwd.x, lisFwd.y, lisFwd.z, lisUp.x, lisUp.y, lisUp.z); }catch(e){} }
+}
+function nearestFriend(){
+  let best = null, bd = Infinity;
+  camera.getWorldPosition(wTmp);
+  for (const r of net.remotes.values()){ if (!r.on) continue; const d = r.pos.distanceTo(wTmp); if (d < bd && d > 3){ bd = d; best = r.pos; } }
+  if (!best) return null;
+  rig.updateMatrixWorld(true);
+  return friendTarget.copy(best);
+}
+const friendTarget = new V3();
+
+function netTick(dt, now, playing){
+  updateRemotes(dt, now);
+  updateListener();
+  if (!net.peer || !net.conns.size) return;
+  net.sendAcc += dt;
+  if (net.sendAcc >= (playing ? 1 / SEND_HZ : 0.5)){ net.sendAcc = 0; sendState(true); }
+}
+window.__likeflies = {net};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -895,7 +1167,7 @@ async function enterVR(){
     camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
     await renderer.xr.setSession(session);
     state = 'xr'; lastHud = '';
-    session.addEventListener('end', () => { closeMenu(); hudMesh.visible = arrow.visible = false; HANDS.forEach(h => h.obj.visible = false); showMenu(); resize(); });
+    session.addEventListener('end', () => { closeMenu(); hudMesh.visible = arrow.visible = friendArrow.visible = false; HANDS.forEach(h => h.obj.visible = false); showMenu(); resize(); });
   }catch(err){
     setNote('The headset would not start VR here (' + (err && err.name || 'error') + '). Open the standalone link in the Quest browser instead.', true);
   }
@@ -929,6 +1201,21 @@ $('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; save
 $('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });
 syncDom();
 if (best != null) $('#bestTime').textContent = fmt(best);
+
+const nameEl = $('#mpName'), roomEl = $('#mpRoom');
+net.name = String(store.get('likeflies.name', '') || '').slice(0, 12); nameEl.value = net.name;
+nameEl.addEventListener('input', () => { net.name = nameEl.value.trim().slice(0, 12); store.set('likeflies.name', net.name); });
+roomEl.value = cleanRoom(qs.get('room')) || store.get('likeflies.room', '') || '';
+roomEl.addEventListener('input', () => { const c = cleanRoom(roomEl.value); if (c !== roomEl.value) roomEl.value = c; });
+$('#mpJoin').addEventListener('click', () => { if (net.room) leaveRoom(false); else joinRoom(roomEl.value); });
+$('#mpCopy').addEventListener('click', () => {
+  const link = shareLink();
+  const done = () => { $('#mpCopy').textContent = 'Copied'; setTimeout(() => $('#mpCopy').textContent = 'Copy link', 1500); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents($('#mpLink')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); };
+  try{ navigator.clipboard.writeText(link).then(done, fallback); }catch(e){ fallback(); }
+});
+if (cleanRoom(qs.get('room'))) joinRoom(qs.get('room'));
+addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }catch(e){} });
 })();
 </script>
 
