@@ -73,6 +73,10 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 .share code{font-family:var(--mono);font-size:12px;background:rgba(238,245,234,.06);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere;flex:1 1 220px;min-width:0;user-select:all}
 .share button{padding:8px 14px}
 @media (max-width:420px){.fields{grid-template-columns:1fr}}
+.roles{display:flex;flex-direction:column;gap:10px}
+.seg,.chars{display:flex;gap:8px;flex-wrap:wrap}
+.seg button,.chars button{flex:1 1 90px;padding:10px 12px}
+.seg button[aria-pressed="true"],.chars button[aria-pressed="true"]{background:var(--wing);color:var(--ink);border-color:transparent}
 .foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .foot b{font-family:var(--mono);color:var(--fg);font-variant-numeric:tabular-nums}
 
@@ -100,15 +104,29 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Flight test v0.0.05 · Quest 2 &amp; 3 · Online</div>
+      <div class="eyebrow">Test v0.0.06 · Human vs flies · Quest 2 &amp; 3</div>
       <h1>Like Flies</h1>
     </div>
-    <p class="lede">You're a fly in a giant backyard. Fly through 10 rings, from under the picnic table to the giant's nose. v0.0.05 adds powered glide: keep your arms out and flap or flutter to fly faster where you look. Fly together online by joining the same room.</p>
+    <p class="lede">Play as a fly or as the giant human. Flies stick to anything they land on, steal food from the snack cart, and carry it to the trash can. The human stands in one spot and swats, crushes, and claps flies.</p>
     <div class="actions">
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
     <p class="note" id="vrNote">Checking for a VR headset…</p>
+
+    <div class="roles">
+      <h2>Play as</h2>
+      <div class="seg" role="group" aria-label="Role">
+        <button id="roleFly" type="button" aria-pressed="true">Fly</button>
+        <button id="roleHuman" type="button" aria-pressed="false">Human</button>
+      </div>
+      <div class="chars" id="charRow" role="group" aria-label="Human character" hidden>
+        <button type="button" data-ci="0" aria-pressed="true">Big Dale</button>
+        <button type="button" data-ci="1" aria-pressed="false">Rhonda</button>
+        <button type="button" data-ci="2" aria-pressed="false">Pip</button>
+      </div>
+      <p class="note" id="roleNote">You can switch roles any time from the Game tab in VR settings (B or Y).</p>
+    </div>
 
     <div class="together">
       <h2>Fly together</h2>
@@ -136,6 +154,21 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
         <dt>Turn</dt><dd>While gliding, dip one wing. Or flick the right thumbstick.</dd>
         <dt>Settings</dt><dd>B or Y opens settings in VR. With bare hands, pinch your left thumb and finger for one second.</dd>
         <dt>Reset</dt><dd>A or X, or the Reset button in settings.</dd>
+        <dt>Stick</dt><dd>You stick to anything you touch, including the human. Flap or dash to take off.</dd>
+        <dt>Steal</dt><dd>Land on food on the snack cart to grab a chunk, then carry it to the trash can. You're slower while carrying.</dd>
+      </dl>
+    </div>
+
+    <div>
+      <h2>How to be the human</h2>
+      <dl class="how">
+        <dt>Stand</dt><dd>Stay on your spot. You can turn all the way around. If you step too far, the view dims. A or X re-centers your spot.</dd>
+        <dt>Swat</dt><dd>Hit a fly in the air to knock it away and stun it. It drops any food. That's not a kill.</dd>
+        <dt>Crush</dt><dd>Squash a fly that's sitting on something, including your own arm, the cart, or the food.</dd>
+        <dt>Clap</dt><dd>Clap a fly between your hands.</dd>
+        <dt>Swatter</dt><dd>Reach for a swatter on the cart and hold the grip button, or make a fist with bare hands. Let go to put it back.</dd>
+        <dt>Bites</dt><dd>A fly sitting on your hand bites, and you drop your swatter.</dd>
+        <dt>Win</dt><dd>The human wins when every fly is out of lives. The flies win when all the food is in the trash can.</dd>
       </dl>
     </div>
 
@@ -146,6 +179,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
         <div class="checks">
           <label><input type="checkbox" id="tVig">Comfort vignette</label>
           <label><input type="checkbox" id="tSnd">Buzz sound</label>
+          <label><input type="checkbox" id="tHud">Flight data panel</label>
         </div>
         <button type="button" id="tReset">Reset to defaults</button>
       </div>
@@ -153,7 +187,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
     <div class="foot">
       <span>Best time: <b id="bestTime">none yet</b></span>
-      <span>Screen: Space flap · W glide · Q/E dash · C drop · drag to look</span>
+      <span>Screen as fly: Space flap · W glide · Q/E dash · drag to look. As human: click swat · Space clap · G swatter</span>
     </div>
   </div>
 </div>
@@ -172,11 +206,11 @@ const store = {
 /* ---------- tuning (shared by the page and the in-headset menu) ---------- */
 const TUNE = [
   {k:'hoverLift', label:'Flap lift',          min:0,   max:400, step:5,    def:200, unit:'%', hint:'How far up each strong flap bursts you.'},
-  {k:'push',      label:'Dash push',          min:0,   max:400, step:5,    def:200, unit:'%', hint:'Strength of dashes forward, back, sideways and down.'},
-  {k:'dashDist',  label:'Dash distance',      min:1,   max:20,  step:0.5,  def:10,  unit:' ft', hint:'How far a big two-arm throw carries you, before the push multiplier.'},
+  {k:'push',      label:'Dash push',          min:0,   max:800, step:5,    def:400, unit:'%', hint:'Strength of dashes forward, back, sideways and down.'},
+  {k:'dashDist',  label:'Dash distance',      min:1,   max:40,  step:0.5,  def:20,  unit:' ft', hint:'How far a big two-arm throw carries you, before the push multiplier.'},
   {k:'dashSnap',  label:'Dash snap',          min:3,   max:15,  step:0.5,  def:8,   hint:'Higher is a shorter, sharper dash. Distance stays the same.'},
-  {k:'curve',     label:'Burst scaling',      min:0.5, max:4.5, step:0.1,  def:2.5, hint:'Higher makes small flaps gentler and big throws stronger.'},
-  {k:'carry',     label:'Momentum',           min:0,   max:100, step:5,    def:80,  unit:'%', hint:'Share of each burst that keeps drifting after the dash. 100% is the most possible.'},
+  {k:'curve',     label:'Burst scaling',      min:0.5, max:9,   step:0.1,  def:4.5, hint:'Higher makes small flaps gentler and big throws stronger.'},
+  {k:'carry',     label:'Momentum',           min:0,   max:100, step:5,    def:100,  unit:'%', hint:'Share of each burst that keeps drifting after the dash. 100% is the most possible.'},
   {k:'drift',     label:'Post-flap drift',    min:0.2, max:4,   step:0.1,  def:1.0, unit:'s', hint:'How long leftover drift lasts at rest. Keep it short for comfort.'},
   {k:'glideSpeed',label:'Glide buzz speed',   min:0,   max:24,  step:0.5,  def:12,  unit:' m/s', hint:'Cruise speed with arms out and no flapping. 0 turns cruising off.'},
   {k:'steer',     label:'Glide steering',     min:0.5, max:10,  step:0.1,  def:5,   hint:'How fast a glide swings toward where you look.'},
@@ -184,7 +218,7 @@ const TUNE = [
   {k:'airDrag',   label:'Air drag',           min:0,   max:1,   step:0.05, def:0,   hint:'How fast speed above the cruise speed bleeds off. 0 is the least possible.'},
   {k:'brake',     label:'Brake (arms down)',  min:0,   max:5,   step:0.1,  def:0.5, hint:'How fast arms at your sides bring you to a hover.'},
   {k:'gravity',   label:'Gravity',            min:0,   max:4,   step:0.1,  def:1.0, hint:'0 means you hover in place when you stop flapping.'},
-  {k:'maxSpeed',  label:'Max speed',          min:5,   max:60,  step:0.5,  def:30,  unit:' m/s'},
+  {k:'maxSpeed',  label:'Max speed',          min:5,   max:120, step:0.5,  def:60,  unit:' m/s'},
   {k:'turn',      label:'Wing turn rate',     min:0,   max:6,   step:0.1,  def:3,   hint:'Turning speed when you dip one wing.'},
   {k:'palm',      label:'Palm influence',     min:0,   max:1,   step:0.05, def:0.2, hint:'Weakens strokes led by the back of your hand, so return strokes push you less.'},
 
@@ -197,13 +231,23 @@ const TUNE = [
   {g:'Powered glide', k:'boostCap', label:'Boost speed cap',       min:0, max:30, step:0.5, def:10, unit:' m/s', hint:'Most extra speed flapping can add on top of glide speed.'},
   {g:'Powered glide', k:'coastHold', label:'Coast hold',           min:0, max:2, step:0.05, def:0.5, unit:'s', hint:'How long extra speed holds after you stop flapping.'},
   {g:'Powered glide', k:'boostDecay', label:'Boost decay',         min:0.2, max:5, step:0.1, def:1.2, hint:'How quickly extra speed eases back to glide speed after the coast.'},
+  {g:'Game', k:'humanSize',  label:'Human size',      min:10,  max:50, step:1,    def:28,  unit:'x', hint:'How many times bigger the human is than a fly player.'},
+  {g:'Game', k:'flyHitbox',  label:'Fly hitbox',      min:0.2, max:2,  step:0.05, def:0.6, unit:' m', hint:'Radius of a fly for swats, in fly-world meters. Smaller is harder to hit.'},
+  {g:'Game', k:'swatSpeed',  label:'Swat speed',      min:0.3, max:4,  step:0.1,  def:1.2, unit:' m/s', hint:'How fast a hand must move to knock a fly in the air.'},
+  {g:'Game', k:'crushSpeed', label:'Crush speed',     min:0.1, max:3,  step:0.1,  def:0.4, unit:' m/s', hint:'How fast a hand must move to squash a fly against a surface.'},
+  {g:'Game', k:'knock',      label:'Knockback',       min:0.2, max:3,  step:0.1,  def:1,   hint:'How far a mid-air swat sends a fly.'},
+  {g:'Game', k:'stun',       label:'Stun time',       min:0.2, max:4,  step:0.1,  def:1.2, unit:'s'},
+  {g:'Game', k:'carrySlow',  label:'Carry slowdown',  min:0,   max:80, step:5,    def:30,  unit:'%', hint:'How much slower a fly is while carrying food.'},
+  {g:'Game', k:'lives',      label:'Fly lives',       min:1,   max:20, step:1,    def:10},
+  {g:'Game', k:'bots',       label:'Practice flies',  min:0,   max:8,  step:1,    def:4,   hint:'Easy computer flies that steal food while you play the human.'},
+  {g:'Game', k:'spotLimit',  label:'Spot limit',      min:0.3, max:1.5,step:0.05, def:0.5, unit:' m', hint:'How far the human can step from their spot before the view dims.'},
   {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'}
 ];
 const groupOf = t => t.g || 'Flight';
-const PAGES = ['Flight', 'Powered glide'];
-const DEFAULTS = {vignette:true, sound:true};
+const PAGES = ['Flight', 'Powered glide', 'Game'];
+const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
-const TUNE_KEY = 'likeflies.tune.v0.0.05';
+const TUNE_KEY = 'likeflies.tune.v0.0.06';
 let tune = Object.assign({}, DEFAULTS, store.get(TUNE_KEY, {}));
 const saveTune = () => store.set(TUNE_KEY, tune);
 const fmtVal = t => Number(tune[t.k]).toFixed(t.step >= 1 ? 0 : t.step >= 0.1 ? 1 : 2) + (t.unit || '');
@@ -337,6 +381,7 @@ const RINGS = [
   }
 }
 
+const giantStart = scene.children.length, giantSolidStart = solids.length;
 { // the giant (practice dummy for now), holding a fly swatter
   const gz = -30, skin = 0xd9a27a;
   box(7, 3, 11, 0x333336, -6, 0, gz + 1.5); box(7, 3, 11, 0x333336, 6, 0, gz + 1.5);
@@ -352,6 +397,7 @@ const RINGS = [
   post(0.45, 20, 0x2b2b2b, 12, 25, gz + 1);
   box(8, 9, 0.5, 0xe6463c, 12, 44.5, gz + 1);
 }
+const giantDummy = scene.children.slice(giantStart), giantSolids = solids.slice(giantSolidStart);
 
 /* ---------- rings ---------- */
 const ringMatTarget = new THREE.MeshBasicMaterial({color:0xffd23f});
@@ -395,10 +441,10 @@ function mkHand(side){
 const HAND = {left:mkHand('left'), right:mkHand('right')};
 const HANDS = [HAND.left, HAND.right];
 
-const hudCanvas = document.createElement('canvas'); hudCanvas.width = 512; hudCanvas.height = 240;
+const hudCanvas = document.createElement('canvas'); hudCanvas.width = 1024; hudCanvas.height = 340;
 const hudCtx = hudCanvas.getContext('2d');
 const hudTex = new THREE.CanvasTexture(hudCanvas);
-const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.075), new THREE.MeshBasicMaterial({map:hudTex, transparent:true, depthTest:false}));
+const hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.14), new THREE.MeshBasicMaterial({map:hudTex, transparent:true, depthTest:false}));
 hudMesh.renderOrder = 998; hudMesh.visible = false; rig.add(hudMesh);
 const arrowGeo = new THREE.ConeGeometry(0.014, 0.05, 10); arrowGeo.rotateX(Math.PI/2);
 const arrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xffd23f, depthTest:false}));
@@ -406,15 +452,29 @@ arrow.renderOrder = 999; arrow.visible = false; rig.add(arrow);
 const friendArrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xff7ad9, depthTest:false}));
 friendArrow.renderOrder = 999; friendArrow.visible = false; rig.add(friendArrow);
 let lastHud = '';
-function drawHud(a, b, c3){
-  const key = a + '|' + b + '|' + c3; if (key === lastHud) return; lastHud = key;
-  const c = hudCtx; c.clearRect(0, 0, 512, 240);
-  c.fillStyle = 'rgba(10,20,16,0.85)'; c.beginPath();
-  if (c.roundRect) c.roundRect(4, 4, 504, 232, 36); else c.rect(4, 4, 504, 232); c.fill();
-  c.fillStyle = '#7fe3d6'; c.font = 'bold 62px system-ui, sans-serif'; c.fillText(a, 28, 78);
-  c.fillStyle = '#eef5ea'; c.font = '38px system-ui, sans-serif'; c.fillText(b, 28, 140);
-  c.fillStyle = '#a7baa6'; c.font = '30px ui-monospace, monospace'; c.fillText(c3, 28, 200);
+function drawHud(lines){
+  const key = lines.join('|'); if (key === lastHud) return; lastHud = key;
+  const c = hudCtx; c.clearRect(0, 0, 1024, 340);
+  c.fillStyle = 'rgba(10,20,16,0.82)'; c.beginPath();
+  if (c.roundRect) c.roundRect(4, 4, 1016, 332, 40); else c.rect(4, 4, 1016, 332); c.fill();
+  const st = [['bold ', 64, '#7fe3d6', 84], ['', 46, '#eef5ea', 160], ['', 42, '#cfe3d2', 232], ['', 36, '#a7baa6', 300]];
+  lines.slice(0, 4).forEach((ln, i) => {
+    let [w, size, col, y] = st[i];
+    c.font = w + size + 'px system-ui, sans-serif';
+    while (c.measureText(ln).width > 968 && size > 16){ size -= 2; c.font = w + size + 'px system-ui, sans-serif'; }
+    c.fillStyle = col; c.fillText(ln, 28, y);
+  });
   hudTex.needsUpdate = true;
+}
+const hudOff = new V3(), hudTarget = new V3();
+let hudInit = false;
+function placeHud(dt, lines){
+  hudMesh.visible = !!tune.hud;
+  if (!tune.hud) return;
+  drawHud(lines);
+  hudTarget.copy(hudOff.set(-0.17, 0.11, -0.62)).applyQuaternion(camera.quaternion).add(camera.position);
+  const k = hudInit ? 1 - Math.exp(-8 * dt) : 1; hudInit = true;
+  hudMesh.position.lerp(hudTarget, k); hudMesh.quaternion.slerp(camera.quaternion, k);
 }
 
 /* ---------- comfort vignette ---------- */
@@ -432,6 +492,7 @@ const PW = 800, ROW = 52, ROW0 = 156, TAB_Y = 86;
 const ROWS_MAX = Math.max(...PAGES.map(pg => TUNE.filter(t => groupOf(t) === pg).length));
 const TOG_Y = ROW0 + ROWS_MAX*ROW + 6, BTN_Y = TOG_Y + 70, PH = BTN_Y + 150;
 let panelPage = 'Flight';
+const ROLE_BTNS = [['Fly', 'fly', 0], ['Big Dale', 'human', 0], ['Rhonda', 'human', 1], ['Pip', 'human', 2]];
 const pageRows = () => TUNE.filter(t => groupOf(t) === panelPage);
 const PLANE_H = 0.8 * PH / PW;
 const pCanvas = document.createElement('canvas'); pCanvas.width = PW; pCanvas.height = PH;
@@ -453,25 +514,36 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.05 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.06 · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
-    const x = 30 + i*375, on = pg === panelPage;
-    c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, 365, 52, 12); c.fill();
-    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold 26px system-ui, sans-serif'; c.fillText(pg, x + 182, TAB_Y + 35);
+    const tw = (PW - 60 - 20) / 3, x = 30 + i*(tw + 10), on = pg === panelPage;
+    c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
+    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold 26px system-ui, sans-serif'; c.fillText(pg, x + tw/2, TAB_Y + 35);
   });
+  const off = panelPage === 'Game' ? 1 : 0;
+  if (off){
+    const bw = (PW - 60 - 30) / 4;
+    ROLE_BTNS.forEach(([label, role, ci], i) => {
+      const on = game.role === role && (role === 'fly' || game.ci === ci), x = 30 + i*(bw + 10);
+      c.fillStyle = on ? '#ffd23f' : 'rgba(238,245,234,0.1)'; rr(c, x, ROW0 + 2, bw, 44, 10); c.fill();
+      c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold 24px system-ui, sans-serif'; c.fillText(label, x + bw/2, ROW0 + 32);
+    });
+  }
   pageRows().forEach((t, i) => {
-    const y = ROW0 + i*ROW, f = (tune[t.k] - t.min) / (t.max - t.min);
+    const y = ROW0 + (i + off)*ROW, f = (tune[t.k] - t.min) / (t.max - t.min);
     c.textAlign = 'left'; c.fillStyle = i === activeRow ? '#ffd23f' : '#eef5ea'; c.font = '25px system-ui, sans-serif'; c.fillText(t.label, 30, y + 24);
     c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px ui-monospace, monospace'; c.fillText(fmtVal(t), PW - 30, y + 24);
     c.fillStyle = 'rgba(238,245,234,0.15)'; rr(c, 30, y + 33, PW - 60, 10, 5); c.fill();
     c.fillStyle = '#7fe3d6'; rr(c, 30, y + 33, (PW - 60)*f, 10, 5); c.fill();
     c.beginPath(); c.arc(30 + (PW - 60)*f, y + 38, 11, 0, Math.PI*2); c.fillStyle = '#eef5ea'; c.fill();
   });
-  [['Vignette', tune.vignette, 30], ['Sound', tune.sound, PW/2 + 10]].forEach(([label, on, x]) => {
-    c.fillStyle = on ? 'rgba(127,227,214,0.22)' : 'rgba(238,245,234,0.06)'; rr(c, x, TOG_Y, PW/2 - 40, 54, 12); c.fill();
-    c.textAlign = 'left'; c.fillStyle = '#eef5ea'; c.font = '26px system-ui, sans-serif'; c.fillText(label + ': ' + (on ? 'On' : 'Off'), x + 20, TOG_Y + 36);
+  const tgw = (PW - 60 - 20) / 3;
+  [['Vignette', tune.vignette], ['Sound', tune.sound], ['Data', tune.hud]].forEach(([label, on], i) => {
+    const x = 30 + i*(tgw + 10);
+    c.fillStyle = on ? 'rgba(127,227,214,0.22)' : 'rgba(238,245,234,0.06)'; rr(c, x, TOG_Y, tgw, 54, 12); c.fill();
+    c.textAlign = 'left'; c.fillStyle = '#eef5ea'; c.font = '26px system-ui, sans-serif'; c.fillText(label + ': ' + (on ? 'On' : 'Off'), x + 18, TOG_Y + 36);
   });
-  [['Reset course', 30], ['Defaults', 285], ['Close', 540]].forEach(([label, x], i) => {
+  [[panelPage === 'Game' ? 'New round' : 'Reset course', 30], ['Defaults', 285], ['Close', 540]].forEach(([label, x], i) => {
     c.fillStyle = i === 2 ? '#7fe3d6' : 'rgba(238,245,234,0.1)'; rr(c, x, BTN_Y, 230, 70, 14); c.fill();
     c.textAlign = 'center'; c.fillStyle = i === 2 ? '#062420' : '#eef5ea'; c.font = 'bold 28px system-ui, sans-serif'; c.fillText(label, x + 115, BTN_Y + 45);
   });
@@ -483,10 +555,15 @@ function panelPress(px, py, start){
   if (start){
     activeRow = null;
     if (py >= TAB_Y && py < TAB_Y + 52){ panelPage = PAGES[px < PW/2 ? 0 : 1]; drawPanel(); return; }
-    if (py >= ROW0 && py < ROW0 + pageRows().length*ROW) activeRow = Math.floor((py - ROW0) / ROW);
-    else if (py >= TOG_Y && py < TOG_Y + 54){ if (px < PW/2) tune.vignette = !tune.vignette; else { tune.sound = !tune.sound; if (tune.sound) startAudio(); } }
+    const off = panelPage === 'Game' ? 1 : 0;
+    if (off && py >= ROW0 && py < ROW0 + ROW){
+      const [, role, ci] = ROLE_BTNS[Math.max(0, Math.min(3, Math.floor((px - 30) / ((PW - 60) / 4))))];
+      closeMenu(); setRole(role, ci); return;
+    }
+    if (py >= ROW0 + off*ROW && py < ROW0 + (pageRows().length + off)*ROW) activeRow = Math.floor((py - ROW0) / ROW) - off;
+    else if (py >= TOG_Y && py < TOG_Y + 54){ const i = Math.floor((px - 30) / ((PW - 60) / 3)); if (i <= 0) tune.vignette = !tune.vignette; else if (i === 1){ tune.sound = !tune.sound; if (tune.sound) startAudio(); } else tune.hud = !tune.hud; }
     else if (py >= BTN_Y && py < BTN_Y + 70){
-      if (px < 270){ resetCourse(); closeMenu(); return; }
+      if (px < 270){ if (panelPage === 'Game'){ if (isAuthority()) newRound(); else sendEvent({k:'newround', to:authority()}); } else resetCourse(); closeMenu(); return; }
       else if (px < 525){ tune = Object.assign({}, DEFAULTS); }
       else { closeMenu(); return; }
     }
@@ -503,7 +580,9 @@ const headW = new V3(), headFwd = new V3(), fwdFlat = new V3();
 function openMenu(){
   camera.getWorldPosition(headW); camera.getWorldDirection(headFwd);
   fwdFlat.set(headFwd.x, 0, headFwd.z); if (fwdFlat.lengthSq() < 1e-6) fwdFlat.set(0, 0, -1); fwdFlat.normalize();
-  panel.position.copy(headW).addScaledVector(fwdFlat, 0.62); panel.position.y -= 0.12;
+  const S = rig.scale.x;
+  panel.scale.setScalar(S); dot.scale.setScalar(S);
+  panel.position.copy(headW).addScaledVector(fwdFlat, 0.62*S); panel.position.y -= 0.12*S;
   panel.lookAt(headW.x, panel.position.y, headW.z); panel.updateMatrixWorld(true);
   panel.visible = true; menuOpen = true; ptrDown = false; activeRow = null; stopAll(); drawPanel();
 }
@@ -519,7 +598,7 @@ function updateMenuPointer(){
     mO.copy(P.rayO).applyMatrix4(rig.matrixWorld); mD.copy(P.rayD).applyQuaternion(rig.quaternion).normalize();
     raycaster.set(mO, mD);
     const hits = raycaster.intersectObject(panel);
-    const end = hits.length ? hits[0].point : mO.clone().addScaledVector(mD, 1.5);
+    const end = hits.length ? hits[0].point : mO.clone().addScaledVector(mD, 1.5 * rig.scale.x);
     if (hits.length){ hit = {x:hits[0].uv.x, y:hits[0].uv.y}; dot.position.copy(hits[0].point); }
     const pos = laserGeo.attributes.position; pos.setXYZ(0, mO.x, mO.y, mO.z); pos.setXYZ(1, end.x, end.y, end.z); pos.needsUpdate = true;
     laser.visible = true; pressed = P.trig;
@@ -580,7 +659,7 @@ const strokes = {arm:[], flut:[], any:[]};
 function dashSepNow(now){ const W = tune.rhythm; while (strokes.any.length && now - strokes.any[0] > W) strokes.any.shift(); return tune.dashSep * (strokes.any.length >= 2 ? 2 : 1); }
 const POOLS = [vDash, vMove, boostVec], nTmp = new V3();
 function stopAll(){ vel.set(0, 0, 0); vDash.set(0, 0, 0); vMove.set(0, 0, 0); boostVec.set(0, 0, 0); boost = 0; strokes.arm.length = 0; strokes.flut.length = 0; }
-function stopAlong(x, y, z){ nTmp.set(x, y, z); for (const v of POOLS){ const d = v.dot(nTmp); if (d < 0) v.addScaledVector(nTmp, -d); } const d = vel.dot(nTmp); if (d < 0) vel.addScaledVector(nTmp, -d); }
+function stopAlong(x, y, z){ const e = clock.elapsedTime < game.stunUntil ? 1.6 : 1; nTmp.set(x, y, z); for (const v of POOLS){ const d = v.dot(nTmp); if (d < 0) v.addScaledVector(nTmp, -d*e); } const d = vel.dot(nTmp); if (d < 0) vel.addScaledVector(nTmp, -d*e); }
 function burstGain(){
   // Calibrated so a big two-arm throw (hands at about 4 m/s for 0.15 s) carries you the "Dash distance".
   const D = tune.dashDist * 0.3048, c = tune.carry / 100, kM = 3 / Math.max(0.2, tune.drift);
@@ -597,6 +676,8 @@ let state = 'menu', cur = 0, startT = 0, finishT = 0, resetAt = 0, grounded = tr
 let yaw = 0, pitch = 0.1, lastFlapT = -9, calSpan = 1.4, flightState = 'ground', pinchT = 0, pinchLatch = false;
 const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
 function resetCourse(){
+  if (game.role === 'human'){ applyRole(); return; }
+  rig.scale.setScalar(1); game.stuck = null;
   rig.position.copy(START); rig.position.x += net.slot ? ((net.slot - 1) % 4 - 1.5) * 1.8 : 0; rig.rotation.set(0, 0, 0); yaw = 0; pitch = 0.05; stopAll();
   cur = 0; startT = 0; finishT = 0; resetAt = 0;
   HANDS.forEach(h => h.prevOk = false); headPrevOk = false;
@@ -619,6 +700,7 @@ function turnAroundHead(a){
 
 function collide(pt, r){
   for (const s of solids){
+    if (s.off) continue;
     if (s.box){
       const b = s.box;
       if (pt.x > b.min.x - r && pt.x < b.max.x + r && pt.y > b.min.y - r && pt.y < b.max.y + r && pt.z > b.min.z - r && pt.z < b.max.z + r){
@@ -631,6 +713,7 @@ function collide(pt, r){
         rig.position[ax] += d*sg; pt[ax] += d*sg;
         stopAlong(ax === 'x' ? sg : 0, ax === 'y' ? sg : 0, ax === 'z' ? sg : 0);
         if (ax === 'y' && sg > 0) grounded = true;
+        contact.hit = true; contact.kind = 'solid'; contact.part = null; contact.food = s.food != null ? s.food : -1;
       }
     } else {
       const dist = pt.distanceTo(s.c), min = s.r + r;
@@ -639,6 +722,7 @@ function collide(pt, r){
         const d = min - dist; rig.position.addScaledVector(tmp, d); pt.addScaledVector(tmp, d);
         stopAlong(tmp.x, tmp.y, tmp.z);
         if (tmp.y > 0.6) grounded = true;
+        contact.hit = true; contact.kind = 'solid'; contact.part = null; contact.food = -1;
       }
     }
   }
@@ -700,10 +784,9 @@ function updateHandVisuals(headL){
     m4.makeBasis(bx, by, bz); h.obj.quaternion.setFromRotationMatrix(m4);
   }
   const L = HAND.left;
-  hudMesh.visible = arrow.visible = L.has;
+  arrow.visible = L.has;
   if (L.has){
     camera.getWorldPosition(headW);
-    hudMesh.position.copy(L.pos).add(tmp.set(0, 0.13, 0)); hudMesh.lookAt(headW);
     arrow.position.copy(L.pos).add(tmp.set(0, 0.21, 0));
     arrow.visible = cur < rings.length;
     if (arrow.visible) arrow.lookAt(rings[cur].mesh.position);
@@ -740,6 +823,12 @@ function simulateXR(dt, now, frame){
   updateHandVisuals(headL);
 
   if (menuOpen){ stopAll(); updateMenuPointer(); HANDS.forEach(h => h.prevOk = false); return false; }
+  if (now < game.deadUntil){ stopAll(); flightState = 'splatted'; return true; }
+  if (now < game.stunUntil){
+    vDash.multiplyScalar(Math.exp(-1.2*dt)); vMove.multiplyScalar(Math.exp(-1.2*dt)); vDash.y -= 14*dt; boost = 0; boostVec.set(0, 0, 0);
+    HANDS.forEach(h => { if (h.has){ h.prev.copy(h.pos); h.prevT = now; } });
+    flightState = 'stunned'; return true;
+  }
 
   /* 1. Pose first, so bursts know whether you are gliding */
   let armsOut = false, armsDown = false;
@@ -751,7 +840,7 @@ function simulateXR(dt, now, frame){
     armsDown = L.pos.y < headL.y - 0.55 && R.pos.y < headL.y - 0.55 && span < 0.75 * calSpan;
   }
   if (armsOut) glideHoldT = now;
-  const gliding = !grounded && now - glideHoldT < 0.35;      // short grace so a flap stroke doesn't break the glide
+  const gliding = !grounded && !game.stuck && now - glideHoldT < 0.35;      // short grace so a flap stroke doesn't break the glide
   camera.getWorldDirection(headFwd);
 
   /* 2. Bursts and rhythm. Every push of the air sends you the opposite way.
@@ -794,6 +883,7 @@ function simulateXR(dt, now, frame){
     trackStroke(h.trFlut, h.sigFlut, flutThr, sp, now, strokes.flut, gliding);
   }
   if (flapNow) lastFlapT = now;
+  if (game.stuck){ if (burst.length() > 0.6) unstick(now); else burst.set(0, 0, 0); }
   addBurst(burst);
   const flapping = now - lastFlapT < 0.3;
   const braking = armsDown && !flapping && !grounded;
@@ -869,7 +959,7 @@ function updateBoost(dt, now, gliding){
   }
   if (P > 0){
     lastPowerT = now;
-    const target = tune.boostCap * Math.min(1, P / 3);
+    const target = tune.boostCap * speedMul() * Math.min(1, P / 3);
     if (boost < target) boost = Math.min(target, boost + tune.boostAccel * dt);
     else boost += (target - boost) * (1 - Math.exp(-0.5 * tune.boostDecay * dt));
   } else if (now - lastPowerT > tune.coastHold) boost *= Math.exp(-tune.boostDecay * dt);
@@ -884,7 +974,7 @@ function glideStep(dt, amount){
   if (sp > 0.05) sDir.copy(vMove).divideScalar(sp); else sDir.copy(headFwd);
   const ang = sDir.angleTo(headFwd), maxA = tune.steer * dt;
   if (ang > 1e-4) sDir.lerp(headFwd, Math.min(1, maxA / ang)).normalize();
-  const cruise = tune.glideSpeed * amount;
+  const cruise = tune.glideSpeed * amount * speedMul();
   if (sp < cruise) sp = Math.min(cruise, sp + Math.max(2, cruise*1.5) * dt);
   else sp *= Math.exp(-tune.airDrag * dt);
   const down = -headFwd.y;
@@ -895,7 +985,7 @@ function glideStep(dt, amount){
 /* ---------- on-screen preview controls ---------- */
 const keys = {};
 let dragging = false, lx = 0, ly = 0, fwdHeld = false;
-function flatBurst(x, y, z){ if (state !== 'flat') return; td.set(x, y, z).applyQuaternion(rig.quaternion); addBurst(td); flapLevel = 1; lastFlapT = clock.elapsedTime; }
+function flatBurst(x, y, z){ if (state !== 'flat') return; unstick(clock.elapsedTime); td.set(x, y, z).applyQuaternion(rig.quaternion); addBurst(td); flapLevel = 1; lastFlapT = clock.elapsedTime; }
 function flatFlap(){
   if (state !== 'flat') return;
   if ((keys.KeyW || keys.ArrowUp || fwdHeld) && !grounded){ const t = clock.elapsedTime; strokes.arm.push({t, a:1.6}); strokes.arm.push({t, a:1.6}); flapLevel = 1; return; }
@@ -904,6 +994,12 @@ function flatFlap(){
 addEventListener('keydown', e => {
   if (state !== 'flat') return;
   keys[e.code] = true;
+  if (game.role === 'human'){
+    if (e.code === 'Space'){ e.preventDefault(); if (!e.repeat) flatClapT = clock.elapsedTime; }
+    if (e.code === 'KeyG' && !e.repeat){ flatGrab = !flatGrab; if (flatGrab && game.swatSide < 0){ const s = cartSwatters.find(x => x.visible); if (s) grabSwatter(1, s); } }
+    if (e.code === 'Escape') showMenu();
+    return;
+  }
   if (e.code === 'Space'){ e.preventDefault(); if (!e.repeat) flatFlap(); }
   if (e.code === 'KeyR') resetCourse();
   if (!e.repeat && e.code === 'KeyQ') flatBurst(-7, 0, 0);
@@ -912,25 +1008,30 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape') showMenu();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
-canvas.addEventListener('pointerdown', e => { if (state !== 'flat') return; dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+let dragDist = 0;
+canvas.addEventListener('pointerdown', e => { if (state !== 'flat') return; dragging = true; dragDist = 0; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointermove', e => {
   if (!dragging) return;
+  dragDist += Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly);
   yaw -= (e.clientX - lx) * 0.005; pitch -= (e.clientY - ly) * 0.005; pitch = Math.max(-1.3, Math.min(1.3, pitch));
   lx = e.clientX; ly = e.clientY;
 });
-canvas.addEventListener('pointerup', () => dragging = false);
+canvas.addEventListener('pointerup', () => { dragging = false; if (state === 'flat' && game.role === 'human' && dragDist < 6) flatSwatT = clock.elapsedTime; });
 canvas.addEventListener('pointercancel', () => dragging = false);
-$('#flapBtn').addEventListener('pointerdown', e => { e.preventDefault(); flatFlap(); });
+$('#flapBtn').addEventListener('pointerdown', e => { e.preventDefault(); if (game.role === 'human') flatSwatT = clock.elapsedTime; else flatFlap(); });
 const fb = $('#fwdBtn');
 fb.addEventListener('pointerdown', e => { e.preventDefault(); fwdHeld = true; });
 ['pointerup','pointercancel','pointerleave'].forEach(t => fb.addEventListener(t, () => fwdHeld = false));
 
 function simulateFlat(dt){
+  const nowF = clock.elapsedTime;
   rig.rotation.y = yaw; camera.rotation.set(pitch, 0, 0);
+  if (nowF < game.deadUntil){ stopAll(); flightState = 'splatted'; return; }
+  if (nowF < game.stunUntil){ vDash.multiplyScalar(Math.exp(-1.2*dt)); vDash.y -= 14*dt; flightState = 'stunned'; return; }
   if (keys.KeyA || keys.ArrowLeft) yaw += 1.8*dt;
   if (keys.KeyD || keys.ArrowRight) yaw -= 1.8*dt;
   rig.updateMatrixWorld(true); camera.getWorldDirection(headFwd);
-  const gliding = (keys.KeyW || keys.ArrowUp || fwdHeld) && !grounded;
+  const gliding = (keys.KeyW || keys.ArrowUp || fwdHeld) && !grounded && !game.stuck;
   vDash.multiplyScalar(Math.exp(-tune.dashSnap*dt));
   if (gliding) glideStep(dt, 1);
   else vMove.multiplyScalar(Math.exp(-(3 / Math.max(0.2, tune.drift) + ((keys.KeyS || keys.ArrowDown) ? tune.brake : 0)) * dt));
@@ -943,12 +1044,12 @@ function simulateFlat(dt){
 /* ---------- shared step: move, collide, rings, HUD ---------- */
 function integrate(dt, now, xr){
   vel.copy(vMove).add(vDash).add(boostVec);
-  const sp0 = vel.length();
-  if (sp0 > tune.maxSpeed){ const k = tune.maxSpeed / sp0; vel.multiplyScalar(k); vDash.multiplyScalar(k); vMove.multiplyScalar(k); boostVec.multiplyScalar(k); boost *= k; }
+  const sp0 = vel.length(), capS = tune.maxSpeed * speedMul();
+  if (sp0 > capS){ const k = capS / sp0; vel.multiplyScalar(k); vDash.multiplyScalar(k); vMove.multiplyScalar(k); boostVec.multiplyScalar(k); boost *= k; }
   rig.position.addScaledVector(vel, dt);
 
-  grounded = false;
-  if (rig.position.y < 0){ rig.position.y = 0; stopAlong(0, 1, 0); grounded = true; }
+  grounded = false; contact.hit = false;
+  if (rig.position.y < 0){ rig.position.y = 0; stopAlong(0, 1, 0); grounded = true; contact.hit = true; contact.kind = 'ground'; contact.part = null; contact.food = -1; }
   if (rig.position.y > 88){ rig.position.y = 88; stopAlong(0, -1, 0); }
   const P = rig.position;
   if (P.x < -97){ P.x = -97; stopAlong(1, 0, 0); } if (P.x > 97){ P.x = 97; stopAlong(-1, 0, 0); }
@@ -956,8 +1057,10 @@ function integrate(dt, now, xr){
 
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
-  collide(head, 0.35);
-  tmp.set(head.x, rig.position.y + 0.5, head.z); collide(tmp, 0.5);
+  collide(head, 0.35); collideHumans(head, 0.35);
+  tmp.set(head.x, rig.position.y + 0.5, head.z); collide(tmp, 0.5); collideHumans(tmp, 0.5);
+  if (now >= game.deadUntil) flyStick(now);
+  if (game.stuck) grounded = true;
   if (grounded){ const f = Math.exp(-6*dt); for (const v of [vel, vDash, vMove]){ v.x *= f; v.z *= f; } }
 
   rig.updateMatrixWorld(true);
@@ -969,18 +1072,22 @@ function integrate(dt, now, xr){
   vel.copy(vMove).add(vDash).add(boostVec);
   const speed = vel.length();
   setBuzz(grounded ? 0 : 0.025 + flapLevel*0.08, speed);
-  vig.material.opacity = (xr && tune.vignette) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
+  vig.material.opacity = now < game.deadUntil ? 0.95 : (xr && tune.vignette) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
 
   let a, b;
-  if (cur >= rings.length){ a = 'DONE ' + fmt(finishT); b = 'Best ' + fmt(best); }
-  else { a = 'RING ' + (cur + 1) + ' / ' + rings.length + (startT ? '  ' + fmt(now - startT) : ''); b = rings[cur].name; }
-  const c3 = flightState + ' · ' + speed.toFixed(1) + ' m/s';
-  const who = net.remotes.size ? (net.remotes.size + 1) + ' flying' : inputMode;
-  if (xr) drawHud(a, b, who + ' · ' + c3);
-  else $('#hudText').textContent = a + ' · ' + (net.remotes.size ? (net.remotes.size + 1) + ' flying · ' : '') + c3;
+  if (cur >= rings.length){ a = 'Course done ' + fmt(finishT); b = 'Best ' + fmt(best); }
+  else { a = 'Ring ' + (cur + 1) + '/' + rings.length + (startT ? ' ' + fmt(now - startT) : ''); b = rings[cur].name; }
+  if (game.stuck) flightState = 'stuck' + (game.stuck.kind === 'human' ? ' on the human' : game.stuck.food >= 0 ? ' on the ' + foods[game.stuck.food].name : '');
+  game.flyHud = [
+    game.hudTop || 'FLY',
+    a + ' · ' + b,
+    flightState + ' · ' + speed.toFixed(1) + ' m/s',
+    (net.remotes.size ? (net.remotes.size + 1) + ' playing · ' : '') + inputMode + ' · Food left ' + foodLeft() + '/' + totalFood() + ' · Taken ' + game.cap
+  ];
 }
 
 function idle(t){
+  rig.scale.setScalar(1);
   rig.position.set(0, 0, 52); rig.rotation.set(0, Math.sin(t*0.12)*0.35, 0);
   camera.position.set(0, 6 + Math.sin(t*0.5)*0.6, 0); camera.rotation.set(0.12, 0, 0);
   setBuzz(0, 0);
@@ -998,11 +1105,22 @@ const clock = new THREE.Clock();
 renderer.setAnimationLoop((time, frame) => {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   const xr = renderer.xr.isPresenting;
-  if (xr && frame){ if (simulateXR(dt, t, frame)) integrate(dt, t, true); }
-  else if (state === 'flat'){ simulateFlat(dt); integrate(dt, t, false); }
-  else idle(t);
+  if (xr && frame){
+    if (game.role === 'human') simulateHumanXR(dt, t, frame);
+    else if (simulateXR(dt, t, frame)) integrate(dt, t, true);
+  } else if (state === 'flat'){
+    if (game.role === 'human') simulateHumanFlat(dt, t);
+    else { simulateFlat(dt); integrate(dt, t, false); }
+  } else idle(t);
+  gameTick(dt, t);
   netTick(dt, t, xr || state === 'flat');
+  if (state !== 'menu'){
+    let lines = (game.role === 'human' ? game.hud : game.flyHud) || ['Like Flies'];
+    if (game.win) lines = [game.win === 'flies' ? 'FLIES WIN! New round soon' : 'HUMAN WINS! New round soon', ...lines.slice(1)];
+    if (xr) placeHud(dt, lines); else { hudMesh.visible = false; $('#hudText').textContent = lines.filter(Boolean).join(' · '); }
+  }
   animateRings(t);
+  fitLabels();
   renderer.render(scene, camera);
 });
 
@@ -1035,7 +1153,8 @@ function shareLink(){ return location.origin + location.pathname + '?room=' + en
 function updateStatus(){
   if (!net.peer){ return; }
   const n = net.remotes.size;
-  mpStatus('In room "' + net.room + '" as fly #' + net.slot + '. ' + (n ? n + (n === 1 ? ' other fly' : ' other flies') + ' here.' : 'Waiting for someone to join.'));
+  mpStatus('In room "' + net.room + '" as player #' + net.slot + '. ' + (n ? n + (n === 1 ? ' other player' : ' other players') + ' here.' : 'Waiting for someone to join.'));
+  if (typeof syncRoleUI === 'function') syncRoleUI();
 }
 
 function joinRoom(room){
@@ -1102,7 +1221,7 @@ function setupConn(conn){
     net.conns.set(j, conn);
     sendState(true);
   });
-  conn.on('data', d => { if (gen === net.gen && d && d.t === 's') onState(j, d); });
+  conn.on('data', d => { if (gen !== net.gen || !d) return; if (d.t === 's') onState(j, d); else if (d.t === 'e') onEvent(d); else if (d.t === 'f') onFood(d); });
   const gone = () => { if (net.conns.get(j) === conn){ net.conns.delete(j); dropRemote(j); } if (net.pending.get(j) === conn) net.pending.delete(j); };
   conn.on('close', gone); conn.on('error', gone);
 }
@@ -1129,20 +1248,30 @@ function sendState(force){
   const hand = h => { if (!renderer.xr.isPresenting || !h.has) return 0; sHand.copy(h.pos).applyMatrix4(rig.matrixWorld).sub(sHead); return [r3(sHand.x), r3(sHand.y), r3(sHand.z)]; };
   const msg = {t:'s', n:net.name || ('Fly ' + net.slot), c:net.slot, on:state !== 'menu' ? 1 : 0,
     p:[r3(sHead.x), r3(sHead.y), r3(sHead.z)], v:[r3(vel.x), r3(vel.y), r3(vel.z)], q:[r3(sQ.x), r3(sQ.y), r3(sQ.z), r3(sQ.w)],
-    l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:cur};
+    l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:cur, ro:game.role};
+  if (game.role === 'human' && game.local){
+    const pk = h => h.has ? [r3(h.pos.x), r3(h.pos.y), r3(h.pos.z), r3(h.q.x), r3(h.q.y), r3(h.q.z), r3(h.q.w)] : 0;
+    Object.assign(msg, {ch:game.ci, rp:[r3(rig.position.x), r3(rig.position.y), r3(rig.position.z)], ry:r3(rig.rotation.y), hs:tune.humanSize, ms:r3(game.local.ms),
+      hp:[r3(camera.position.x), r3(camera.position.y), r3(camera.position.z)], hq:[r3(camera.quaternion.x), r3(camera.quaternion.y), r3(camera.quaternion.z), r3(camera.quaternion.w)],
+      L:pk(hHands[0]), R:pk(hHands[1]), sw:game.swatSide, k:game.kills});
+    if (isAuthority() && game.bots.length) msg.b = game.bots.map(b => [r3(b.p.x), r3(b.p.y), r3(b.p.z), b.state === 'dead' ? 0 : b.carry ? 2 : 1]);
+  } else Object.assign(msg, {lv:game.lives, sk:game.stuck ? 1 : 0, cr:game.carry, out:game.out ? 1 : 0});
   for (const c of net.conns.values()){ if (c.open){ try{ c.send(msg); }catch(e){} } }
 }
 
 /* remote flies */
 const flyBodyGeo = new THREE.SphereGeometry(0.16, 16, 12), flyEyeGeo = new THREE.SphereGeometry(0.085, 14, 10);
 const flyBodyMat = new THREE.MeshLambertMaterial({color:0x2a2e35});
+const labels = [];
+function labelSize(sp, w, h){ sp.userData.lw = w; sp.userData.lh = h; sp.scale.set(w, h, 1); }
+function fitLabels(){ const k = 1 / rig.scale.x; for (const sp of labels) sp.scale.set(sp.userData.lw * k, sp.userData.lh * k, 1); }
 function makeLabel(text, color){
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
   const c = cv.getContext('2d');
   c.fillStyle = 'rgba(10,20,16,0.78)'; c.beginPath(); if (c.roundRect) c.roundRect(8, 20, 496, 88, 44); else c.rect(8, 20, 496, 88); c.fill();
   c.fillStyle = '#' + color.toString(16).padStart(6, '0'); c.font = 'bold 54px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(text, 256, 84);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), depthTest:true, transparent:true}));
-  sp.scale.set(0.8, 0.2, 1); return sp;
+  labelSize(sp, 0.8, 0.2); labels.push(sp); return sp;
 }
 function makeRemote(j){
   const color = SLOT_COLORS[(j - 1) % SLOT_COLORS.length];
@@ -1154,28 +1283,58 @@ function makeRemote(j){
   scene.add(g);
   const wings = [0, 1].map(() => { const w = new THREE.Mesh(wingGeo, wingMat); scene.add(w); return w; });
   const r = {j, g, wings, color, label:null, name:'', pos:new V3(), tgt:new V3(), v:new V3(), q:new THREE.Quaternion(), tq:new THREE.Quaternion(),
-    l:new V3(-0.6, -0.1, 0.1), r:new V3(0.6, -0.1, 0.1), tl:null, tr:null, recv:0, first:true, f:0, st:'', rg:0, buzz:null, on:1};
+    l:new V3(-0.6, -0.1, 0.1), r:new V3(0.6, -0.1, 0.1), tl:null, tr:null, recv:0, first:true, f:0, st:'', rg:0, buzz:null, on:1,
+    kind:'fly', ci:-1, model:null, cont:null, lv:10, sk:0, out:false, dead:false,
+    trp:new V3(), ry:0, hs:28, ms:1, thp:new V3(), thq:new THREE.Quaternion(), hp:new V3(), hq:new THREE.Quaternion(),
+    th:[{has:false, pos:new V3(), q:new THREE.Quaternion()}, {has:false, pos:new V3(), q:new THREE.Quaternion()}],
+    hh:[{has:false, pos:new V3(), q:new THREE.Quaternion()}, {has:false, pos:new V3(), q:new THREE.Quaternion()}], sw:-1, hfirst:true};
   net.remotes.set(j, r); updateStatus();
   return r;
 }
 function dropRemote(j){
   const r = net.remotes.get(j); if (!r) return;
-  scene.remove(r.g); r.wings.forEach(w => scene.remove(w)); if (r.label) scene.remove(r.label);
+  scene.remove(r.g); r.wings.forEach(w => scene.remove(w)); if (r.label){ scene.remove(r.label); labels.splice(labels.indexOf(r.label), 1); } if (r.cont) scene.remove(r.cont);
   if (r.buzz){ try{ r.buzz.g.gain.value = 0; r.buzz.o.stop(); }catch(e){} }
   net.remotes.delete(j); updateStatus();
 }
+function setRemoteKind(r, kind, ci){
+  if (r.cont){ scene.remove(r.cont); r.cont = null; r.model = null; }
+  r.kind = kind; r.ci = ci;
+  const fly = kind === 'fly';
+  r.g.visible = fly; r.wings.forEach(w => w.visible = fly);
+  if (!fly){
+    r.cont = new THREE.Group(); scene.add(r.cont);
+    r.model = buildHuman(Math.max(0, Math.min(2, ci))); r.cont.add(r.model.space); r.hfirst = true;
+    if (r.buzz) r.buzz.g.gain.value = 0;
+  }
+  if (typeof syncRoleUI === 'function') syncRoleUI();
+}
 function onState(j, d){
   const r = net.remotes.get(j) || makeRemote(j);
-  const name = String(d.n || ('Fly ' + j)).slice(0, 12);
-  if (name !== r.name){ r.name = name; if (r.label) scene.remove(r.label); r.label = makeLabel(name, r.color); scene.add(r.label); }
-  if (Array.isArray(d.p)) r.tgt.fromArray(d.p);
-  if (Array.isArray(d.v)) r.v.fromArray(d.v);
-  if (Array.isArray(d.q)) r.tq.fromArray(d.q).normalize();
-  r.tl = Array.isArray(d.l) ? new V3().fromArray(d.l) : null;
-  r.tr = Array.isArray(d.r) ? new V3().fromArray(d.r) : null;
-  r.f = +d.f || 0; r.st = d.st || ''; r.rg = d.rg | 0; r.on = d.on ? 1 : 0;
-  r.recv = clock.elapsedTime;
-  if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
+  const kind = d.ro === 'human' ? 'human' : 'fly';
+  if (kind !== r.kind || (kind === 'human' && (d.ch | 0) !== r.ci)) setRemoteKind(r, kind, d.ch | 0);
+  const name = String(d.n || ('Player ' + j)).slice(0, 12);
+  if (name !== r.name){ r.name = name; if (r.label){ scene.remove(r.label); labels.splice(labels.indexOf(r.label), 1); } r.label = makeLabel(name, r.color); scene.add(r.label); }
+  r.on = d.on ? 1 : 0; r.recv = clock.elapsedTime;
+  if (kind === 'fly'){
+    if (Array.isArray(d.p)) r.tgt.fromArray(d.p);
+    if (Array.isArray(d.v)) r.v.fromArray(d.v);
+    if (Array.isArray(d.q)) r.tq.fromArray(d.q).normalize();
+    r.tl = Array.isArray(d.l) ? new V3().fromArray(d.l) : null;
+    r.tr = Array.isArray(d.r) ? new V3().fromArray(d.r) : null;
+    r.f = +d.f || 0; r.st = d.st || ''; r.rg = d.rg | 0;
+    r.lv = d.lv != null ? d.lv | 0 : tune.lives; r.sk = d.sk | 0; r.out = !!d.out;
+    if (r.dead && clock.elapsedTime - r.deadAt > 1.5) r.dead = false;
+    if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
+  } else {
+    if (Array.isArray(d.rp)) r.trp.fromArray(d.rp);
+    r.ry = +d.ry || 0; r.hs = +d.hs || 28; r.ms = +d.ms || 1; r.sw = d.sw != null ? d.sw : -1;
+    if (Array.isArray(d.hp)) r.thp.fromArray(d.hp);
+    if (Array.isArray(d.hq)) r.thq.fromArray(d.hq).normalize();
+    [d.L, d.R].forEach((h, i) => { const t = r.th[i]; t.has = Array.isArray(h); if (t.has){ t.pos.set(h[0], h[1], h[2]); t.q.set(h[3], h[4], h[5], h[6]).normalize(); } });
+    if (r.hfirst){ r.hp.copy(r.thp); r.hq.copy(r.thq); r.th.forEach((t, i) => { r.hh[i].pos.copy(t.pos); r.hh[i].q.copy(t.q); }); r.cont.position.copy(r.trp); r.hfirst = false; }
+  }
+  if (Array.isArray(d.b)){ game.remoteBotsT = clock.elapsedTime; showRemoteBots(d.b); }
 }
 
 const wTmp = new V3(), wShoulder = new V3(), wHand = new V3(), wDir = new V3(), X_AXIS = new V3(1, 0, 0), yawQ = new THREE.Quaternion(), eul = new THREE.Euler();
@@ -1183,6 +1342,21 @@ function updateRemotes(dt, now){
   for (const r of [...net.remotes.values()]){
     if (now - r.recv > 6){ dropRemote(r.j); continue; }
     const vis = r.on === 1;
+    if (r.kind === 'human'){
+      r.cont.visible = vis; if (r.label) r.label.visible = vis;
+      if (!vis) continue;
+      const k = 1 - Math.exp(-14 * dt);
+      r.cont.position.lerp(r.trp, k); r.cont.rotation.set(0, r.ry, 0); r.cont.scale.setScalar(r.hs);
+      r.hp.lerp(r.thp, k); r.hq.slerp(r.thq, k);
+      r.th.forEach((t, i) => { const h = r.hh[i]; h.has = t.has; if (t.has){ h.pos.lerp(t.pos, k); h.q.slerp(t.q, k); } });
+      const m = r.model; m.ms = r.ms;
+      poseHuman(m, r.hp, r.hq, r.hh, now);
+      if (r.sw >= 0 && !m.swatter){ const sw = makeSwatter(); sw.position.set(0, -0.12*m.o.handS, 0); m.arms[r.sw].hand.add(sw); m.swatter = sw; m.swatSide = r.sw; }
+      if (r.sw < 0 && m.swatter){ m.swatter.parent.remove(m.swatter); m.swatter = null; m.swatSide = -1; }
+      updateColliders(m, now);
+      if (r.label){ r.label.position.copy(m.cHead.a); r.label.position.y += m.cHead.r * 1.8; labelSize(r.label, 0.8 * r.hs * 0.3, 0.2 * r.hs * 0.3); }
+      continue;
+    }
     r.g.visible = vis; r.wings.forEach(w => w.visible = vis); if (r.label) r.label.visible = vis;
     if (!vis) continue;
     wTmp.copy(r.tgt).addScaledVector(r.v, Math.min(0.25, now - r.recv));      // predict a little ahead
@@ -1242,7 +1416,7 @@ function updateListener(){
 function nearestFriend(){
   let best = null, bd = Infinity;
   camera.getWorldPosition(wTmp);
-  for (const r of net.remotes.values()){ if (!r.on) continue; const d = r.pos.distanceTo(wTmp); if (d < bd && d > 3){ bd = d; best = r.pos; } }
+  for (const r of net.remotes.values()){ if (!r.on || r.kind !== 'fly') continue; const d = r.pos.distanceTo(wTmp); if (d < bd && d > 3){ bd = d; best = r.pos; } }
   if (!best) return null;
   rig.updateMatrixWorld(true);
   return friendTarget.copy(best);
@@ -1256,7 +1430,798 @@ function netTick(dt, now, playing){
   net.sendAcc += dt;
   if (net.sendAcc >= (playing ? 1 / SEND_HZ : 0.5)){ net.sendAcc = 0; sendState(true); }
 }
-window.__likeflies = {net};   // for local testing
+
+
+/* =====================================================================
+   v0.0.06: HUMAN VS FLIES
+   Human players are giants standing in one spot. Flies stick to surfaces,
+   get swatted, crushed or clapped, steal food and take it to the trash can.
+   ===================================================================== */
+
+/* ---------- human character kit (same style as the lineup preview) ---------- */
+const HK = (() => {
+  const mats = {};
+  const M = c => mats[c] || (mats[c] = new THREE.MeshLambertMaterial({color:c, flatShading:true}));
+  function mesh(g, c, parent, x=0, y=0, z=0){ const m = new THREE.Mesh(g, M(c)); m.position.set(x, y, z); parent.add(m); return m; }
+  function block(wt, wb, h, dt, db, c, parent, x=0, y=0, z=0){
+    const g = new THREE.CylinderGeometry(Math.SQRT1_2, Math.SQRT1_2, h, 4, 1);
+    g.rotateY(Math.PI/4);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++){
+      const top = p.getY(i) > 0;
+      p.setX(i, Math.sign(p.getX(i)) * (top ? wt : wb) / 2);
+      p.setZ(i, Math.sign(p.getZ(i)) * (top ? dt : db) / 2);
+    }
+    g.translate(0, h/2, 0); g.computeVertexNormals();
+    return mesh(g, c, parent, x, y, z);
+  }
+  const box = (w, h, d, c, parent, x, y, z) => block(w, w, h, d, d, c, parent, x, y, z);
+  function hex(rt, rb, h, c, parent, x=0, y=0, z=0, sides=6){
+    const g = new THREE.CylinderGeometry(rt, rb, h, sides, 1); g.rotateY(Math.PI/sides); g.translate(0, h/2, 0);
+    return mesh(g, c, parent, x, y, z);
+  }
+  function ball(r, c, parent, x=0, y=0, z=0, w=8, hg=6){ return mesh(new THREE.SphereGeometry(r, w, hg), c, parent, x, y, z); }
+  const group = (parent, x=0, y=0, z=0) => { const g = new THREE.Group(); g.position.set(x, y, z); if (parent) parent.add(g); return g; };
+  function hand(c, parent, side, s=1){
+    const h = group(parent);
+    block(0.11*s, 0.12*s, 0.11*s, 0.06*s, 0.07*s, c, h, 0, -0.11*s, 0);
+    block(0.12*s, 0.1*s, 0.1*s, 0.055*s, 0.05*s, c, h, 0, -0.2*s, 0.004*s);
+    const th = block(0.035*s, 0.045*s, 0.09*s, 0.04*s, 0.045*s, c, h, 0.07*s*side, -0.15*s, 0.03*s);
+    th.rotation.z = 0.5*side;
+    return h;
+  }
+  function eyes(head, o){
+    const eg = group(head, 0, o.eyeY, o.faceZ);
+    for (const s of [-1, 1]){
+      const w = ball(o.eyeR, 0xffffff, eg, s*o.eyeX, 0, 0, 10, 8); w.scale.set(1, 1.15, 0.55);
+      const p = ball(o.eyeR*0.42, 0x15151a, eg, s*o.eyeX + s*0.005, -0.004, o.eyeR*0.5, 8, 6); p.scale.z = 0.5;
+      const br = box(o.eyeR*2.3, 0.022, 0.03, o.brow, eg, s*o.eyeX, o.eyeR*1.35, 0.005);
+      br.rotation.z = -s*o.browTilt;
+    }
+  }
+  return {M, mesh, block, box, hex, ball, group, hand, eyes};
+})();
+
+const SKIN_A = 0xe9b48f, SKIN_B = 0x8d5a3b, SKIN_C = 0xf3c9a4;
+const CHARS = [
+  {name:'Big Dale', headR:0.22, torsoW:0.7,
+    skin:SKIN_A, sleeve:0xf08a3c, pants:0xc9a66b, shoe:0xf4f4f0, shoeSole:0xc23a2e, brow:0x5a3a22,
+    legLen:0.62, hipW:0.5, waistW:0.62, torsoD:0.42, torsoH:0.56, shoulderW:0.66, neckW:0.2, neckH:0.06,
+    armW:0.13, upperLen:0.3, foreLen:0.3, sleeveLen:0.17, handS:1.25, shoeW:0.16, shoeL:0.3,
+    legParts:[[0.2,0xc9a66b,0.24,0.2],[0.16,SKIN_A,0.14,0.11],[0.17,0xf4f4f0,0.11,0.1]],
+    eyeY:0.2, faceZ:0.205, eyeX:0.075, eyeR:0.052, browTilt:0.15,
+    torsoParts(c, o){
+      HK.block(0.72, 0.68, o.torsoH, 0.44, 0.48, o.sleeve, c, 0, 0, 0);
+      HK.block(0.44, 0.52, 0.45, 0.03, 0.03, 0xd8392b, c, 0, -0.02, 0.24);
+      HK.box(0.2, 0.08, 0.02, 0xb52e22, c, 0, 0.12, 0.26);
+    },
+    headParts(h, o){
+      HK.hex(0.2, 0.22, 0.36, o.skin, h, 0, 0, 0);
+      HK.box(0.05, 0.15, 0.2, 0x5a3a22, h, -0.195, 0.1, -0.03);
+      HK.box(0.05, 0.15, 0.2, 0x5a3a22, h, 0.195, 0.1, -0.03);
+      HK.box(0.34, 0.14, 0.06, 0x5a3a22, h, 0, 0.08, -0.2);
+      HK.block(0.06, 0.1, 0.13, 0.05, 0.12, 0xd99a74, h, 0, 0.08, 0.24).rotation.x = 0.2;
+      HK.block(0.28, 0.2, 0.07, 0.07, 0.07, 0x5a3a22, h, 0, 0.04, 0.215);
+      HK.box(0.12, 0.03, 0.03, 0x7a2a22, h, 0, 0.0, 0.205);
+    }},
+  {name:'Rhonda', headR:0.17, torsoW:0.48,
+    skin:SKIN_B, sleeve:0xe8508a, pants:0x23202b, shoe:0xffffff, shoeSole:0x6f4ae0, brow:0x1c120c,
+    legLen:0.86, hipW:0.34, waistW:0.32, torsoD:0.26, torsoH:0.58, shoulderW:0.46, neckW:0.13, neckH:0.13,
+    armW:0.09, upperLen:0.36, foreLen:0.34, sleeveLen:0.36, foreSleeve:true, cuff:0xfacc3a, handS:1.1, shoeW:0.13, shoeL:0.29,
+    legParts:[[0.8,0x23202b,0.14,0.09]],
+    eyeY:0.21, faceZ:0.165, eyeX:0.06, eyeR:0.045, browTilt:-0.1,
+    torsoParts(c, o){
+      HK.block(0.44, 0.34, 0.3, 0.27, 0.25, 0x6f4ae0, c, 0, 0, 0);
+      HK.block(0.5, 0.44, 0.28, 0.28, 0.27, 0x2fc6b4, c, 0, 0.3, 0);
+      HK.box(0.5, 0.06, 0.29, 0xfacc3a, c, 0, 0.28, 0);
+      HK.box(0.02, 0.56, 0.02, 0xdcdcdc, c, 0, 0.0, 0.14);
+    },
+    headParts(h, o){
+      HK.block(0.3, 0.26, 0.4, 0.3, 0.28, o.skin, h, 0, 0, 0);
+      HK.block(0.06, 0.08, 0.17, 0.05, 0.14, 0x7a4a2f, h, 0, 0.07, 0.17).rotation.x = 0.22;
+      HK.box(0.11, 0.025, 0.02, 0x4a1f1a, h, 0, 0.06, 0.155);
+      HK.box(0.32, 0.06, 0.31, 0xfacc3a, h, 0, 0.3, 0);
+      HK.hex(0.21, 0.17, 0.16, 0x1c120c, h, 0, 0.34, -0.02, 8);
+      HK.block(0.28, 0.34, 0.12, 0.18, 0.28, 0x1c120c, h, 0, 0.44, -0.03);
+    }},
+  {name:'Pip', headR:0.21, torsoW:0.36,
+    skin:SKIN_C, sleeve:0xf6f3ea, pants:0x3d6fc4, shoe:0x2a2a2e, shoeSole:0xf6f3ea, brow:0x6a3e1f,
+    legLen:0.58, hipW:0.3, waistW:0.3, torsoD:0.22, torsoH:0.4, shoulderW:0.36, neckW:0.12, neckH:0.05,
+    armW:0.085, upperLen:0.22, foreLen:0.2, sleeveLen:0.1, handS:1.0, shoeW:0.12, shoeL:0.22,
+    legParts:[[0.2,0x3d6fc4,0.14,0.13],[0.2,SKIN_C,0.09,0.08],[0.14,0xf6f3ea,0.08,0.075]],
+    eyeY:0.18, faceZ:0.205, eyeX:0.075, eyeR:0.06, browTilt:-0.2,
+    torsoParts(c, o){
+      HK.block(0.38, 0.32, o.torsoH, 0.23, 0.22, o.sleeve, c, 0, 0, 0);
+      const t = HK.group(c, 0, 0.21, 0.117);
+      [[0.11, 0xd8392b, 0], [0.075, 0xf6f3ea, 0.004], [0.04, 0xd8392b, 0.008]].forEach(([r, col, z]) => {
+        const d = HK.mesh(new THREE.CylinderGeometry(r, r, 0.01, 12), col, t, 0, 0, z); d.rotation.x = Math.PI/2;
+      });
+    },
+    headParts(h, o){
+      HK.hex(0.21, 0.19, 0.34, o.skin, h, 0, 0, 0, 8);
+      HK.ball(0.035, 0xf0a28a, h, 0, 0.11, 0.205, 6, 4);
+      HK.box(0.1, 0.03, 0.02, 0x7a2a22, h, 0, 0.06, 0.198);
+      HK.hex(0.19, 0.27, 0.12, 0xf2c629, h, 0, 0.3, 0, 10);
+      HK.hex(0.32, 0.32, 0.02, 0xe0b31e, h, 0, 0.3, 0, 10);
+    }}
+];
+
+/* A posable human. Everything lives in `space`, which is rig space for the local player
+   (real meters) and a scaled container for remote players. */
+function buildHuman(ci){
+  const o = CHARS[ci];
+  const space = new THREE.Group();
+  const root = HK.group(space);
+  const inner = HK.group(root); inner.rotation.y = Math.PI;      // built facing +z, flipped to face -z like the camera
+  for (const side of [-1, 1]){
+    const hip = HK.group(inner, side*o.hipW/4, o.legLen, 0);
+    let y = 0;
+    for (const [len, c, wt, wb] of o.legParts){ y -= len; HK.block(wt, wb, len, wt*0.95, wb*0.95, c, hip, 0, y, 0); }
+    HK.box(o.shoeW, 0.09, o.shoeL, o.shoe, hip, 0, -o.legLen, 0.05);
+    HK.box(o.shoeW*1.04, 0.025, o.shoeL*1.02, o.shoeSole, hip, 0, -o.legLen, 0.05);
+  }
+  const torso = HK.group(inner, 0, o.legLen - 0.03, 0);
+  HK.block(o.waistW, o.hipW, 0.12, o.torsoD*0.95, o.torsoD, o.pants, torso, 0, 0, 0);
+  const chest = HK.group(torso, 0, 0.1, 0);
+  o.torsoParts(chest, o);
+  const neckTop = o.legLen - 0.03 + 0.1 + o.torsoH;
+  HK.hex(o.neckW*0.55, o.neckW*0.6, 0.09, o.skin, inner, 0, neckTop - 0.02, 0);
+  const headPivot = HK.group(space);
+  const headInner = HK.group(headPivot, 0, o.neckH, 0); headInner.rotation.y = Math.PI;
+  o.headParts(headInner, o); HK.eyes(headInner, o);
+  const arms = [-1, 1].map(side => {
+    const upper = HK.group(space), fore = HK.group(space), hand = HK.group(space);
+    if (o.sleeveLen < o.upperLen){
+      HK.block(o.armW*1.05, o.armW*0.85, o.upperLen, o.armW*0.95, o.armW*0.8, o.skin, upper, 0, -o.upperLen, 0);
+      HK.block(o.armW*1.25, o.armW*1.15, o.sleeveLen, o.armW*1.15, o.armW*1.05, o.sleeve, upper, 0, -o.sleeveLen, 0);
+    } else HK.block(o.armW*1.05, o.armW*0.85, o.upperLen, o.armW*0.95, o.armW*0.8, o.sleeve, upper, 0, -o.upperLen, 0);
+    HK.block(o.armW*0.85, o.armW*0.75, o.foreLen, o.armW*0.8, o.armW*0.7, o.foreSleeve ? o.sleeve : o.skin, fore, 0, -o.foreLen, 0);
+    if (o.cuff) HK.box(o.armW*1.05, 0.05, o.armW*0.95, o.cuff, fore, 0, -o.foreLen + 0.01, 0);
+    HK.hand(o.skin, hand, side, o.handS);
+    return {side, upper, fore, hand, S:new V3(), E:new V3(), W:new V3(), C:new V3()};
+  });
+  const cols = [];
+  const col = (kind, part, extra) => { const c = Object.assign({kind, part, a:new V3(), b:new V3(), r:0, prev:new V3(), v:new V3(), ok:false}, extra || {}); cols.push(c); return c; };
+  const m = {ci, o, space, root, headPivot, arms, neckTop, EY:neckTop + o.neckH + o.eyeY, ms:1, yaw:0, cols, swatSide:-1, swatter:null,
+    cHead:col('head', headPivot), cTorso:col('torso', root),
+    cLegs:[col('leg', root), col('leg', root)],
+    cUpper:arms.map(a => col('upper', a.upper)), cFore:arms.map(a => col('fore', a.fore)),
+    cHand:arms.map(a => col('hand', a.hand, {side:a.side})), cSwat:col('swatter', null)};
+  return m;
+}
+
+const NEG_Y = new V3(0, -1, 0), UPV = new V3(0, 1, 0);
+const pq = new THREE.Quaternion(), pqYaw = new THREE.Quaternion(), pR = new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), Math.PI/2);
+const pf = new V3(), pv = new V3(), pu = new V3(), pp = new V3(), pd = new V3();
+/* Pose a human from head and hand poses given in its space. hands[i] = {has, pos, q} or null. */
+function poseHuman(m, H, Hq, hands, now){
+  const o = m.o, ms = m.ms;
+  pf.set(0, 0, -1).applyQuaternion(Hq);
+  if (Math.abs(pf.y) < 0.97) m.yaw = Math.atan2(-pf.x, -pf.z);
+  pqYaw.setFromAxisAngle(UPV, m.yaw);
+  const fx = -Math.sin(m.yaw), fz = -Math.cos(m.yaw);
+  m.root.position.set(H.x - fx*0.09*ms, Math.min(0, H.y - m.EY*ms), H.z - fz*0.09*ms);
+  m.root.quaternion.copy(pqYaw); m.root.scale.setScalar(ms);
+  m.headPivot.position.copy(m.root.position).addScaledVector(UPV, m.neckTop*ms);
+  m.headPivot.quaternion.copy(Hq); m.headPivot.scale.setScalar(ms);
+  const a0 = o.upperLen*ms, b0 = o.foreLen*ms, palm = 0.08*o.handS*ms;
+  for (const arm of m.arms){
+    const s = arm.side;
+    arm.S.set(s*(o.shoulderW/2 + o.armW*0.35), m.neckTop - 0.04, 0).multiplyScalar(ms).applyQuaternion(pqYaw).add(m.root.position);
+    const h = hands[s > 0 ? 1 : 0];
+    if (h && h.has){
+      arm.hand.quaternion.copy(h.q).multiply(pR);
+      pv.copy(NEG_Y).applyQuaternion(arm.hand.quaternion);          // finger direction
+      arm.C.copy(h.pos);
+      arm.W.copy(h.pos).addScaledVector(pv, -palm);
+    } else {
+      arm.hand.quaternion.copy(pqYaw);
+      arm.W.copy(arm.S).add(pd.set(s*0.06, -(a0 + b0)*0.96, -0.04*ms).applyQuaternion(pqYaw));
+      arm.C.copy(arm.W).addScaledVector(NEG_Y, palm);
+    }
+    pd.subVectors(arm.W, arm.S);
+    const L = Math.max(1e-4, pd.length()), st = Math.max(1, L / (a0 + b0)), a = a0*st, b = b0*st;
+    pu.copy(pd).divideScalar(L);
+    const x = (a*a - b*b + L*L) / (2*L), hh = Math.sqrt(Math.max(0, a*a - x*x));
+    pp.set(s*0.55, -1, 0.35).applyQuaternion(pqYaw); pp.addScaledVector(pu, -pp.dot(pu)).normalize();
+    arm.E.copy(arm.S).addScaledVector(pu, x).addScaledVector(pp, hh);
+    arm.upper.position.copy(arm.S); arm.upper.quaternion.setFromUnitVectors(NEG_Y, pv.subVectors(arm.E, arm.S).normalize()); arm.upper.scale.set(ms, ms*st, ms);
+    arm.fore.position.copy(arm.E); arm.fore.quaternion.setFromUnitVectors(NEG_Y, pv.subVectors(arm.W, arm.E).normalize()); arm.fore.scale.set(ms, ms*st, ms);
+    arm.hand.position.copy(arm.W); arm.hand.scale.setScalar(ms);
+  }
+}
+
+/* Colliders in world space (capsules a-b with radius r). */
+const cW = new V3();
+function updateColliders(m, now){
+  m.space.updateMatrixWorld(true);
+  const M4 = m.space.matrixWorld, ws = m.space.getWorldScale(cW).x, o = m.o, ms = m.ms;
+  const set = (c, a, b, r) => {
+    c.a.copy(a).applyMatrix4(M4); c.b.copy(b).applyMatrix4(M4); c.r = r * ws;
+    pd.addVectors(c.a, c.b).multiplyScalar(0.5);
+    if (c.ok){ const dt = Math.max(1e-3, now - c.t); c.v.subVectors(pd, c.prev).divideScalar(dt); }
+    c.prev.copy(pd); c.t = now; c.ok = true;
+  };
+  const R = m.root.position;
+  set(m.cHead, pv.copy(m.headPivot.position).addScaledVector(UPV, (o.neckH + 0.17)*ms), pv, o.headR*ms);
+  set(m.cTorso, pu.copy(R).addScaledVector(UPV, (o.legLen + 0.05)*ms), pp.copy(R).addScaledVector(UPV, (m.neckTop - 0.05)*ms), o.torsoW*0.42*ms);
+  [-1, 1].forEach((s, i) => {
+    pu.set(s*o.hipW/4, o.legLen, 0).multiplyScalar(ms).applyQuaternion(m.root.quaternion).add(R);
+    pp.set(s*o.hipW/4, 0.05, 0).multiplyScalar(ms).applyQuaternion(m.root.quaternion).add(R);
+    set(m.cLegs[i], pu, pp, o.legParts[0][2]*0.55*ms);
+  });
+  m.arms.forEach((a, i) => {
+    set(m.cUpper[i], a.S, a.E, o.armW*0.65*ms);
+    set(m.cFore[i], a.E, a.W, o.armW*0.6*ms);
+    set(m.cHand[i], a.W, pv.copy(a.C).addScaledVector(pd.copy(a.C).sub(a.W).normalize(), 0.05*ms), 0.085*o.handS*ms);
+  });
+  m.cSwat.ok = false;
+  if (m.swatSide >= 0 && m.swatter){
+    m.swatter.updateMatrixWorld(true);
+    const sw = m.swatter.matrixWorld;
+    m.cSwat.part = m.swatter;
+    pu.set(0, -0.3, 0).applyMatrix4(sw); pp.set(0, -0.48, 0).applyMatrix4(sw);
+    const ok = m.cSwat.okPrev;
+    m.cSwat.a.copy(pu); m.cSwat.b.copy(pp); m.cSwat.r = 0.11 * m.swatter.getWorldScale(cW).x;
+    pd.addVectors(pu, pp).multiplyScalar(0.5);
+    if (ok){ const dt = Math.max(1e-3, now - m.cSwat.t); m.cSwat.v.subVectors(pd, m.cSwat.prev).divideScalar(dt); }
+    m.cSwat.prev.copy(pd); m.cSwat.t = now; m.cSwat.ok = true; m.cSwat.okPrev = true;
+  } else m.cSwat.okPrev = false;
+}
+function segDist(p, a, b, out){
+  pd.subVectors(b, a); const L2 = pd.lengthSq();
+  let t = L2 > 1e-9 ? (pv.subVectors(p, a).dot(pd) / L2) : 0; t = Math.max(0, Math.min(1, t));
+  out.copy(a).addScaledVector(pd, t);
+  return p.distanceTo(out);
+}
+
+/* fly swatter prop, real-world size 0.48 m */
+function makeSwatter(){
+  const s = new THREE.Group();
+  HK.mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 6), 0x2b2b2b, s, 0, -0.15, 0);
+  HK.box(0.2, 0.2, 0.012, 0x8fd14f, s, 0, -0.48, 0);
+  HK.box(0.22, 0.02, 0.016, 0x5e9a2a, s, 0, -0.48, 0);
+  HK.box(0.22, 0.02, 0.016, 0x5e9a2a, s, 0, -0.29, 0);
+  HK.box(0.02, 0.2, 0.016, 0x5e9a2a, s, -0.1, -0.48, 0);
+  HK.box(0.02, 0.2, 0.016, 0x5e9a2a, s, 0.1, -0.48, 0);
+  return s;
+}
+
+/* ---------- the human's corner of the yard: two standing spots, a snack cart, food, swatters ---------- */
+const HUMAN_SPOTS = [new V3(-58, 0, 33), new V3(-58, 0, 57)];
+const HUMAN_YAW = -Math.PI/2;                 // facing +x, toward the cart and the yard
+const BASE = new V3(14, 0, 60);               // the flies' trash can
+const cartG = new THREE.Group(); scene.add(cartG);
+{
+  const top = 21, x0 = -48, x1 = -40, z0 = 26, z1 = 64;
+  box(x1 - x0 + 1, 1.2, z1 - z0 + 1, 0xd8d2c4, (x0 + x1)/2, top - 1.2, (z0 + z1)/2);
+  for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) box(1, top - 1.2, 1, 0x8a8f99, x, 0, z);
+  box(x1 - x0, 0.6, z1 - z0, 0x8a8f99, (x0 + x1)/2, 6, (z0 + z1)/2, false);
+  // the trash can where flies take food
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(6, 5, 14, 12), mat(0x6f7b86)); can.position.set(BASE.x, 7, BASE.z); scene.add(can);
+  solids.push({box:new THREE.Box3(new V3(BASE.x - 5.5, 0, BASE.z - 5.5), new V3(BASE.x + 5.5, 14, BASE.z + 5.5))});
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.4, 0.8, 12), mat(0x56606a)); lid.position.set(BASE.x - 2, 14.8, BASE.z); lid.rotation.z = 0.5; scene.add(lid);
+  const sign = makeLabel('Fly base: bring food here', 0x6fe39a); labelSize(sign, 16, 4); sign.position.set(BASE.x, 20, BASE.z); scene.add(sign);
+}
+const FOOD_DEFS = [
+  {name:'sandwich', z:31, hp:5}, {name:'cake', z:39, hp:5}, {name:'chips', z:49, hp:4}, {name:'watermelon', z:57, hp:4}
+];
+const foods = FOOD_DEFS.map((f, i) => {
+  const g = new THREE.Group(); g.position.set(-44, 21, f.z); scene.add(g);
+  if (f.name === 'sandwich'){ HK.box(5, 0.8, 5, 0xe7c07a, g, 0, 0, 0); HK.box(5.3, 0.4, 5.3, 0x6fb64a, g, 0, 0.8, 0); HK.box(5, 0.6, 5, 0xd9534f, g, 0, 1.2, 0); HK.box(5, 0.8, 5, 0xe7c07a, g, 0, 1.8, 0); }
+  if (f.name === 'cake'){ HK.block(5.5, 5.5, 3, 4, 4, 0xf3e1c8, g, 0, 0, 0); HK.block(5.6, 5.6, 0.6, 4.1, 4.1, 0xf06fa2, g, 0, 3, 0); HK.ball(0.7, 0xd8392b, g, 0, 4, 0, 8, 6); }
+  if (f.name === 'chips'){ HK.hex(3.4, 2.4, 2, 0x3d6fc4, g, 0, 0, 0, 10); for (let k = 0; k < 6; k++){ const c = HK.box(1.6, 0.25, 1.2, 0xf2c629, g, Math.cos(k)*1.4, 2 + (k%3)*0.3, Math.sin(k)*1.4); c.rotation.set(k, k*2, 0.4); } }
+  if (f.name === 'watermelon'){ const w = HK.mesh(new THREE.CylinderGeometry(3.4, 3.4, 1.2, 10, 1, false, 0, Math.PI), 0x6fb64a, g, 0, 1.6, 0); w.rotation.set(Math.PI/2, 0, Math.PI/2); const r2 = HK.mesh(new THREE.CylinderGeometry(3, 3, 1.3, 10, 1, false, 0, Math.PI), 0xef4f5f, g, 0, 1.6, 0); r2.rotation.copy(w.rotation); }
+  const sIdx = solids.length;
+  solids.push({box:new THREE.Box3(new V3(-47, 21, f.z - 3), new V3(-41, 25, f.z + 3)), food:i});
+  const bar = makeLabel('', 0xffd23f); labelSize(bar, 4.4, 1.1); bar.position.set(-42, 27.5, f.z); scene.add(bar);
+  return {name:f.name, max:f.hp, hp:f.hp, g, sIdx, bar, shown:-1};
+});
+const cartSwatters = [35, 53].map(z => { const s = makeSwatter(); s.scale.setScalar(28); s.position.set(-50, 22.2, z); s.rotation.set(0, 0, Math.PI/2); scene.add(s); return s; });
+function drawFoodBars(){
+  foods.forEach(f => {
+    if (f.shown === f.hp) return; f.shown = f.hp;
+    const cv = f.bar.material.map.image, c = cv.getContext('2d');
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.fillStyle = 'rgba(10,20,16,0.8)'; rr(c, 8, 24, 496, 80, 40); c.fill();
+    c.fillStyle = '#eef5ea'; c.font = 'bold 40px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(f.name, 40, 78);
+    for (let i = 0; i < f.max; i++){ c.fillStyle = i < f.hp ? '#ffd23f' : 'rgba(238,245,234,0.2)'; rr(c, 280 + i*42, 44, 34, 40, 8); c.fill(); }
+    f.bar.material.map.needsUpdate = true;
+    const k = 0.35 + 0.65 * (f.hp / f.max);
+    f.g.scale.set(1, k, 1); f.g.visible = f.hp > 0;
+    solids[f.sIdx].off = f.hp <= 0;
+  });
+}
+
+/* ---------- game state ---------- */
+const game = {role:'fly', ci:0, lives:10, out:false, carry:-1, kills:0, stunUntil:0, deadUntil:0, stuck:null, stickCool:0,
+  cap:0, round:1, win:'', winAt:0, local:null, spot:new V3(), center:new V3(), centerSet:false, eyeH:1.6, swatSide:-1,
+  hitCool:new Map(), bots:[], botViews:[], lastFoodSend:0, banner:''};
+const totalFood = () => foods.reduce((a, f) => a + f.max, 0);
+const foodLeft = () => foods.reduce((a, f) => a + f.hp, 0);
+const mySlot = () => net.slot || 0;
+const speedMul = () => game.carry >= 0 ? 1 - tune.carrySlow / 100 : 1;
+
+function remoteHumans(){ const out = []; for (const r of net.remotes.values()) if (r.kind === 'human' && r.model && r.on) out.push(r); return out; }
+function authority(){
+  let hs = [], all = [mySlot()];
+  if (game.role === 'human') hs.push(mySlot());
+  for (const r of net.remotes.values()){ all.push(r.j); if (r.kind === 'human') hs.push(r.j); }
+  return Math.min(...(hs.length ? hs : all));
+}
+const isAuthority = () => authority() === mySlot();
+
+function setRole(role, ci){
+  const changed = role !== game.role || (role === 'human' && ci !== game.ci);
+  if (game.carry >= 0) requestFood('drop', game.carry);
+  game.role = role; if (ci != null) game.ci = ci;
+  store.set('likeflies.role', {role:game.role, ci:game.ci});
+  if (game.local){ rig.remove(game.local.space); game.local = null; }
+  game.stuck = null; game.carry = -1; game.swatSide = -1; game.centerSet = false;
+  if (role === 'human'){
+    game.local = buildHuman(game.ci);
+    game.local.headPivot.visible = false;               // you don't see the inside of your own head
+    rig.add(game.local.space);
+  } else if (changed){ game.lives = tune.lives; game.out = false; }
+  HANDS.forEach(h => { h.prevOk = false; });
+  syncRoleUI();
+  if (state !== 'menu') applyRole();
+}
+function applyRole(){
+  if (game.role === 'human'){
+    const humanIdx = (mySlot() % 2 === 0 && mySlot() > 0) ? 1 : 0;
+    game.spot.copy(HUMAN_SPOTS[humanIdx]);
+    rig.scale.setScalar(tune.humanSize);
+    rig.position.copy(game.spot); rig.rotation.set(0, HUMAN_YAW, 0); yaw = HUMAN_YAW; pitch = 0;
+    stopAll(); game.centerSet = false;
+  } else {
+    rig.scale.setScalar(1);
+    resetCourse();
+  }
+  HANDS.forEach(h => h.obj.visible = false);
+}
+
+/* ---------- reading grip and fist for grabbing ---------- */
+function readGrab(frame){
+  const session = renderer.xr.getSession(), ref = renderer.xr.getReferenceSpace();
+  if (!session || !ref || !frame) return;
+  for (const src of session.inputSources){
+    const h = src.handedness === 'left' ? HAND.left : src.handedness === 'right' ? HAND.right : null;
+    if (!h) continue;
+    h.grip = false;
+    if (src.hand){
+      const jp = n => { const js = src.hand.get(n); return js ? frame.getJointPose(js, ref) : null; };
+      const w = jp('wrist'), m = jp('middle-finger-tip'), r = jp('ring-finger-tip');
+      if (w && m && r){
+        const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+        h.grip = d(w.transform.position, m.transform.position) < 0.095 && d(w.transform.position, r.transform.position) < 0.09;
+      }
+    } else if (src.gamepad){ const b = src.gamepad.buttons[1]; h.grip = !!(b && (b.pressed || b.value > 0.6)); }
+  }
+}
+
+/* ---------- local human: VR ---------- */
+const hHands = [{has:false, pos:new V3(), q:new THREE.Quaternion()}, {has:false, pos:new V3(), q:new THREE.Quaternion()}];
+function simulateHumanXR(dt, now, frame){
+  readInputs(frame); readGrab(frame);
+  for (const h of HANDS){
+    if (h.btnA && !h.prevA){ if (menuOpen) closeMenu(); game.center.set(camera.position.x, 0, camera.position.z); game.centerSet = true; }
+    if (h.btnB && !h.prevB){ menuOpen ? closeMenu() : openMenu(); }
+    h.prevA = h.btnA; h.prevB = h.btnB;
+  }
+  const L = HAND.left, R = HAND.right;
+  if (L.isHand && L.pinch && !L.grip){ pinchT += dt; if (pinchT > 0.8 && !pinchLatch){ pinchLatch = true; menuOpen ? closeMenu() : openMenu(); } } else { pinchT = 0; pinchLatch = false; }
+  if (!menuOpen){
+    const ax = R.stickX;
+    if (Math.abs(ax) > 0.7 && !R.snap){ turnAroundHead(-Math.sign(ax) * Math.PI/6); R.snap = true; }
+    if (Math.abs(ax) < 0.3) R.snap = false;
+  }
+  HANDS.forEach(h => h.obj.visible = false);
+  if (menuOpen) updateMenuPointer();
+  const m = game.local; if (!m) return;
+  game.eyeH = Math.max(1.0, Math.min(2.1, Math.max(game.eyeH - 0.02*dt, camera.position.y)));
+  m.ms = Math.max(0.55, Math.min(1.6, game.eyeH / m.EY));
+  HANDS.forEach((h, i) => { hHands[i].has = h.has; hHands[i].pos.copy(h.pos); hHands[i].q.copy(h.q); });
+  poseHuman(m, camera.position, camera.quaternion, hHands, now);
+  humanCommon(dt, now, HANDS.map(h => h.has && h.grip));
+}
+/* ---------- local human: on screen (for testing without a headset) ---------- */
+let flatSwatT = -9, flatClapT = -9, flatGrab = false;
+const fq = new THREE.Quaternion(), fe = new THREE.Euler();
+function simulateHumanFlat(dt, now){
+  if (keys.KeyA || keys.ArrowLeft) yaw += 1.4*dt;
+  if (keys.KeyD || keys.ArrowRight) yaw -= 1.4*dt;
+  rig.rotation.set(0, yaw, 0);
+  camera.position.set(0, 1.6, 0); camera.rotation.set(pitch, 0, 0, 'YXZ');
+  const m = game.local; if (!m) return;
+  m.ms = 1.6 / m.EY;
+  const sw = now - flatSwatT, cl = now - flatClapT;
+  fe.set(pitch*0.6, 0, 0, 'YXZ'); fq.setFromEuler(fe);
+  hHands[0].has = hHands[1].has = true;
+  hHands[0].pos.set(-0.24, 1.18, -0.38); hHands[1].pos.set(0.24, 1.18, -0.38);
+  if (sw >= 0 && sw < 0.45){
+    const u = sw < 0.12 ? sw / 0.12 : 1 - (sw - 0.12) / 0.33;
+    hHands[1].pos.set(0.24 - 0.12*u, 1.45 - 0.75*u, -0.25 - 0.45*u);
+  }
+  if (cl >= 0 && cl < 0.4){ const u = cl < 0.1 ? cl / 0.1 : 1 - (cl - 0.1) / 0.3; hHands[0].pos.x = -0.24 + 0.2*u; hHands[1].pos.x = 0.24 - 0.2*u; hHands[0].pos.z = hHands[1].pos.z = -0.38 - 0.12*u; }
+  for (const h of hHands){ h.pos.applyEuler(fe); h.q.copy(fq); }
+  poseHuman(m, camera.position, fq.setFromEuler(fe.set(pitch, 0, 0, 'YXZ')), hHands, now);
+  humanCommon(dt, now, [false, flatGrab]);
+}
+
+/* shared human logic: swatter, safety spot, hits, HUD */
+function humanCommon(dt, now, grips){
+  const m = game.local;
+  if (!game.centerSet){ game.center.set(camera.position.x, 0, camera.position.z); game.centerSet = true; }
+  // grab or drop the swatter
+  updateColliders(m, now);
+  if (game.swatSide < 0){
+    for (let i = 0; i < 2; i++){
+      if (!grips[i]) continue;
+      const c = m.cHand[i];
+      for (const s of cartSwatters){
+        s.getWorldPosition(wTmp);
+        if (s.visible && c.b.distanceTo(wTmp) < 0.2 * tune.humanSize){ grabSwatter(i, s); break; }
+      }
+      if (game.swatSide >= 0) break;
+    }
+  } else if (!grips[game.swatSide]) dropSwatter();
+  // stay on your spot
+  const off = Math.hypot(camera.position.x - game.center.x, camera.position.z - game.center.z);
+  game.offSpot = off > tune.spotLimit;
+  vig.material.opacity = game.offSpot ? 0.9 : 0;
+  // swat, crush and clap
+  humanHits(m, now);
+  if (isAuthority()) updateBots(dt, now);
+  const o = m.o;
+  game.hud = [
+    game.offSpot ? 'STEP BACK TO YOUR SPOT' : 'HUMAN · ' + o.name + ' · Kills ' + game.kills,
+    'Food left ' + foodLeft() + '/' + totalFood() + ' · Taken ' + game.cap + ' · ' + flyStatusText(),
+    game.swatSide >= 0 ? 'Swatter in ' + (game.swatSide ? 'right' : 'left') + ' hand' : 'Grab a swatter: grip button or make a fist',
+    (net.room ? 'Room ' + net.room + ' · ' : '') + (net.remotes.size + 1) + ' playing · ' + inputMode
+  ];
+}
+function grabSwatter(i, s){
+  const m = game.local;
+  game.swatSide = i; m.swatSide = i;
+  s.visible = false; game.heldFrom = s;
+  const sw = makeSwatter(); sw.position.set(0, -0.12*m.o.handS, 0.0); sw.rotation.set(0, 0, 0);
+  m.arms[i].hand.add(sw); m.swatter = sw;
+}
+function dropSwatter(){
+  const m = game.local;
+  if (m && m.swatter){ m.swatter.parent.remove(m.swatter); m.swatter = null; }
+  if (m) m.swatSide = -1;
+  game.swatSide = -1;
+  if (game.heldFrom){ game.heldFrom.visible = true; game.heldFrom = null; }
+}
+function flyStatusText(){
+  const flies = []; if (game.role === 'fly') flies.push({lv:game.lives});
+  for (const r of net.remotes.values()) if (r.kind === 'fly') flies.push({lv:r.lv});
+  if (!flies.length) return game.bots.length ? game.bots.length + ' practice flies' : 'no flies yet';
+  return 'Fly lives ' + flies.reduce((a, f) => a + Math.max(0, f.lv | 0), 0);
+}
+
+/* ---------- hits: the human's headset decides ---------- */
+const hP = new V3(), hQ = new V3(), hN = new V3();
+function nearSurface(p, rad, ownModel){
+  if (p.y < rad*2.5) return true;
+  for (const s of solids){
+    if (s.off) continue;
+    if (s.box){ if (s.box.distanceToPoint(p) < rad*2.5) return true; }
+    else if (p.distanceTo(s.c) - s.r < rad*2.5) return true;
+  }
+  const ms = [ownModel, ...remoteHumans().map(r => r.model)];
+  for (const m of ms){ if (!m) continue; for (const c of m.cols){ if (!c.ok || c.kind === 'hand' || c.kind === 'swatter') continue; if (segDist(p, c.a, c.b, hQ) - c.r < rad*2.5) return true; } }
+  return false;
+}
+function hitTargets(){
+  const t = [];
+  for (const r of net.remotes.values()) if (r.kind === 'fly' && r.on && !r.dead && !r.out) t.push({id:'p' + r.j, pos:r.pos, stuck:!!r.sk, remote:r});
+  for (const b of game.bots) if (b.state !== 'dead') t.push({id:'b' + b.id, pos:b.p, stuck:b.state === 'land' || b.state === 'onHuman', bot:b});
+  return t;
+}
+function humanHits(m, now){
+  const HS = tune.humanSize, fr = tune.flyHitbox;
+  const parts = [m.cHand[0], m.cHand[1]]; if (m.cSwat.ok) parts.push(m.cSwat);
+  const handsGap = m.cHand[0].b.distanceTo(m.cHand[1].b);
+  const closing = game.prevGap != null ? (game.prevGap - handsGap) / Math.max(1e-3, now - game.prevGapT) / HS : 0;
+  game.prevGap = handsGap; game.prevGapT = now;
+  for (const tg of hitTargets()){
+    if ((game.hitCool.get(tg.id) || 0) > now) continue;
+    const dists = parts.map(c => segDist(tg.pos, c.a, c.b, hQ) - c.r);
+    // clap: both hands closing around the fly
+    if (dists[0] < fr*1.5 && dists[1] < fr*1.5 && closing > 0.4){ killTarget(tg, now); continue; }
+    for (let i = 0; i < parts.length; i++){
+      if (dists[i] > fr) continue;
+      const c = parts[i], spd = c.v.length() / HS;
+      if ((tg.stuck || nearSurface(tg.pos, fr, m)) && spd > tune.crushSpeed){ killTarget(tg, now); break; }
+      if (spd > tune.swatSpeed){ knockTarget(tg, c.v, now); break; }
+    }
+  }
+}
+function knockTarget(tg, v, now){
+  game.hitCool.set(tg.id, now + 0.6);
+  const imp = v.clone().multiplyScalar(0.35 * tune.knock);
+  if (imp.length() > 45) imp.setLength(45);
+  if (imp.y < 4) imp.y = 4;
+  thwack(0.6);
+  pulseAll(0.5, 40);
+  if (tg.bot) botStun(tg.bot, imp, now);
+  else sendEvent({k:'hit', to:tg.remote.j, imp:[r3(imp.x), r3(imp.y), r3(imp.z)]});
+}
+function killTarget(tg, now){
+  game.hitCool.set(tg.id, now + 1.5);
+  game.kills++;
+  splat(tg.pos); thwack(1); pulseAll(0.9, 70);
+  sendEvent({k:'splat', to:0, p:[r3(tg.pos.x), r3(tg.pos.y), r3(tg.pos.z)]});
+  if (tg.bot) botKill(tg.bot, now);
+  else { tg.remote.dead = true; tg.remote.deadAt = now; sendEvent({k:'kill', to:tg.remote.j}); }
+}
+function pulseAll(i, ms){ HANDS.forEach(h => { try{ const a = h.src && h.src.gamepad && h.src.gamepad.hapticActuators && h.src.gamepad.hapticActuators[0]; if (a && a.pulse) a.pulse(i, ms); }catch(e){} }); }
+
+/* ---------- splat and sounds ---------- */
+const splats = [];
+const splatMat = new THREE.MeshBasicMaterial({color:0xb8e04a, transparent:true});
+const splatGeo = (() => { const s = new THREE.Shape(); for (let i = 0; i < 16; i++){ const a = i / 16 * Math.PI * 2, r = i % 2 ? 0.45 : 1; s[i ? 'lineTo' : 'moveTo'](Math.cos(a)*r, Math.sin(a)*r); } return new THREE.ShapeGeometry(s); })();
+function splat(p){
+  const g = new THREE.Group(); g.position.copy(p);
+  const star = new THREE.Mesh(splatGeo, splatMat.clone()); star.scale.setScalar(1.4); g.add(star);
+  const bits = [];
+  for (let i = 0; i < 8; i++){ const b = new THREE.Mesh(new THREE.SphereGeometry(0.25, 6, 4), new THREE.MeshBasicMaterial({color:i % 2 ? 0xffd23f : 0x8fd14f, transparent:true})); g.add(b); bits.push({b, v:new V3(Math.random()*2 - 1, Math.random()*1.5, Math.random()*2 - 1).multiplyScalar(6)}); }
+  scene.add(g); splats.push({g, star, bits, t:0});
+}
+function updateSplats(dt){
+  camera.getWorldPosition(wTmp);
+  for (let i = splats.length - 1; i >= 0; i--){
+    const s = splats[i]; s.t += dt;
+    s.star.lookAt(wTmp); s.star.scale.setScalar(1.4 + s.t*2);
+    s.bits.forEach(o => { o.v.y -= 15*dt; o.b.position.addScaledVector(o.v, dt); o.b.material.opacity = Math.max(0, 1 - s.t/1.2); });
+    s.star.material.opacity = Math.max(0, 1 - s.t/1.5);
+    if (s.t > 1.6){ scene.remove(s.g); splats.splice(i, 1); }
+  }
+}
+function thwack(v){
+  if (!audio || !tune.sound) return;
+  try{
+    const ac = audio.ac, n = ac.sampleRate * 0.18, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random()*2 - 1) * Math.pow(1 - i/n, 3);
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = buf; f.type = 'lowpass'; f.frequency.value = 900 + v*900; g.gain.value = 0.35*v;
+    s.connect(f); f.connect(g); g.connect(ac.destination); s.start();
+  }catch(e){}
+}
+
+/* ---------- fly side: sticking, stun, death, food ---------- */
+const contact = {hit:false, kind:'', part:null, food:-1};
+function collideHumans(pt, r){
+  for (const rh of remoteHumans()){
+    for (const c of rh.model.cols){
+      if (!c.ok) continue;
+      const d = segDist(pt, c.a, c.b, hQ), min = c.r + r;
+      if (d < min && d > 1e-4){
+        hN.subVectors(pt, hQ).divideScalar(d);
+        const push = min - d; rig.position.addScaledVector(hN, push); pt.addScaledVector(hN, push);
+        stopAlong(hN.x, hN.y, hN.z);
+        contact.hit = true; contact.kind = 'human'; contact.part = c.part; contact.food = -1; contact.owner = rh.j; contact.pkind = c.kind; contact.side = c.side > 0 ? 1 : 0;
+      }
+    }
+  }
+}
+function flyStick(now){
+  camera.getWorldPosition(head);
+  if (game.stuck){
+    const s = game.stuck;
+    if (s.part){
+      if (!s.part.parent){ game.stuck = null; return; }
+      s.part.updateWorldMatrix(true, false);
+      wTmp.copy(s.local).applyMatrix4(s.part.matrixWorld);
+      rig.position.add(hP.subVectors(wTmp, s.prev)); s.prev.copy(wTmp);
+      if (s.pkind === 'hand' && now - s.t0 > 1.2 && !s.bit){ s.bit = true; sendEvent({k:'bite', to:s.owner, side:s.side}); }
+    }
+    stopAll();
+    return;
+  }
+  if (!contact.hit || now < game.stickCool || now < game.stunUntil || game.out) return;
+  const s = {kind:contact.kind, part:contact.part, food:contact.food, owner:contact.owner, pkind:contact.pkind, t0:now, prev:new V3(), local:new V3()};
+  if (s.part){ s.part.updateWorldMatrix(true, false); s.prev.copy(head); s.local.copy(head).applyMatrix4(new THREE.Matrix4().copy(s.part.matrixWorld).invert()); s.side = contact.side; }
+  game.stuck = s; stopAll();
+  if (s.food >= 0 && game.carry < 0 && !game.out) requestFood('grab', s.food);
+}
+function unstick(now){ if (game.stuck){ game.stuck = null; game.stickCool = now + 0.4; } }
+
+function requestFood(kind, f){
+  if (isAuthority()) handleFood(kind, f, mySlot());
+  else sendEvent({k:kind, to:authority(), f});
+}
+function handleFood(kind, f, from){
+  if (kind === 'grab'){
+    if (foods[f] && foods[f].hp > 0 && !game.win){ foods[f].hp--; grant(from, f); }
+  } else if (kind === 'drop'){ if (foods[f]) foods[f].hp = Math.min(foods[f].max, foods[f].hp + 1); }
+  else if (kind === 'deliver'){ game.cap++; ding(false); }
+  drawFoodBars(); checkWin(); broadcastFood();
+}
+function grant(to, f){
+  if (to === mySlot()){ game.carry = f; ding(false); }
+  else sendEvent({k:'granted', to, f});
+}
+function broadcastFood(){
+  game.lastFoodSend = clock.elapsedTime;
+  const msg = {t:'f', hp:foods.map(f => f.hp), cap:game.cap, rd:game.round, win:game.win};
+  for (const c of net.conns.values()) if (c.open){ try{ c.send(msg); }catch(e){} }
+}
+function checkWin(){
+  if (game.win) return;
+  if (game.cap >= totalFood()) setWin('flies');
+  const flies = []; if (game.role === 'fly') flies.push(game.lives);
+  for (const r of net.remotes.values()) if (r.kind === 'fly') flies.push(r.lv | 0);
+  if (flies.length && flies.every(l => l <= 0)) setWin('human');
+}
+function setWin(w){ game.win = w; game.winAt = clock.elapsedTime; ding(true); broadcastFood(); }
+function newRound(){
+  game.round++; game.win = ''; game.cap = 0; foods.forEach(f => f.hp = f.max); drawFoodBars();
+  if (game.role === 'fly'){ game.lives = tune.lives; game.out = false; game.carry = -1; resetCourse(); }
+  game.kills = 0; game.bots.forEach(b => botRespawn(b, clock.elapsedTime));
+  broadcastFood(); sendEvent({k:'round', to:0, rd:game.round});
+}
+function flyDie(now){
+  if (game.role !== 'fly' || now < game.deadUntil) return;
+  if (game.carry >= 0){ requestFood('drop', game.carry); game.carry = -1; }
+  camera.getWorldPosition(head); splat(head); thwack(1);
+  game.lives = Math.max(0, game.lives - 1);
+  game.out = game.lives <= 0;
+  game.deadUntil = now + 1.4; game.stuck = null; stopAll();
+  vig.material.opacity = 0.95;
+  setTimeout(() => { resetCourse(); vig.material.opacity = 0; }, 1200);
+  if (isAuthority()) checkWin();
+}
+function flyHit(imp, now){
+  if (game.role !== 'fly') return;
+  unstick(now);
+  game.stunUntil = now + tune.stun;
+  if (game.carry >= 0){ requestFood('drop', game.carry); game.carry = -1; }
+  vDash.add(imp); thwack(0.5);
+}
+function flyGameTick(now){
+  if (game.role !== 'fly') return;
+  camera.getWorldPosition(head);
+  if (game.carry >= 0 && head.distanceTo(wTmp.set(BASE.x, 10, BASE.z)) < 16){ requestFood('deliver', game.carry); game.carry = -1; }
+  const fl = game.out ? 'OUT OF LIVES · watching' : 'FLY · Lives ' + game.lives + '/' + tune.lives + (game.carry >= 0 ? ' · carrying ' + foods[game.carry].name : '');
+  game.hudTop = fl;
+}
+
+/* ---------- practice flies (bots), simulated by the human's headset ---------- */
+const botGeo = new THREE.SphereGeometry(0.16, 10, 8);
+function makeBotView(){
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(botGeo, flyBodyMat); b.scale.set(1.6, 1.4, 2.6); g.add(b);
+  const em = new THREE.MeshLambertMaterial({color:0xff5a4e, emissive:0xff5a4e, emissiveIntensity:0.3});
+  for (const s of [-1, 1]){ const e = new THREE.Mesh(flyEyeGeo, em); e.scale.setScalar(1.6); e.position.set(0.14*s, 0.05, -0.3); g.add(e); }
+  g.wings = [-1, 1].map(s => { const w = new THREE.Mesh(wingGeo, wingMat); w.scale.set(1.6, 1, 2); w.position.set(0.1*s, 0.12, 0); if (s < 0) w.rotation.y = Math.PI; g.add(w); return w; });
+  const food = HK.box(0.6, 0.4, 0.6, 0xffd23f, g, 0, -0.55, 0); g.food = food; food.visible = false;
+  scene.add(g); return g;
+}
+function syncBotCount(now){
+  const want = (game.role === 'human' && isAuthority() && state !== 'menu') ? Math.round(tune.bots) : 0;
+  while (game.bots.length < want){ const b = {id:game.bots.length + 1, p:new V3(), v:new V3(), state:'dead', t:0, food:-1, carry:false, view:makeBotView()}; botRespawn(b, now); game.bots.push(b); }
+  while (game.bots.length > want){ const b = game.bots.pop(); if (b.carry) handleFood('drop', b.food, mySlot()); scene.remove(b.view); }
+}
+function botRespawn(b, now){ b.p.set(BASE.x + (Math.random()*2 - 1)*12, 18 + Math.random()*8, BASE.z + (Math.random()*2 - 1)*12); b.v.set(0, 0, 0); b.state = 'toFood'; b.t = now; b.carry = false; b.attach = null; pickBotTarget(b); }
+function pickBotTarget(b){
+  const live = foods.map((f, i) => i).filter(i => foods[i].hp > 0);
+  const humans = game.local ? [game.local] : [];
+  if (humans.length && Math.random() < 0.25){
+    const m = humans[0], c = [m.cHand[0], m.cHand[1], m.cFore[0], m.cFore[1], m.cHead][Math.floor(Math.random()*5)];
+    b.state = 'toHuman'; b.col = c; return;
+  }
+  b.food = live.length ? live[Math.floor(Math.random()*live.length)] : -1;
+  b.state = b.food >= 0 ? 'toFood' : 'wander';
+}
+function botStun(b, imp, now){
+  if (b.carry){ handleFood('drop', b.food, mySlot()); b.carry = false; }
+  b.attach = null; b.state = 'stun'; b.t = now + tune.stun; b.v.copy(imp);
+}
+function botKill(b, now){
+  if (b.carry){ handleFood('drop', b.food, mySlot()); b.carry = false; }
+  b.state = 'dead'; b.t = now + 2.5; b.attach = null;
+}
+const bT = new V3();
+function updateBots(dt, now){
+  syncBotCount(now);
+  const sp = 12;
+  for (const b of game.bots){
+    let target = null, speed = sp;
+    if (b.state === 'dead'){ b.view.visible = false; if (now > b.t) botRespawn(b, now); continue; }
+    b.view.visible = true;
+    if (b.state === 'stun'){
+      b.v.y -= 20*dt; b.v.multiplyScalar(Math.exp(-0.8*dt)); b.p.addScaledVector(b.v, dt);
+      if (b.p.y < 0.6){ b.p.y = 0.6; b.v.y = Math.abs(b.v.y) * 0.4; }
+      if (now > b.t){ b.v.set(0, 0, 0); pickBotTarget(b); }
+    } else if (b.state === 'land' || b.state === 'onHuman'){
+      if (b.attach){ b.attach.part.updateWorldMatrix(true, false); b.p.copy(b.attach.local).applyMatrix4(b.attach.part.matrixWorld); }
+      if (now > b.t){
+        if (b.state === 'land' && b.food >= 0 && foods[b.food].hp > 0 && !game.win){ foods[b.food].hp--; drawFoodBars(); broadcastFood(); b.carry = true; b.state = 'toBase'; }
+        else { if (b.state === 'onHuman' && b.attach && b.attach.kind === 'hand' && game.swatSide === b.attach.side){ dropSwatter(); pulseAll(1, 120); } pickBotTarget(b); }
+        b.attach = null; b.v.set(0, 6, 0);
+      }
+    } else {
+      if (b.state === 'toFood'){ if (b.food < 0 || foods[b.food].hp <= 0){ pickBotTarget(b); continue; } target = bT.copy(foods[b.food].g.position).add(wTmp.set(0, 3.5, 0)); }
+      else if (b.state === 'toBase'){ target = bT.set(BASE.x, 17, BASE.z); speed = sp * (1 - tune.carrySlow/100); }
+      else if (b.state === 'toHuman'){ if (!b.col || !b.col.ok){ pickBotTarget(b); continue; } target = bT.copy(b.col.b); }
+      else { target = bT.set(Math.sin(now*0.3 + b.id)*40, 25, 40 + Math.cos(now*0.4 + b.id)*20); if (Math.random() < dt*0.3) pickBotTarget(b); }
+      wTmp.subVectors(target, b.p); const d = wTmp.length();
+      wTmp.normalize().multiplyScalar(Math.min(speed, 2 + d * 1.2));
+      wTmp.x += Math.sin(now*3 + b.id*7) * 2.5; wTmp.y += Math.sin(now*4.1 + b.id) * 1.5; wTmp.z += Math.cos(now*2.7 + b.id*3) * 2.5;
+      b.v.lerp(wTmp, 1 - Math.exp(-3*dt)); b.p.addScaledVector(b.v, dt);
+      if (b.p.y < 1) b.p.y = 1;
+      if (b.state === 'toFood' && d < 2.5){ b.state = 'land'; b.t = now + 1.4; b.v.set(0, 0, 0); }
+      if (b.state === 'toBase' && d < 7){ b.carry = false; handleFood('deliver', -1, mySlot()); pickBotTarget(b); }
+      if (b.state === 'toHuman' && d < b.col.r + 0.6){
+        b.part = b.col.part; b.part.updateWorldMatrix(true, false);
+        b.attach = {part:b.col.part, kind:b.col.kind, side:b.col.side > 0 ? 1 : 0, local:b.p.clone().applyMatrix4(new THREE.Matrix4().copy(b.col.part.matrixWorld).invert())};
+        b.state = 'onHuman'; b.t = now + 2.2;
+      }
+    }
+    b.view.position.copy(b.p);
+    if (b.v.lengthSq() > 0.5) b.view.lookAt(wTmp.copy(b.p).sub(b.v));
+    b.view.wings.forEach((w, i) => w.rotation.z = Math.sin(now*55 + i*3) * 0.6 * (i ? 1 : -1));
+    b.view.food.visible = b.carry;
+  }
+}
+/* other players see the bots from the human's broadcast */
+function showRemoteBots(list){
+  while (game.botViews.length < list.length) game.botViews.push(makeBotView());
+  game.botViews.forEach((v, i) => {
+    const d = list[i]; v.visible = !!d && d[3] !== 0;
+    if (!d) return;
+    v.position.lerp(wTmp.set(d[0], d[1], d[2]), 0.5); v.food.visible = d[3] === 2;
+    v.wings.forEach((w, k) => w.rotation.z = Math.sin(clock.elapsedTime*55 + k*3 + i) * 0.6 * (k ? 1 : -1));
+  });
+}
+
+/* ---------- events between players ---------- */
+function sendEvent(e){
+  e.t = 'e'; e.from = mySlot();
+  if (!net.conns.size) { if (e.to === mySlot()) onEvent(e); return; }
+  if (e.to && net.conns.get(e.to)){ try{ net.conns.get(e.to).send(e); }catch(err){} return; }
+  for (const c of net.conns.values()) if (c.open){ try{ c.send(e); }catch(err){} }
+}
+function onEvent(e){
+  const now = clock.elapsedTime;
+  if (e.to && e.to !== mySlot()) return;
+  if (e.k === 'kill') flyDie(now);
+  else if (e.k === 'hit') flyHit(new V3().fromArray(e.imp), now);
+  else if (e.k === 'splat') splat(new V3().fromArray(e.p));
+  else if (e.k === 'grab' || e.k === 'drop' || e.k === 'deliver'){ if (isAuthority()) handleFood(e.k, e.f, e.from); }
+  else if (e.k === 'granted'){ game.carry = e.f; ding(false); }
+  else if (e.k === 'bite'){ if (game.role === 'human'){ pulseAll(1, 150); if (game.swatSide >= 0) dropSwatter(); } }
+  else if (e.k === 'newround'){ if (isAuthority()) newRound(); }
+  else if (e.k === 'round'){ if (game.role === 'fly'){ game.lives = tune.lives; game.out = false; game.carry = -1; } game.kills = 0; }
+}
+function onFood(d){
+  if (!Array.isArray(d.hp)) return;
+  d.hp.forEach((h, i) => { if (foods[i]) foods[i].hp = h; });
+  game.cap = d.cap | 0;
+  if (d.rd && d.rd !== game.round){ game.round = d.rd; if (game.role === 'fly'){ game.lives = tune.lives; game.out = false; } }
+  if (d.win !== game.win){ game.win = d.win || ''; if (game.win) { game.winAt = clock.elapsedTime; ding(true); } }
+  drawFoodBars();
+}
+
+/* ---------- per-frame game tick for everyone ---------- */
+function gameTick(dt, now){
+  updateSplats(dt);
+  const humanHere = game.role === 'human' || remoteHumans().length > 0;
+  giantDummy.forEach(o => o.visible = !humanHere); giantSolids.forEach(o => o.off = humanHere);
+  if (game.role === 'fly' && state !== 'menu') flyGameTick(now);
+  if (isAuthority()){
+    if (now - game.lastFoodSend > 1) broadcastFood();
+    if (game.win && now - game.winAt > 8) newRound();
+    checkWin();
+  }
+  if (game.role !== 'human' || !isAuthority()){ for (const b of game.bots) scene.remove(b.view); game.bots.length = 0; }
+}
+
+window.__likeflies = {net, game, foods, setRole, rig, camera, tune:() => tune, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -1275,11 +2240,11 @@ async function enterVR(){
   if (!navigator.xr){ setNote('This browser has no WebXR. Open this page in the Quest browser.', true); return; }
   try{
     const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor', 'bounded-floor', 'hand-tracking']});
-    startAudio(); resetCourse(); closeMenu();
+    startAudio(); closeMenu();
     camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
     await renderer.xr.setSession(session);
-    state = 'xr'; lastHud = '';
-    session.addEventListener('end', () => { closeMenu(); hudMesh.visible = arrow.visible = friendArrow.visible = false; HANDS.forEach(h => h.obj.visible = false); showMenu(); resize(); });
+    state = 'xr'; lastHud = ''; hudInit = false; resetCourse();
+    session.addEventListener('end', () => { closeMenu(); if (game.swatSide >= 0) dropSwatter(); vig.material.opacity = 0; hudMesh.visible = arrow.visible = friendArrow.visible = false; HANDS.forEach(h => h.obj.visible = false); showMenu(); resize(); });
   }catch(err){
     setNote('The headset would not start VR here (' + (err && err.name || 'error') + '). Open the standalone link in the Quest browser instead.', true);
   }
@@ -1308,10 +2273,11 @@ TUNE.forEach(t => {
 });
 function syncDom(){
   TUNE.forEach(t => { $('#t_' + t.k).value = tune[t.k]; $('#o_' + t.k).textContent = fmtVal(t); });
-  $('#tVig').checked = tune.vignette; $('#tSnd').checked = tune.sound;
+  $('#tVig').checked = tune.vignette; $('#tSnd').checked = tune.sound; $('#tHud').checked = tune.hud;
 }
 $('#tVig').addEventListener('change', e => { tune.vignette = e.target.checked; saveTune(); });
 $('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; saveTune(); if (tune.sound) startAudio(); });
+$('#tHud').addEventListener('change', e => { tune.hud = e.target.checked; saveTune(); });
 $('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });
 syncDom();
 if (best != null) $('#bestTime').textContent = fmt(best);
@@ -1328,6 +2294,21 @@ $('#mpCopy').addEventListener('click', () => {
   const fallback = () => { const r = document.createRange(); r.selectNodeContents($('#mpLink')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); };
   try{ navigator.clipboard.writeText(link).then(done, fallback); }catch(e){ fallback(); }
 });
+function syncRoleUI(){
+  $('#roleFly').setAttribute('aria-pressed', String(game.role === 'fly'));
+  $('#roleHuman').setAttribute('aria-pressed', String(game.role === 'human'));
+  $('#charRow').hidden = game.role !== 'human';
+  document.querySelectorAll('#charRow button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.ci === game.ci)));
+  const others = [...net.remotes.values()].filter(r => r.kind === 'human').map(r => r.name || 'Someone');
+  $('#roleNote').textContent = others.length
+    ? others.join(' and ') + (others.length > 1 ? ' are' : ' is') + ' already a human. More than one human is allowed in this test build.'
+    : 'You can switch roles any time from the Game tab in VR settings (B or Y).';
+}
+$('#roleFly').addEventListener('click', () => setRole('fly'));
+$('#roleHuman').addEventListener('click', () => setRole('human', game.ci));
+document.querySelectorAll('#charRow button').forEach(b => b.addEventListener('click', () => setRole('human', +b.dataset.ci)));
+{ const saved = store.get('likeflies.role', null); if (saved && saved.role === 'human') setRole('human', Math.max(0, Math.min(2, saved.ci | 0))); else syncRoleUI(); }
+drawFoodBars();
 if (cleanRoom(qs.get('room'))) joinRoom(qs.get('room'));
 addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }catch(e){} });
 })();
