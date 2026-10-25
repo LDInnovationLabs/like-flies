@@ -104,7 +104,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.08 · Physics &amp; interaction</div>
+      <div class="eyebrow">Test v0.0.09 · Surface crawling</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard cookout. The giant human stands at the grill with food on all four sides. Flies spawn from trash cans around the yard, grab a piece of food, and score by surviving long enough to eat it.</p>
@@ -154,8 +154,10 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
         <dt>Turn</dt><dd>While gliding, dip one wing. Or flick the right thumbstick.</dd>
         <dt>Settings</dt><dd>B or Y opens settings in VR. With bare hands, pinch your left thumb and finger for one second.</dd>
         <dt>Reset</dt><dd>A or X, or the Reset button in settings.</dd>
-        <dt>Stick</dt><dd>You stick to anything you touch, including the human. Flap or dash to take off.</dd>
-        <dt>Eat</dt><dd>Land on food to grab a piece, then survive until the timer runs out to eat it and score a point. You cruise slower while carrying, but flapping still pushes at full strength.</dd>
+        <dt>Land</dt><dd>Touch anything to land on it, including the human. Your six feet plant on the surface.</dd>
+        <dt>Crawl</dt><dd>Left thumbstick walks you along the surface: over edges, up walls and underneath. With bare hands, reach out and point where you want to walk; pull your hands in to stop. The whole world turns with the surface, so under the flamingo the yard is upside down.</dd>
+        <dt>Take off</dt><dd>Flap hard, or pull a trigger. The world levels back to normal behind a short dark vignette.</dd>
+        <dt>Eat</dt><dd>Land on food (or crawl onto it) to grab a piece, then survive until the timer runs out to eat it and score a point. You cruise slower while carrying, but flapping still pushes at full strength.</dd>
         <dt>Swatted</dt><dd>Three air swats and you're out (one life). Getting squashed while you're sitting on something, or clapped, is instant. A swat makes you drop your food.</dd>
       </dl>
     </div>
@@ -190,7 +192,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
     <div class="foot">
       <span>Best time: <b id="bestTime">none yet</b></span>
-      <span>Screen as fly: Space flap · W glide · Q/E dash · drag to look. As human: click swat right · F swat left · Space clap · G and H swatters</span>
+      <span>Screen as fly: Space flap or take off · W glide · W/S crawl and A/D turn when landed · Q/E dash · drag to look. As human: click swat right · F swat left · Space clap · G and H swatters</span>
     </div>
   </div>
 </div>
@@ -245,6 +247,9 @@ const TUNE = [
   {g:'Combat', k:'swingInf',   label:'Swing influence',   min:0,   max:2,   step:0.05, def:1,   hint:'How much a faster swing launches a fly harder. 0 makes every hit the same.'},
   {g:'Combat', k:'knockMax',   label:'Max swat impulse',  min:20,  max:250, step:5,    def:150, unit:' m/s', hint:'Cap so a tracking glitch can never fling a fly across the map.'},
   {g:'Combat', k:'upAssist',   label:'Upward assist',     min:0,   max:0.5, step:0.05, def:0,   hint:'Extra lift added to every swat. 0 means flies go exactly where you hit them.'},
+  {g:'Combat', k:'liftLoss',   label:'Swat lift loss',    min:0,   max:100, step:5,    def:100, unit:'%', hint:'How much a swatted fly stops flying while stunned, so it starts to fall. 0 turns the fall off.'},
+  {g:'Combat', k:'fallG',      label:'Swatted fall pull', min:0,   max:60,  step:1,    def:30,  unit:' m/s²', hint:'Gravity on a stunned fly at 100% lift loss, in fly-world units.'},
+  {g:'Combat', k:'recoverRamp',label:'Lift recovery',     min:0,   max:2,   step:0.05, def:0.4, unit:'s', hint:'After the stun, how long lift takes to come back. Flap to climb back up.'},
   {g:'Combat', k:'knockDecay', label:'Knockback slowdown',min:0.2, max:5,   step:0.1,  def:1.5, hint:'How quickly a swatted fly loses its knockback speed.'},
   {g:'Combat', k:'styleScale', label:'Style bonus scale', min:0,   max:3,   step:0.1,  def:1,   hint:'Multiplies style points from props.'},
   {g:'Carry',  k:'carrySlow',  label:'Carry slowdown',    min:0,   max:80,  step:5,    def:35,  unit:'%', hint:'Lower cruise and top speed while carrying food. Flapping still pushes at full strength.'},
@@ -255,12 +260,26 @@ const TUNE = [
   {g:'Game',   k:'spotLimit',  label:'Spot limit',        min:0.3, max:1.5, step:0.05, def:0.5, unit:' m', hint:'How far the human can step from their spot before the view dims.'},
   {g:'Game',   k:'motes',      label:'Air motes',         min:0,   max:100, step:5,    def:40,  unit:'%', hint:'Floating specks that show flies their speed and direction. 0 turns them off.'},
   {g:'Game',   k:'comfortKnock', label:'Comfort knockback', min:0, max:100, step:5,    def:0,   unit:'%', hint:'As a fly, reduces how far you get thrown when swatted. Your view never spins.'},
+  {g:'Crawl', k:'crawlSpeed',  label:'Crawl speed',        min:0.2, max:6,   step:0.1,  def:1.5, unit:' m/s', hint:'Top walking speed on a surface, in fly-world meters (glide is 12).'},
+  {g:'Crawl', k:'crawlAccel',  label:'Crawl acceleration', min:1,   max:20,  step:0.5,  def:6,   unit:' m/s²', hint:'How quickly you start and stop walking.'},
+  {g:'Crawl', k:'crawlH',      label:'Crawl eye height',   min:0.15,max:1.2, step:0.05, def:0.35, unit:' m', hint:'How high your eyes ride above the surface while landed.'},
+  {g:'Crawl', k:'surfOrient',  label:'Surface orientation',min:0,   max:100, step:5,    def:100, unit:'%', hint:'How much the world turns with the surface. 100% is full: walls are sideways, undersides are upside down. 0 keeps the view level.'},
+  {g:'Crawl', k:'normSmooth',  label:'Surface smoothing',  min:0,   max:0.6, step:0.01, def:0.15, unit:'s', hint:'Evens out bumps and seams between surfaces. Higher is smoother but lags on curves.'},
+  {g:'Crawl', k:'landTime',    label:'Landing turn time',  min:0.05,max:1,   step:0.05, def:0.3, unit:'s', hint:'How long the view takes to swing onto a surface when you land.'},
+  {g:'Crawl', k:'levelTime',   label:'Takeoff leveling',   min:0.2, max:2,   step:0.05, def:0.75, unit:'s', hint:'How long the world takes to turn upright again after takeoff.'},
+  {g:'Crawl', k:'vigMax',      label:'Takeoff vignette',   min:0,   max:100, step:5,    def:75,  unit:'%', hint:'Darkness at the edges while the world levels. 0 turns it off.'},
+  {g:'Crawl', k:'vigLead',     label:'Vignette lead',      min:0,   max:0.5, step:0.01, def:0.12, unit:'s', hint:'The vignette closes in this long before the world starts to turn.'},
+  {g:'Crawl', k:'vigFade',     label:'Vignette fade-out',  min:0.05,max:1,   step:0.05, def:0.3, unit:'s', hint:'How long the vignette takes to clear after leveling.'},
+  {g:'Crawl', k:'vigAngle',    label:'Vignette angle',     min:0,   max:90,  step:1,    def:15,  unit:'°', hint:'Takeoffs tilted less than this level quickly with no vignette.'},
+  {g:'Crawl', k:'takeoffFlap', label:'Takeoff flap',       min:0.2, max:3,   step:0.05, def:0.6, hint:'How hard a flap must be to take off from a surface. Higher means fewer accidental takeoffs.'},
+  {g:'Crawl', k:'pushOff',     label:'Push-off speed',     min:0,   max:10,  step:0.5,  def:3,   unit:' m/s', hint:'Extra speed away from the surface when you take off.'},
+  {g:'Crawl', k:'handReach',   label:'Hand steer reach',   min:0.25,max:0.7, step:0.01, def:0.45, unit:' m', hint:'Bare hands: how far out you reach before pointing starts to walk you.'},
   {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'}
 ];
 const groupOf = t => t.g || 'Flight';
-const PAGES = ['Flight', 'Powered glide', 'Combat', 'Carry', 'Game'];
+const PAGES = ['Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game'];
 const TAB_LABEL = {'Powered glide':'Glide'};
-const GROUP_TITLE = {'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort'};
+const GROUP_TITLE = {'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort'};
 const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
 const TUNE_KEY = 'likeflies.tune.v0.0.06';
@@ -401,6 +420,55 @@ const SKIN_GNOME = 0xf3c9a4;
 const solidBox = (x0, y0, z0, x1, y1, z1, extra) => { const s = Object.assign({box:new THREE.Box3(new V3(x0, y0, z0), new V3(x1, y1, z1))}, extra || {}); solids.push(s); return s; };
 const solidBall = (x, y, z, r, extra) => { const s = Object.assign({c:new V3(x, y, z), r}, extra || {}); solids.push(s); return s; };
 
+/* ---------- v0.0.09: smooth shapes. Signed distance to boxes, balls, ellipsoids and capsules.
+   Crawling flies keep their feet on these (edges come out rounded, so the view turns smoothly),
+   and curved props like the flamingo use them as colliders too. ---------- */
+const _sp = new V3(), _sq = new V3(), _sab = new V3();
+function boxDist(qx, qy, qz, r){ return Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qy, qz), 0) - r; }
+function sdPrim(pr, p){
+  switch (pr.k){
+    case 'aabb': return boxDist(Math.abs(p.x - pr.cx) - pr.hx, Math.abs(p.y - pr.cy) - pr.hy, Math.abs(p.z - pr.cz) - pr.hz, 0);
+    case 'obox': { _sp.copy(p).applyMatrix4(pr.inv); const r = pr.rad || 0;
+      return boxDist(Math.abs(_sp.x - pr.ox) - pr.hx + r, Math.abs(_sp.y - pr.oy) - pr.hy + r, Math.abs(_sp.z - pr.oz) - pr.hz + r, r) * pr.ws; }
+    case 'sph': return p.distanceTo(pr.c) - pr.r;
+    case 'ell': { _sp.copy(p).applyMatrix4(pr.inv);
+      const k0 = Math.hypot(_sp.x / pr.rx, _sp.y / pr.ry, _sp.z / pr.rz), k1 = Math.hypot(_sp.x / (pr.rx*pr.rx), _sp.y / (pr.ry*pr.ry), _sp.z / (pr.rz*pr.rz));
+      return k1 < 1e-6 ? -Math.min(pr.rx, pr.ry, pr.rz) : k0 * (k0 - 1) / k1; }
+    case 'cap': { _sab.subVectors(pr.b, pr.a); const L2 = _sab.lengthSq();
+      let t = L2 > 1e-9 ? _sq.subVectors(p, pr.a).dot(_sab) / L2 : 0; t = Math.max(0, Math.min(1, t));
+      _sq.copy(pr.a).addScaledVector(_sab, t); return p.distanceTo(_sq) - pr.r; }
+  }
+  return 1e9;
+}
+const PR = {
+  aabb(mn, mx, extra){ const cx = (mn.x + mx.x)/2, cy = (mn.y + mx.y)/2, cz = (mn.z + mx.z)/2, hx = (mx.x - mn.x)/2, hy = (mx.y - mn.y)/2, hz = (mx.z - mn.z)/2;
+    return Object.assign({k:'aabb', cx, cy, cz, hx, hy, hz, bc:new V3(cx, cy, cz), br:Math.hypot(hx, hy, hz), food:-1}, extra || {}); },
+  sph(c, r, extra){ return Object.assign({k:'sph', c:c.clone(), r, bc:c.clone(), br:r, food:-1}, extra || {}); },
+  ell(m4, rx, ry, rz, extra){ return Object.assign({k:'ell', inv:m4.clone().invert(), rx, ry, rz, bc:new V3().setFromMatrixPosition(m4), br:Math.max(rx, ry, rz), food:-1}, extra || {}); },
+  obox(m4, hx, hy, hz, rad, extra){ return Object.assign({k:'obox', inv:m4.clone().invert(), ox:0, oy:0, oz:0, hx, hy, hz, rad:rad || 0, ws:1, bc:new V3().setFromMatrixPosition(m4), br:Math.hypot(hx, hy, hz), food:-1}, extra || {}); },
+  cap(a, b, r, extra){ return Object.assign({k:'cap', a:a.clone(), b:b.clone(), r, bc:a.clone().add(b).multiplyScalar(0.5), br:a.distanceTo(b)/2 + r, food:-1}, extra || {}); }
+};
+/* a collider made of smooth shapes; flies bump into it and crawl on it */
+function solidShape(prims, extra){
+  const s = Object.assign({sdf:prims, bc:new V3(), br:0}, extra || {});
+  prims.forEach(p => s.bc.add(p.bc)); s.bc.divideScalar(Math.max(1, prims.length));
+  prims.forEach(p => { s.br = Math.max(s.br, s.bc.distanceTo(p.bc) + p.br); p.s = s; if (!p.label) p.label = s.label; });
+  solids.push(s); return s;
+}
+const _mT = new THREE.Matrix4();
+function sdMin(list, p){ let d = 1e9; for (const pr of list) d = Math.min(d, sdPrim(pr, p)); return d; }
+function sdNormal(list, p, out){
+  const e = 0.01, x = p.x, y = p.y, z = p.z;
+  p.x = x + e; const a = sdMin(list, p); p.x = x - e; const b = sdMin(list, p); p.x = x;
+  p.y = y + e; const c = sdMin(list, p); p.y = y - e; const d = sdMin(list, p); p.y = y;
+  p.z = z + e; const f = sdMin(list, p); p.z = z - e; const g = sdMin(list, p); p.z = z;
+  out.set(a - b, c - d, f - g); const L = out.length(); if (L < 1e-8) out.set(0, 1, 0); else out.divideScalar(L); return out;
+}
+/* an HK box mesh (base at its origin) as an oriented box */
+function meshBox(mesh, w, h, d, extra){ mesh.updateMatrixWorld(true); return PR.obox(new THREE.Matrix4().copy(mesh.matrixWorld).multiply(_mT.makeTranslation(0, h/2, 0)), w/2, h/2, d/2, 0, extra); }
+function meshAxis(mesh, len, r, extra){ mesh.updateMatrixWorld(true); return PR.cap(mesh.localToWorld(new V3(0, 0, 0)), mesh.localToWorld(new V3(0, len, 0)), r, extra); }
+
+
 // practice flight course: a loop of rings around the yard, well outside the human's reach
 const RING_NAMES = ['Lift off', 'Low pass', 'Climb', 'High arc', 'Dive', 'Skim', 'Up and over', 'Treetop', 'Swoop', 'Home stretch'];
 const RING_H = [6, 10, 24, 44, 20, 8, 30, 52, 22, 12];
@@ -451,7 +519,7 @@ const RINGS = RING_NAMES.map((name, i) => { const a = 0.3 + i / 10 * Math.PI * 2
   for (const x of [-52, -24, 30, 56]){ HK.box(18, 22, 1, 0xffffff, g, x, 44, 0.6); HK.box(15, 19, 1.2, 0x7fb7d9, g, x, 45.5, 0.8); HK.box(1.2, 19, 1.4, 0xffffff, g, x, 45.5, 1); }
   HK.box(20, 38, 1.2, 0x3d6fc4, g, 3, 10, 0.6); HK.ball(1, 0xffd23f, g, 9, 28, 1.6, 6, 4);
   HK.box(30, 5, 10, 0xb9b2a8, g, 3, 0, 5); HK.box(30, 5, 6, 0xb9b2a8, g, 3, 5, 3);
-  solidBox(-78, 0, -130, 78, 100, -94); solidBox(-12, 0, -94, 18, 10, -84);
+  solidBox(-78, 0, -130, 78, 100, -94, {label:'the house'}); solidBox(-12, 0, -94, 18, 10, -84, {label:'the back steps'});
 }
 
 { // big shade tree in the corner, with a hammock tied to it
@@ -459,10 +527,10 @@ const RINGS = RING_NAMES.map((name, i) => { const a = 0.3 + i / 10 * Math.PI * 2
   HK.hex(4.5, 6, 70, 0x7a5532, t, 0, 0, 0, 7);
   [[0, 82, 0, 26], [-16, 72, 12, 18], [18, 74, -6, 20], [4, 96, 8, 18]].forEach(([x, y, z, r]) => {
     const c = HK.mesh(new THREE.IcosahedronGeometry(r, 0), 0x4f8f3a, t, x, y, z); c.rotation.set(x, y, z);
-    solidBall(-66 + x, y, -62 + z, r * 0.9);
+    solidBall(-66 + x, y, -62 + z, r * 0.9, {label:'the tree'});
   });
-  solidBox(-71, 0, -67, -61, 70, -57);
-  const post = HK.group(scene, -30, 0, -80); HK.hex(1.2, 1.4, 30, 0x8a6a42, post, 0, 0, 0, 6); solidBox(-31.5, 0, -81.5, -28.5, 30, -78.5);
+  solidBox(-71, 0, -67, -61, 70, -57, {label:'the tree'});
+  const post = HK.group(scene, -30, 0, -80); HK.hex(1.2, 1.4, 30, 0x8a6a42, post, 0, 0, 0, 6); solidBox(-31.5, 0, -81.5, -28.5, 30, -78.5, {label:'the hammock post'});
   const A = new V3(-61, 24, -64), B = new V3(-30, 26, -80);
   for (let i = 0; i <= 12; i++){
     const u = i / 12, p = A.clone().lerp(B, u); p.y -= Math.sin(u * Math.PI) * 12;
@@ -474,10 +542,11 @@ const RINGS = RING_NAMES.map((name, i) => { const a = 0.3 + i / 10 * Math.PI * 2
 { // two lawn chairs and a side table with a red party cup
   for (const [x, z, ry, c] of [[48, -70, 0.5, 0x2fc6b4], [66, -58, -0.3, 0xfacc3a]]){
     const g = HK.group(scene, x, 0, z); g.rotation.y = ry;
-    HK.box(14, 1.2, 14, c, g, 0, 10, 0);
+    const seat = HK.box(14, 1.2, 14, c, g, 0, 10, 0);
     const back = HK.box(14, 16, 1.2, c, g, 0, 10, -7); back.rotation.x = -0.25;
-    for (const sx of [-6.5, 6.5]) for (const sz of [-6, 6]) HK.box(0.8, 10, 0.8, 0xdddddd, g, sx, 0, sz);
-    solidBox(x - 8, 0, z - 8, x + 8, 22, z + 8);
+    const cl = []; for (const sx of [-6.5, 6.5]) for (const sz of [-6, 6]) cl.push(HK.box(0.8, 10, 0.8, 0xdddddd, g, sx, 0, sz));
+    g.updateMatrixWorld(true);
+    solidShape([meshBox(seat, 14, 1.2, 14), meshBox(back, 14, 16, 1.2), ...cl.map(l => meshAxis(l, 10, 0.4))], {label:'a lawn chair'});
   }
 }
 
@@ -486,7 +555,7 @@ const RINGS = RING_NAMES.map((name, i) => { const a = 0.3 + i / 10 * Math.PI * 2
   for (let i = 0; i < 10; i++){ const a = i / 10 * Math.PI * 2; HK.box(4, 4, 3, 0x8d8d8d, g, Math.cos(a) * 8, 0, Math.sin(a) * 8).rotation.y = -a; }
   for (const r of [0, 1.2, 2.4]){ const l = HK.box(1.6, 1.6, 10, 0x6a4628, g, 0, 1, 0); l.rotation.y = r; }
   for (const [x, z] of [[-1.5, 0], [1.5, 1], [0, -1.5]]) torchFlames.push(HK.mesh(new THREE.ConeGeometry(2.2, 9, 5), 0xff9f43, g, x, 3, z));
-  solidBox(62, 0, 54, 78, 4.5, 70);
+  solidBox(62, 0, 54, 78, 4.5, 70, {label:'the fire pit'});
 }
 
 { // tiki torches, flamingos, a gnome, a garden bed, and the old dandelions
@@ -494,25 +563,28 @@ const RINGS = RING_NAMES.map((name, i) => { const a = 0.3 + i / 10 * Math.PI * 2
     const g = HK.group(scene, x, 0, z);
     HK.hex(0.6, 0.7, 36, 0x8a6a42, g, 0, 0, 0, 5); HK.hex(2, 1.4, 4, 0x6a4628, g, 0, 36, 0, 6);
     torchFlames.push(HK.mesh(new THREE.ConeGeometry(1.6, 6, 5), 0xff9f43, g, 0, 43, 0));
-    solidBox(x - 1, 0, z - 1, x + 1, 40, z + 1);
+    solidBox(x - 1, 0, z - 1, x + 1, 40, z + 1, {label:'a tiki torch'});
   }
   for (const [x, z, ry] of [[28, 84, 0.4], [38, 88, -0.5], [-42, 86, 2.6]]){
     const g = HK.group(scene, x, 0, z); g.rotation.y = ry;
-    HK.box(0.4, 12, 0.4, 0x3a2a2a, g, 0, 0, 0); HK.box(0.4, 12, 0.4, 0x3a2a2a, g, 1.5, 0, 0);
+    const l1 = HK.box(0.4, 12, 0.4, 0x3a2a2a, g, 0, 0, 0), l2 = HK.box(0.4, 12, 0.4, 0x3a2a2a, g, 1.5, 0, 0);
     const b = HK.ball(4.2, 0xf27fb1, g, 0.7, 15, 0, 7, 5); b.scale.set(1, 0.75, 1.7);
-    HK.box(1.2, 9, 1.2, 0xf27fb1, g, 0.7, 16, -5).rotation.x = 0.3;
-    HK.ball(1.8, 0xf27fb1, g, 0.7, 26, -6, 6, 4); const bk = HK.box(0.9, 0.9, 3, 0x222222, g, 0.7, 25, -8.4); bk.rotation.x = 0.6;
-    solidBox(x - 4, 0, z - 6, x + 4, 28, z + 6);
+    const nk = HK.box(1.2, 9, 1.2, 0xf27fb1, g, 0.7, 16, -5); nk.rotation.x = 0.3;
+    const hd = HK.ball(1.8, 0xf27fb1, g, 0.7, 26, -6, 6, 4); const bk = HK.box(0.9, 0.9, 3, 0x222222, g, 0.7, 25, -8.4); bk.rotation.x = 0.6;
+    g.updateMatrixWorld(true);
+    const bp = new V3(), bq = new THREE.Quaternion(), bs = new V3(); b.matrixWorld.decompose(bp, bq, bs);
+    solidShape([PR.ell(new THREE.Matrix4().compose(bp, bq, new V3(1, 1, 1)), 4.2*bs.x, 4.2*bs.y, 4.2*bs.z), meshAxis(l1, 12, 0.3), meshAxis(l2, 12, 0.3),
+      meshAxis(nk, 9, 0.75), PR.sph(hd.getWorldPosition(new V3()), 1.8), meshBox(bk, 0.9, 0.9, 3)], {label:'a flamingo'});
   }
   { const g = HK.group(scene, -82, 0, 22);
     HK.block(5, 6, 6, 4.5, 5.5, 0x3d6fc4, g, 0, 0, 0); HK.ball(2.6, SKIN_GNOME, g, 0, 7.5, 0, 7, 5);
     HK.block(4.2, 1.2, 4, 4, 1.2, 0xffffff, g, 0, 4.6, 1.4); HK.mesh(new THREE.ConeGeometry(2.8, 7, 6), 0xd8392b, g, 0, 12.5, 0);
-    HK.ball(0.7, 0xf0a28a, g, 0, 7.5, 2.5, 5, 4); solidBox(-85, 0, 19, -79, 16, 25); }
+    HK.ball(0.7, 0xf0a28a, g, 0, 7.5, 2.5, 5, 4); solidBox(-85, 0, 19, -79, 16, 25, {label:'the gnome'}); }
   { const cx = -78, cz = 55; HK.box(22, 3, 14, 0x6a4628, scene, cx, 0, cz); solidBox(cx - 11, 0, cz - 7, cx + 11, 3, cz + 7);
     post(0.5, 38, 0x8a6a42, cx + 1.5, 0, cz - 1.5); post(0.9, 32, 0x4f7f2e, cx, 0, cz);
     for (const [x,y,z] of [[-4,12,2],[4,18,-3],[-3,24,-2],[3,29,3]]) ball(3.4, 0x3f7a2a, cx + x, y, cz + z, false, 0.35);
     for (const [x,y,z,c] of [[-3,14,3,0xd9342b],[3.5,20,-2,0xd9342b],[-2,26,4,0xe0452f],[4,9,2,0xc92f26]]) ball(3, c, cx + x, y, cz + z); }
-  for (const [x,z,h] of [[40,30,13],[-52,-30,18],[56,-30,14],[-60,10,12],[10,90,15]]){ post(0.3, h, 0x5c8a35, x, 0, z, false); ball(2.3, 0xf2c629, x, h + 1.2, z); }
+  for (const [x,z,h] of [[40,30,13],[-52,-30,18],[56,-30,14],[-60,10,12],[10,90,15]]){ post(0.3, h, 0x5c8a35, x, 0, z, false); ball(2.3, 0xf2c629, x, h + 1.2, z); solids[solids.length - 1].label = 'a flower'; solidShape([PR.cap(new V3(x, 0, z), new V3(x, h, z), 0.3)], {label:'a flower stem'}); }
 }
 
 /* ---------- the cookout in the middle: grill in front, food tables left, right and behind ---------- */
@@ -525,12 +597,14 @@ const COOK = new V3(0, 0, 0);
   for (const sx of [-6.5, 6.5]) HK.box(1, 8, 1, 0x2b2b2b, g, sx, 0, 0);
   HK.box(5, 1, 7, 0x8a8f99, g, -10.5, 18, 0); HK.box(5, 1, 7, 0x8a8f99, g, 10.5, 18, 0);
   for (let i = 0; i < 5; i++) grillFlames.push(HK.mesh(new THREE.ConeGeometry(1.1, 3.5, 5), 0xff9f43, g, -5 + i * 2.5, 17, 0));
-  solidBox(-8, 0, -20.5, 8, 21, -10.5);
+  solidBox(-8, 0, -20.5, 8, 21, -10.5, {label:'the grill'});
   // prep table (west), side table (east), dessert table (south)
   const table = (x0, z0, x1, z1, top, leg) => {
     HK.box(x1 - x0, 1.2, z1 - z0, top, scene, (x0 + x1)/2, 20, (z0 + z1)/2);
-    for (const [x, z] of [[x0 + 1, z0 + 1], [x1 - 1, z0 + 1], [x0 + 1, z1 - 1], [x1 - 1, z1 - 1]]) HK.box(0.9, 20, 0.9, leg, scene, x, 0, z);
-    solidBox(x0, 19.5, z0, x1, 21.2, z1);
+    const tl = [];
+    for (const [x, z] of [[x0 + 1, z0 + 1], [x1 - 1, z0 + 1], [x0 + 1, z1 - 1], [x1 - 1, z1 - 1]]){ HK.box(0.9, 20, 0.9, leg, scene, x, 0, z); tl.push(PR.cap(new V3(x, 0, z), new V3(x, 19.5, z), 0.45)); }
+    solidShape(tl, {label:'a table leg'});
+    solidBox(x0, 19.5, z0, x1, 21.2, z1, {label:'a table'});
   };
   table(-21, -9, -12, 9, 0xc9a66b, 0x8a6a42);
   table(12, -9, 21, 9, 0xf6f3ea, 0x8a8f99);
@@ -542,7 +616,7 @@ const PROPS = [];
 {
   // red party cup on a little side table
   const t = HK.group(scene, 38, 0, 24); HK.hex(4, 4, 0.8, 0xf6f3ea, t, 0, 12, 0, 10); HK.hex(0.6, 0.6, 12, 0x8a8f99, t, 0, 0, 0, 5);
-  solidBox(34, 11.5, 20, 42, 12.8, 28);
+  solidBox(34, 11.5, 20, 42, 12.8, 28, {label:'the cup table'});
   const cup = HK.group(scene, 38, 12.8, 24); HK.hex(2.4, 1.7, 5.6, 0xd8392b, cup, 0, 0, 0, 10); HK.hex(2.45, 2.45, 0.6, 0xf6f3ea, cup, 0, 5.2, 0, 10);
   PROPS.push({id:'cup', name:'Cup Crash', pts:2, c:new V3(38, 15, 24), r:5.5, obj:cup});
   // wind chime on a shepherd's hook
@@ -550,11 +624,11 @@ const PROPS = [];
   const chime = HK.group(scene, -54, 50, 46);
   HK.hex(2.6, 2.6, 0.6, 0x8a6a42, chime, 0, -1, 0, 8);
   const tubes = [0, 1, 2, 3, 4].map(i => { const a = i / 5 * Math.PI * 2, tg = HK.group(chime, Math.cos(a) * 2, -1, Math.sin(a) * 2); HK.hex(0.35, 0.35, 5 + i, 0xbfc7d1, tg, 0, -(5 + i), 0, 6); return tg; });
-  solidBox(-63, 0, 45, -61, 52, 47);
+  solidBox(-63, 0, 45, -61, 52, 47, {label:'the chime hook'});
   PROPS.push({id:'chime', name:'Chime Time', pts:2, c:new V3(-54, 45, 46), r:6.5, obj:chime, tubes});
   // spider web in the big tree, strung between the trunk and a low branch
   const br = HK.box(3, 3, 34, 0x7a5532, scene, -52, 52, -48); br.lookAt(-38, 54, -34); br.position.set(-52, 52, -48);
-  solidBox(-60, 50, -56, -42, 56, -40);
+  solidShape([meshBox(br, 3, 3, 34)], {label:'the tree branch'});
   const web = new THREE.Group(); web.position.set(-54, 40, -50); web.lookAt(0, 40, 0); scene.add(web);
   const pts = [];
   for (let i = 0; i < 12; i++){ const a = i / 12 * Math.PI * 2; pts.push(new V3(), new V3(Math.cos(a) * 11, Math.sin(a) * 11, 0)); }
@@ -571,7 +645,7 @@ const SPAWNS = [new V3(80, 0, 86), new V3(-82, 0, 88), new V3(84, 0, -40), new V
 SPAWNS.forEach(p => {
   const g = HK.group(scene, p.x, 0, p.z);
   HK.hex(6, 5, 14, 0x6f7b86, g, 0, 0, 0, 10); const lid = HK.hex(6.4, 6.4, 0.8, 0x56606a, g, -2, 14.4, 0, 10); lid.rotation.z = 0.4;
-  solidBox(p.x - 5.5, 0, p.z - 5.5, p.x + 5.5, 14, p.z + 5.5);
+  solidBox(p.x - 5.5, 0, p.z - 5.5, p.x + 5.5, 14, p.z + 5.5, {label:'a trash can'});
 });
 
 /* ---------- rings ---------- */
@@ -602,14 +676,15 @@ const wingGeo = (() => {
 const wingMat = new THREE.MeshBasicMaterial({color:0x9fe9df, transparent:true, opacity:0.42, side:THREE.DoubleSide, depthWrite:false});
 const wingMat2 = new THREE.MeshBasicMaterial({color:0xc6b4ff, transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false});
 
+const wingMatL = wingMat.clone(), wingMat2L = wingMat2.clone();
 function mkHand(side){
   const obj = new THREE.Group(); obj.visible = false;
-  obj.add(new THREE.Mesh(wingGeo, wingMat));
-  const inner = new THREE.Mesh(wingGeo, wingMat2); inner.scale.set(0.6, 1, 0.6); inner.position.y = 0.003; obj.add(inner);
+  const outer = new THREE.Mesh(wingGeo, wingMatL); outer.renderOrder = 990; obj.add(outer);
+  const inner = new THREE.Mesh(wingGeo, wingMat2L); inner.scale.set(0.6, 1, 0.6); inner.position.y = 0.003; inner.renderOrder = 991; obj.add(inner);
   rig.add(obj);
   return {side, obj, has:false, isHand:false, wasHand:null, pos:new V3(), q:new THREE.Quaternion(), palm:new V3(),
     prev:new V3(), prevT:0, prevOk:false, power:0, wasPower:false, speed:0, src:null,
-    tip:new V3(), tipOk:false, pinch:false, trig:false, btnA:false, btnB:false, prevA:false, prevB:false, stickX:0, snap:false,
+    tip:new V3(), tipOk:false, pinch:false, trig:false, btnA:false, btnB:false, prevA:false, prevB:false, prevTrig:false, stickX:0, stickY:0, snap:false,
     rayO:new V3(), rayD:new V3(), rayOk:false,
     sigArm:0, sigFlut:0, prevPalmY:0, trArm:{sign:0, peak:0, spd:0, t0:0}, trFlut:{sign:0, peak:0, spd:0, t0:0}};
 }
@@ -661,6 +736,15 @@ const vig = (() => {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.62), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv), transparent:true, opacity:0, depthTest:false, depthWrite:false}));
   m.position.z = -0.16; m.renderOrder = 1000; camera.add(m); return m;
 })();
+/* takeoff vignette: a tighter tunnel that closes in while the world levels after a crawl */
+const vig2 = (() => {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const g = cv.getContext('2d'), grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.2, 'rgba(0,0,0,0)'); grd.addColorStop(0.42, 'rgba(0,0,0,1)'); grd.addColorStop(1, 'rgba(0,0,0,1)');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 256);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv), transparent:true, opacity:0, depthTest:false, depthWrite:false}));
+  m.position.z = -0.16; m.renderOrder = 1002; m.visible = false; m.frustumCulled = false; camera.add(m); return m;
+})();
 
 /* ---------- in-headset settings panel ---------- */
 const PW = 800, ROW = 52, ROW0 = 156, TAB_Y = 86;
@@ -689,7 +773,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.08 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.09 · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
     const n = PAGES.length, tw = (PW - 60 - (n - 1)*8) / n, x = 30 + i*(tw + 8), on = pg === panelPage;
     c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
@@ -754,14 +838,15 @@ function panelPress(px, py, start){
 const headW = new V3(), headFwd = new V3(), fwdFlat = new V3();
 function openMenu(){
   camera.getWorldPosition(headW); camera.getWorldDirection(headFwd);
-  fwdFlat.set(headFwd.x, 0, headFwd.z); if (fwdFlat.lengthSq() < 1e-6) fwdFlat.set(0, 0, -1); fwdFlat.normalize();
+  rig.updateMatrixWorld(true); const upR = new V3(0, 1, 0).applyQuaternion(rig.quaternion);
+  fwdFlat.copy(headFwd).addScaledVector(upR, -headFwd.dot(upR)); if (fwdFlat.lengthSq() < 1e-6) fwdFlat.set(0, 0, -1).applyQuaternion(rig.quaternion); fwdFlat.normalize();
   const S = rig.scale.x;
   panel.scale.setScalar(S); dot.scale.setScalar(S);
-  panel.position.copy(headW).addScaledVector(fwdFlat, 0.62*S); panel.position.y -= 0.12*S;
-  panel.lookAt(headW.x, panel.position.y, headW.z); panel.updateMatrixWorld(true);
+  panel.position.copy(headW).addScaledVector(fwdFlat, 0.62*S).addScaledVector(upR, -0.12*S);
+  panel.up.copy(upR); panel.lookAt(wTmp.copy(headW).addScaledVector(upR, -0.12*S)); panel.updateMatrixWorld(true);
   panel.visible = true; menuOpen = true; ptrDown = false; activeRow = null; stopAll(); drawPanel();
 }
-function closeMenu(){ menuOpen = false; panel.visible = false; laser.visible = false; dot.visible = false; activeRow = null; ptrDown = false; HANDS.forEach(h => h.prevOk = false); }
+function closeMenu(){ menuOpen = false; panel.visible = false; laser.visible = false; dot.visible = false; activeRow = null; ptrDown = false; HANDS.forEach(h => { h.prevOk = false; h.prevTrig = true; }); }   // a trigger still held from the menu never launches you
 
 const mO = new V3(), mD = new V3(), mW = new V3(), mL = new V3();
 function updateMenuPointer(){
@@ -852,7 +937,7 @@ let yaw = 0, pitch = 0.1, lastFlapT = -9, calSpan = 1.4, flightState = 'ground',
 const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
 function resetCourse(){
   if (game.role === 'human'){ applyRole(); return; }
-  rig.scale.setScalar(1); game.stuck = null;
+  rig.scale.setScalar(1); game.stuck = null; game.crawl = null; game.level = null; game.levVig = 0;
   placeAtSpawn(); stopAll(); game.stunUntil = 0; game.webUntil = 0;
   cur = 0; startT = 0; finishT = 0; resetAt = 0;
   HANDS.forEach(h => h.prevOk = false); headPrevOk = false;
@@ -869,6 +954,8 @@ function passRing(now){
 
 const tA = new V3(), tB = new V3(), tmp = new V3(), head = new V3();
 function turnAroundHead(a){
+  if (game.role === 'fly' && game.crawl){ game.crawl.turn += a; return; }   // crawling: spin around the surface normal
+  if (game.role === 'fly' && game.level) return;                           // the world is leveling: hold turns
   camera.getWorldPosition(tA); rig.rotation.y += a; rig.updateMatrixWorld(true); camera.getWorldPosition(tB);
   rig.position.x += tA.x - tB.x; rig.position.z += tA.z - tB.z;
 }
@@ -890,6 +977,16 @@ function collide(pt, r){
         if (ax === 'y' && sg > 0) grounded = true;
         contact.hit = true; contact.kind = 'solid'; contact.part = null; contact.food = s.food != null ? s.food : -1;
       }
+    } else if (s.sdf){
+      if (pt.distanceTo(s.bc) > s.br + r) continue;
+      const d = sdMin(s.sdf, pt);
+      if (d < r){
+        sdNormal(s.sdf, pt, tmp);
+        const push = r - d; rig.position.addScaledVector(tmp, push); pt.addScaledVector(tmp, push);
+        stopAlong(tmp.x, tmp.y, tmp.z);
+        if (tmp.y > 0.6) grounded = true;
+        contact.hit = true; contact.kind = 'solid'; contact.part = null; contact.food = -1;
+      }
     } else {
       const dist = pt.distanceTo(s.c), min = s.r + r;
       if (dist < min && dist > 1e-4){
@@ -906,7 +1003,7 @@ function collide(pt, r){
 /* ---------- VR input: controllers and hands, read straight from the XR frame ---------- */
 const qTmp = new THREE.Quaternion();
 function readInputs(frame){
-  for (const h of HANDS){ h.has = false; h.rayOk = false; h.tipOk = false; h.pinch = false; h.trig = false; h.btnA = false; h.btnB = false; h.stickX = 0; }
+  for (const h of HANDS){ h.has = false; h.rayOk = false; h.tipOk = false; h.pinch = false; h.trig = false; h.btnA = false; h.btnB = false; h.stickX = 0; h.stickY = 0; }
   const session = renderer.xr.getSession(), ref = renderer.xr.getReferenceSpace();
   if (!session || !ref || !frame) return;
   let nh = 0, nc = 0;
@@ -941,7 +1038,7 @@ function readInputs(frame){
         if (rp){ const p = rp.transform.position, o = rp.transform.orientation; h.rayO.set(p.x, p.y, p.z); h.rayD.set(0, 0, -1).applyQuaternion(qTmp.set(o.x, o.y, o.z, o.w)); h.rayOk = true; }
       }
       const g = src.gamepad;
-      if (g){ const b = i => !!(g.buttons[i] && g.buttons[i].pressed); h.trig = b(0); h.btnA = b(4); h.btnB = b(5); h.stickX = g.axes.length >= 4 ? g.axes[2] : (g.axes[0] || 0); }
+      if (g){ const b = i => !!(g.buttons[i] && g.buttons[i].pressed); h.trig = b(0); h.btnA = b(4); h.btnB = b(5); h.stickX = g.axes.length >= 4 ? g.axes[2] : (g.axes[0] || 0); h.stickY = g.axes.length >= 4 ? g.axes[3] : (g.axes[1] || 0); }
     }
     if (h.has && h.wasHand !== h.isHand){ h.prevOk = false; h.wasHand = h.isHand; }
   }
@@ -950,6 +1047,7 @@ function readInputs(frame){
 
 const bx = new V3(), by = new V3(), bz = new V3(), m4 = new THREE.Matrix4();
 function updateHandVisuals(headL){
+  wingMatL.depthTest = wingMat2L.depthTest = !game.crawl;
   for (const h of HANDS){
     h.obj.visible = h.has; if (!h.has) continue;
     h.obj.position.copy(h.pos);
@@ -1000,7 +1098,7 @@ function simulateXR(dt, now, frame){
   if (menuOpen){ stopAll(); updateMenuPointer(); HANDS.forEach(h => h.prevOk = false); return false; }
   if (now < game.deadUntil){ stopAll(); flightState = 'splatted'; return true; }
   if (now < game.stunUntil){
-    vDash.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vMove.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vDash.y -= 10*dt; boost = 0; boostVec.set(0, 0, 0);
+    vDash.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vMove.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vMove.y -= tune.fallG * tune.liftLoss / 100 * dt; boost = 0;   // swatted: the wings stop holding you up boostVec.set(0, 0, 0);
     HANDS.forEach(h => { if (h.has){ h.prev.copy(h.pos); h.prevT = now; } });
     flightState = 'stunned'; return true;
   }
@@ -1058,7 +1156,9 @@ function simulateXR(dt, now, frame){
     trackStroke(h.trFlut, h.sigFlut, flutThr, sp, now, strokes.flut, gliding);
   }
   if (flapNow) lastFlapT = now;
-  if (game.stuck){ if (burst.length() > 0.6) unstick(now); else burst.set(0, 0, 0); }
+  let trigNow = false; for (const h of HANDS){ if (h.trig && !h.prevTrig) trigNow = true; h.prevTrig = h.trig; }
+  if (game.crawl && trigNow){ unstick(now); burst.set(0, 0, 0); }                      // trigger: push off
+  else if (game.stuck){ if (burst.length() > tune.takeoffFlap) unstick(now); else burst.set(0, 0, 0); }   // a hard flap takes off; gentle hand moves steer the crawl
   addBurst(burst);
   const flapping = now - lastFlapT < 0.3;
   const braking = armsDown && !flapping && !grounded;
@@ -1067,7 +1167,7 @@ function simulateXR(dt, now, frame){
   vDash.multiplyScalar(Math.exp(-tune.dashSnap*dt));
   if (gliding) glideStep(dt, 1);
   else vMove.multiplyScalar(Math.exp(-(3 / Math.max(0.2, tune.drift) + (braking ? tune.brake : 0)) * dt));
-  vMove.y -= tune.gravity * dt;
+  vMove.y -= (tune.gravity + liftLossExtra(now)) * dt;
   const power = updateBoost(dt, now, gliding);
 
   /* 4. Lean-to-turn. The wing height difference is smoothed so flapping doesn't steer you. */
@@ -1202,17 +1302,18 @@ fb.addEventListener('pointerdown', e => { e.preventDefault(); fwdHeld = true; })
 
 function simulateFlat(dt){
   const nowF = clock.elapsedTime;
-  rig.rotation.y = yaw; camera.rotation.set(pitch, 0, 0);
+  if (!game.crawl && !game.level) rig.rotation.y = yaw;
+  camera.rotation.set(pitch, 0, 0);
   if (nowF < game.deadUntil){ stopAll(); flightState = 'splatted'; return; }
-  if (nowF < game.stunUntil){ vDash.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vDash.y -= 10*dt; flightState = 'stunned'; return; }
-  if (keys.KeyA || keys.ArrowLeft) yaw += 1.8*dt;
-  if (keys.KeyD || keys.ArrowRight) yaw -= 1.8*dt;
+  if (nowF < game.stunUntil){ vDash.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vMove.multiplyScalar(Math.exp(-tune.knockDecay*dt)); vMove.y -= tune.fallG * tune.liftLoss / 100 * dt; flightState = 'stunned'; return; }
+  const turnK = ((keys.KeyA || keys.ArrowLeft) ? 1 : 0) - ((keys.KeyD || keys.ArrowRight) ? 1 : 0);
+  if (game.crawl) game.crawl.turn += turnK * 1.8 * dt; else if (!game.level) yaw += turnK * 1.8 * dt;
   rig.updateMatrixWorld(true); camera.getWorldDirection(headFwd);
   const gliding = (keys.KeyW || keys.ArrowUp || fwdHeld) && !grounded && !game.stuck;
   vDash.multiplyScalar(Math.exp(-tune.dashSnap*dt));
   if (gliding) glideStep(dt, 1);
   else vMove.multiplyScalar(Math.exp(-(3 / Math.max(0.2, tune.drift) + ((keys.KeyS || keys.ArrowDown) ? tune.brake : 0)) * dt));
-  vMove.y -= tune.gravity * dt;
+  vMove.y -= (tune.gravity + liftLossExtra(nowF)) * dt;
   const power = updateBoost(dt, clock.elapsedTime, gliding);
   flapLevel *= Math.exp(-3*dt);
   flightState = vDash.length() > 2.5 ? 'dash' : grounded ? 'ground' : gliding ? (boost > 0.5 ? (power > 0 ? 'powered +' : 'coast +') + boost.toFixed(1) : 'glide') : 'hover';
@@ -1220,14 +1321,18 @@ function simulateFlat(dt){
 
 /* ---------- shared step: move, collide, rings, HUD ---------- */
 function integrate(dt, now, xr){
+  if (game.crawl && now >= game.deadUntil) crawlStep(dt, now, xr);
+  else {
   vel.copy(vMove).add(vDash).add(boostVec);
   const sp0 = vel.length(), capS = tune.maxSpeed * speedMul();
   if (sp0 > capS){ const k = capS / sp0; vel.multiplyScalar(k); vDash.multiplyScalar(k); vMove.multiplyScalar(k); boostVec.multiplyScalar(k); boost *= k; }
   rig.position.addScaledVector(vel, dt);
 
   grounded = false; contact.hit = false;
-  if (rig.position.y < 0){ rig.position.y = 0; stopAlong(0, 1, 0); grounded = true; contact.hit = true; contact.kind = 'ground'; contact.part = null; contact.food = -1; }
-  if (rig.position.y > 88){ rig.position.y = 88; stopAlong(0, -1, 0); }
+  rig.updateMatrixWorld(true); camera.getWorldPosition(head);
+  // v0.0.09: the fly is its body (at your eyes), not a standing person, so the ground is checked from the head
+  if (head.y < 0.35){ rig.position.y += 0.35 - head.y; stopAlong(0, 1, 0); grounded = true; contact.hit = true; contact.kind = 'ground'; contact.part = null; contact.food = -1; }
+  if (head.y > 89.6){ rig.position.y -= head.y - 89.6; stopAlong(0, -1, 0); }
   const P = rig.position;
   if (P.x < -97){ P.x = -97; stopAlong(1, 0, 0); } if (P.x > 97){ P.x = 97; stopAlong(-1, 0, 0); }
   if (P.z < -92){ P.z = -92; stopAlong(0, 0, 1); } if (P.z > 106){ P.z = 106; stopAlong(0, 0, -1); }
@@ -1235,10 +1340,11 @@ function integrate(dt, now, xr){
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
   collide(head, 0.35); collideHumans(head, 0.35);
-  tmp.set(head.x, rig.position.y + 0.5, head.z); collide(tmp, 0.5);   // the human and swatters only touch the fly's body, not its feet sphere
   if (now >= game.deadUntil) flyStick(now);
   if (game.stuck) grounded = true;
   if (grounded){ const f = Math.exp(-6*dt); for (const v of [vel, vDash, vMove]){ v.x *= f; v.z *= f; } }
+  }
+  game.levVig = game.crawl ? 0 : updateLevel(dt, now);
 
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
@@ -1249,12 +1355,13 @@ function integrate(dt, now, xr){
   vel.copy(vMove).add(vDash).add(boostVec);
   const speed = vel.length();
   setBuzz(grounded ? 0 : 0.025 + flapLevel*0.08, speed);
-  vig.material.opacity = now < game.deadUntil ? 0.95 : (xr && tune.vignette) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
+  vig.material.opacity = now < game.deadUntil ? 0.95 : (xr && tune.vignette && !game.crawl) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
+  vig2.visible = game.levVig > 0.002; vig2.material.opacity = game.levVig; vig2.scale.setScalar(1.25 - 0.6 * game.levVig);
 
   let a, b;
   if (cur >= rings.length){ a = 'Course done ' + fmt(finishT); b = 'Best ' + fmt(best); }
   else { a = 'Ring ' + (cur + 1) + '/' + rings.length + (startT ? ' ' + fmt(now - startT) : ''); b = rings[cur].name; }
-  if (game.stuck) flightState = 'landed' + (game.stuck.kind === 'human' ? ' on the human' : game.stuck.kind === 'web' ? ' in the web' : game.stuck.food >= 0 ? ' on the ' + foods[game.stuck.food].name : '');
+  if (game.stuck && !game.crawl) flightState = 'landed' + (game.stuck.kind === 'human' ? ' on the human' : game.stuck.kind === 'web' ? ' in the web' : game.stuck.food >= 0 ? ' on the ' + foods[game.stuck.food].name : '');
   game.flyHud = [
     game.hudTop || 'FLY',
     game.hudCarry || (a + ' · ' + b),
@@ -1281,7 +1388,7 @@ function animateRings(t){
 const clock = new THREE.Clock();
 renderer.setAnimationLoop((time, frame) => {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
-  const xr = renderer.xr.isPresenting;
+  const xr = renderer.xr.isPresenting; frameNo++;
   if (xr && frame){
     if (game.role === 'human') simulateHumanXR(dt, t, frame);
     else if (simulateXR(dt, t, frame)) integrate(dt, t, true);
@@ -1291,6 +1398,7 @@ renderer.setAnimationLoop((time, frame) => {
   } else idle(t);
   gameTick(dt, t);
   netTick(dt, t, xr || state === 'flat');
+  updateLegs(dt, t);
   if (state !== 'menu'){
     let lines = (game.role === 'human' ? game.hud : game.flyHud) || ['Like Flies'];
     if (game.win) lines = [game.win === 'flies' ? 'FLIES WIN! New round soon' : 'HUMAN WINS! New round soon', ...lines.slice(1)];
@@ -1422,17 +1530,19 @@ function sendState(force){
   if (!force && state === 'menu') return;
   camera.getWorldPosition(sHead); camera.getWorldQuaternion(sQ);
   rig.updateMatrixWorld(true);
+  const crS = game.role === 'fly' ? game.crawl : null;
+  if (crS){ sHead.copy(crS.C); bodyQuat(sQ); }             // crawling: the body sits on the surface, feet down
   const hand = h => { if (!renderer.xr.isPresenting || !h.has) return 0; sHand.copy(h.pos).applyMatrix4(rig.matrixWorld).sub(sHead); return [r3(sHand.x), r3(sHand.y), r3(sHand.z)]; };
   const msg = {t:'s', n:net.name || ('Fly ' + net.slot), c:net.slot, on:state !== 'menu' ? 1 : 0,
     p:[r3(sHead.x), r3(sHead.y), r3(sHead.z)], v:[r3(vel.x), r3(vel.y), r3(vel.z)], q:[r3(sQ.x), r3(sQ.y), r3(sQ.z), r3(sQ.w)],
     l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:cur, ro:game.role};
   if (game.role === 'human' && game.local){
     const pk = h => h.has ? [r3(h.pos.x), r3(h.pos.y), r3(h.pos.z), r3(h.q.x), r3(h.q.y), r3(h.q.z), r3(h.q.w)] : 0;
-    Object.assign(msg, {ch:game.ci, rp:[r3(rig.position.x), r3(rig.position.y), r3(rig.position.z)], ry:r3(rig.rotation.y), hs:tune.humanSize, ms:r3(game.local.ms),
+    Object.assign(msg, {ch:game.ci, si:game.spotIdx | 0, rp:[r3(rig.position.x), r3(rig.position.y), r3(rig.position.z)], ry:r3(rig.rotation.y), hs:tune.humanSize, ms:r3(game.local.ms),
       hp:[r3(camera.position.x), r3(camera.position.y), r3(camera.position.z)], hq:[r3(camera.quaternion.x), r3(camera.quaternion.y), r3(camera.quaternion.z), r3(camera.quaternion.w)],
       L:pk(hHands[0]), R:pk(hHands[1]), sw:[game.swat[0] ? 1 : 0, game.swat[1] ? 1 : 0], k:game.kills, sty:game.style});
-    if (isAuthority() && game.bots.length) msg.b = game.bots.map(b => [r3(b.p.x), r3(b.p.y), r3(b.p.z), b.state === 'dead' ? 0 : b.state === 'stun' ? 3 : b.carry ? 2 : 1, b.food]);
-  } else { const nw = clock.elapsedTime; Object.assign(msg, {lv:game.lives, hpt:game.hp, sk:game.stuck ? 1 : 0, at:(game.stuck && game.stuck.kind === 'human' && game.stuck.part) ? [game.stuck.owner, game.stuck.ci, r3(game.stuck.local.x), r3(game.stuck.local.y), r3(game.stuck.local.z)] : 0, cr:game.carry, out:game.out ? 1 : 0, stn:nw < game.tumbleUntil ? 1 : 0, sc:game.points}); }
+    if (isAuthority() && game.bots.length) msg.b = game.bots.map(b => [r3(b.p.x), r3(b.p.y), r3(b.p.z), b.state === 'dead' ? 0 : b.state === 'stun' ? 3 : b.carry ? 2 : (b.state === 'land' || b.state === 'onHuman' || b.state === 'web') ? 4 : 1, b.food]);
+  } else { const nw = clock.elapsedTime; Object.assign(msg, {lv:game.lives, hpt:game.hp, sk:game.stuck ? 1 : 0, cw:crS ? 1 : 0, gs:crS ? r3(crS.speed) : 0, at:(crS && crS.host) ? crawlAt(crS) : (game.stuck && game.stuck.kind === 'human' && game.stuck.part) ? [game.stuck.owner, game.stuck.ci, r3(game.stuck.local.x), r3(game.stuck.local.y), r3(game.stuck.local.z)] : 0, cr:game.carry, out:game.out ? 1 : 0, stn:nw < game.tumbleUntil ? 1 : 0, sc:game.points}); }
   for (const c of net.conns.values()){ if (c.open){ try{ c.send(msg); }catch(e){} } }
 }
 
@@ -1500,13 +1610,13 @@ function onState(j, d){
     r.tl = Array.isArray(d.l) ? new V3().fromArray(d.l) : null;
     r.tr = Array.isArray(d.r) ? new V3().fromArray(d.r) : null;
     r.f = +d.f || 0; r.st = d.st || ''; r.rg = d.rg | 0;
-    r.at = Array.isArray(d.at) ? d.at : null;
+    r.at = Array.isArray(d.at) ? d.at : null; r.cw = d.cw | 0; r.gs = +d.gs || 0;
     r.lv = d.lv != null ? d.lv | 0 : tune.lives; r.sk = d.sk | 0; r.out = !!d.out; r.cr = d.cr != null ? d.cr : -1; r.stn = d.stn | 0; r.hpt = d.hpt | 0; r.sc = d.sc | 0;
     if (r.dead && clock.elapsedTime - r.deadAt > 1.5) r.dead = false;
     if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
   } else {
     if (Array.isArray(d.rp)) r.trp.fromArray(d.rp);
-    r.ry = +d.ry || 0; r.hs = +d.hs || 28; r.ms = +d.ms || 1; r.sw = Array.isArray(d.sw) ? d.sw : [0, 0];
+    r.si = d.si | 0; r.ry = +d.ry || 0; r.hs = +d.hs || 28; r.ms = +d.ms || 1; r.sw = Array.isArray(d.sw) ? d.sw : [0, 0];
     if (Array.isArray(d.hp)) r.thp.fromArray(d.hp);
     if (Array.isArray(d.hq)) r.thq.fromArray(d.hq).normalize();
     [d.L, d.R].forEach((h, i) => { const t = r.th[i]; t.has = Array.isArray(h); if (t.has){ t.pos.set(h[0], h[1], h[2]); t.q.set(h[3], h[4], h[5], h[6]).normalize(); } });
@@ -1515,6 +1625,7 @@ function onState(j, d){
   if (Array.isArray(d.b)){ game.remoteBotsT = clock.elapsedTime; showRemoteBots(d.b); }
 }
 
+const qAt = new THREE.Quaternion(), qAt2 = new THREE.Quaternion();
 const wTmp = new V3(), wShoulder = new V3(), wHand = new V3(), wDir = new V3(), X_AXIS = new V3(1, 0, 0), yawQ = new THREE.Quaternion(), eul = new THREE.Euler();
 function updateRemotes(dt, now){
   for (const r of [...net.remotes.values()]){
@@ -1524,7 +1635,7 @@ function updateRemotes(dt, now){
       r.cont.visible = vis; if (r.label) r.label.visible = vis;
       if (!vis) continue;
       const k = 1 - Math.exp(-14 * dt);
-      r.cont.position.lerp(r.trp, k); r.cont.rotation.set(0, r.ry, 0); r.cont.scale.setScalar(r.hs);
+      r.cont.position.lerp(r.trp, k); r.cyaw = r.cyaw == null ? r.ry : r.cyaw + wrapA(r.ry - r.cyaw) * k; r.cont.rotation.set(0, r.cyaw, 0); r.cont.scale.setScalar(r.hs);   // turn smoothly between network updates
       r.hp.lerp(r.thp, k); r.hq.slerp(r.thq, k);
       r.th.forEach((t, i) => { const h = r.hh[i]; h.has = t.has; if (t.has){ h.pos.lerp(t.pos, k); h.q.slerp(t.q, k); } });
       const m = r.model; m.ms = r.ms;
@@ -1545,7 +1656,13 @@ function updateRemotes(dt, now){
     if (atPart){ atPart.updateWorldMatrix(true, false); r.pos.set(r.at[2], r.at[3], r.at[4]).applyMatrix4(atPart.matrixWorld); }   // landed on a human: draw it on our copy of that body part, no lag
     else if (r.pos.distanceTo(wTmp) > 15) r.pos.copy(wTmp); else r.pos.lerp(wTmp, k);
     r.q.slerp(r.tq, k);
+    if (atPart && r.cw && r.at.length >= 9){ atPart.getWorldQuaternion(qAt); r.q.copy(qAt).multiply(qAt2.set(r.at[5], r.at[6], r.at[7], r.at[8]).normalize()); }
     r.g.position.copy(r.pos); r.g.quaternion.copy(r.q);
+    // cartoon touches: a squash when it lands, a bob and waddle while it walks
+    if (r.cw && !r.wasCw) r.landT = now; r.wasCw = r.cw;
+    const sq = r.landT ? Math.exp(-(now - r.landT) * 9) * Math.cos((now - r.landT) * 26) : 0;
+    r.g.scale.set(1 + 0.14*sq, 1 - 0.2*sq, 1 + 0.14*sq);
+    if (r.cw && r.gs > 0.05){ r.g.translateY(0.014 * Math.abs(Math.sin((r.legPh || 0) * 2))); r.g.rotateZ(0.07 * Math.sin(r.legPh || 0)); }
     if (r.stn){ r.g.rotateX(now * 9 % (Math.PI*2)); r.g.rotateZ(now * 7 % (Math.PI*2)); }
     if (!r.piece){ r.piece = makePiece(0.4); r.piece.position.set(0, -0.38, 0.1); r.g.add(r.piece); }
     showPiece(r.piece, r.cr);
@@ -1553,9 +1670,10 @@ function updateRemotes(dt, now){
     eul.setFromQuaternion(r.q, 'YXZ'); yawQ.setFromAxisAngle(V3UP, eul.y);
     const flutter = Math.sin(now * 38 + r.j) * 0.12 * (0.3 + r.f);
     [[r.l, r.tl, -1], [r.r, r.tr, 1]].forEach(([cur, tgt, side], i) => {
-      if (tgt) cur.lerp(tgt, k);
+      if (r.cw) cur.lerp(wTmp.set(0.17*side, 0.03, 0.42).applyQuaternion(r.q), k);     // wings folded back while crawling
+      else if (tgt) cur.lerp(tgt, k);
       else cur.lerp(wTmp.set(0.62*side, -0.1 + flutter*side, 0.12).applyQuaternion(yawQ), k);
-      wShoulder.set(0.1*side, -0.12, 0.05).applyQuaternion(yawQ).add(r.pos);
+      wShoulder.set(0.1*side, -0.12, 0.05).applyQuaternion(r.cw ? r.q : yawQ).add(r.pos);
       wHand.copy(r.pos).add(cur);
       wDir.subVectors(wHand, wShoulder);
       const len = Math.max(0.15, wDir.length());
@@ -1820,7 +1938,7 @@ function poseHuman(m, H, Hq, hands, now){
 /* Colliders in world space (capsules a-b with radius r), with velocities for hits. */
 const cW = new V3();
 function updateColliders(m, now){
-  m.space.updateMatrixWorld(true);
+  m.space.updateWorldMatrix(true, true);       // parents first, so colliders and body parts always agree (the human's container may have just moved)
   const M4 = m.space.matrixWorld, ws = m.space.getWorldScale(cW).x, o = m.o, ms = m.ms;
   const track = c => {
     pd.addVectors(c.a, c.b).multiplyScalar(0.5);
@@ -1876,7 +1994,11 @@ function makeSwatter(){
 }
 
 /* ---------- human spots, swatter hooks, food ---------- */
-const HUMAN_SPOTS = [new V3(0, 0, 0), new V3(0, 0, 44)];
+/* Spot 0 is the cookout center, facing the grill. A second human stands just south of the dessert table.
+   v0.0.08 picked the spot from the player's room slot number, so any human in slot 2, 4 or 6 got the second
+   spot, 44 units (1.6 m, about 5 ft) south of the cookout. Now the first human always gets the center. */
+const HUMAN_SPOTS = [new V3(0, 0, 0), new V3(0, 0, 30)];
+function humanSpotIndex(){ for (const r of net.remotes.values()) if (r.kind === 'human' && r.on && (r.si | 0) === 0) return 1; return 0; }
 const HUMAN_YAW = 0;                                  // facing the grill
 const rackSwatters = [-11, 11].map(x => { const s = makeSwatter(); s.scale.setScalar(28); s.position.set(x, 36, -13); scene.add(s); return s; });
 SPAWNS.forEach(p => { const l = makeLabel('Fly spawn', 0x6fe39a); labelSize(l, 12, 3); l.position.set(p.x, 21, p.z); scene.add(l); });
@@ -1964,7 +2086,7 @@ function setRole(role, ci){
   game.role = role; if (ci != null) game.ci = ci;
   store.set('likeflies.role', {role:game.role, ci:game.ci});
   if (game.local){ dropSwatter(0); dropSwatter(1); rig.remove(game.local.space); game.local = null; }
-  game.stuck = null; game.centerSet = false;
+  game.stuck = null; game.crawl = null; game.level = null; game.centerSet = false;
   if (role === 'human'){ game.local = buildHuman(game.ci); firstPerson(game.local); rig.add(game.local.space); }
   else if (changed){ game.lives = tune.lives; game.out = false; game.hp = tune.hitsToKill; }
   HANDS.forEach(h => { h.prevOk = false; });
@@ -1973,8 +2095,10 @@ function setRole(role, ci){
 }
 function applyRole(){
   if (game.role === 'human'){
-    const idx = (mySlot() % 2 === 0 && mySlot() > 0) ? 1 : 0;
+    const idx = humanSpotIndex(); game.spotIdx = idx;
     game.spot.copy(HUMAN_SPOTS[idx]);
+    game.crawl = null; game.level = null; game.alignCheckT = 0; game.alignDeadline = clock.elapsedTime + 2;
+    popup(idx ? 'Second human: across the dessert table' : 'At the grill. A or X re-centers.', 2.5);
     rig.scale.setScalar(tune.humanSize);
     rig.position.copy(game.spot); rig.rotation.set(0, HUMAN_YAW, 0); yaw = HUMAN_YAW; pitch = 0;
     stopAll(); game.centerSet = false;
@@ -2010,16 +2134,26 @@ const alV = new V3();
 function alignHuman(frame){
   let x = camera.position.x, z = camera.position.z;
   const ref = renderer.xr.getReferenceSpace();
-  if (frame && ref){ const vp = frame.getViewerPose(ref); if (!vp) return false; x = vp.transform.position.x; z = vp.transform.position.z; }
+  if (frame && ref){
+    const vp = frame.getViewerPose(ref); if (!vp) return false;
+    if (vp.emulatedPosition && clock.elapsedTime < (game.alignDeadline || 0)) return false;     // tracking not ready yet: try again next frame
+    x = vp.transform.position.x; z = vp.transform.position.z;
+  }
   const S = rig.scale.x;
   alV.set(x, 0, z).applyQuaternion(rig.quaternion).multiplyScalar(S);
   rig.position.set(game.spot.x - alV.x, 0, game.spot.z - alV.z);
   game.center.set(x, 0, z); game.centerSet = true; game.alignPending = false;
+  game.alignCheckT = clock.elapsedTime + 0.6;
+  try{ console.info('[Like Flies] human spot', game.spotIdx | 0, 'set; head was at', x.toFixed(2), z.toFixed(2), 'm in the room'); }catch(e){}
   return true;
 }
 function simulateHumanXR(dt, now, frame){
   readInputs(frame); readGrab(frame);
   if (game.alignPending) alignHuman(frame);
+  else if (game.alignCheckT && clock.elapsedTime > game.alignCheckT){       // one check shortly after: if the first pose was stale, center again
+    game.alignCheckT = 0;
+    if (Math.hypot(camera.position.x - game.center.x, camera.position.z - game.center.z) > 0.25) alignHuman(frame);
+  }
   for (const h of HANDS){
     if (h.btnA && !h.prevA){ if (menuOpen) closeMenu(); alignHuman(frame); popup('Spot re-centered where you stand', 1.5); }
     if (h.btnB && !h.prevB){ menuOpen ? closeMenu() : openMenu(); }
@@ -2295,6 +2429,385 @@ function checkProps(pos, styleDone, attacker, onSticky){
   }
 }
 
+
+/* =====================================================================
+   v0.0.09: SURFACE CRAWLING
+   A landed fly keeps its feet on a smooth version of every surface (rounded edges, filleted
+   corners), so it can walk over the top of a table, down the side and underneath, or across
+   the human. The whole rig turns with the surface: on a wall the yard is sideways, under the
+   flamingo it is upside down. Head tracking is never touched, only the rig the head sits in.
+   Taking off levels the world back to gravity behind a vignette.
+   ===================================================================== */
+const CRAWL_BLEND = 0.5;                       // fillet where two surfaces meet
+const GROUND_PR = {k:'ground', label:'the lawn', food:-1};
+let WORLD_PRIMS = null, frameNo = 0;
+function worldPrims(){
+  if (WORLD_PRIMS) return WORLD_PRIMS;
+  WORLD_PRIMS = [];
+  for (const s of solids){
+    if (s.box) WORLD_PRIMS.push(PR.aabb(s.box.min, s.box.max, {s, label:s.food != null ? 'the ' + foods[s.food].name : (s.label || 'something'), food:s.food != null ? s.food : -1}));
+    else if (s.sdf) s.sdf.forEach(p => WORLD_PRIMS.push(p));
+    else if (s.c) WORLD_PRIMS.push(PR.sph(s.c, s.r, {s, label:s.label || 'something'}));
+  }
+  // the fences have no flight colliders (the yard edge stops you first), but you can walk up them
+  for (const [x0, z0, x1, z1] of [[-100.6, -95, -99.4, 104], [99.4, -95, 100.6, 104], [-100, -95.6, -80, -94.4], [80, -95.6, 100, -94.4]])
+    WORLD_PRIMS.push(PR.aabb(new V3(x0, 0, z0), new V3(x1, 34, z1), {label:'the fence'}));
+  return WORLD_PRIMS;
+}
+/* the human's body as smooth shapes: capsules for head, arms, hands, legs and swatters, a rounded box for the torso */
+function humanPrims(rh){
+  const m = rh.model; if (!m) return [];
+  if (rh.cpModel !== m){
+    rh.cpModel = m;
+    rh.cp = m.cols.map((c, ci) => ({k:'cap', a:c.a, b:c.b, r:0, owner:rh.j, ci, c, part:null, label:'the human', food:-1, bc:new V3(), br:0}));
+    rh.cpT = {k:'obox', inv:new THREE.Matrix4(), ox:0, oy:0, oz:0, hx:0, hy:0, hz:0, rad:0.04, ws:1, owner:rh.j, ci:m.cols.indexOf(m.cTorso), c:m.cTorso, part:m.torsoG, label:'the human', food:-1, bc:new V3(), br:0};
+    rh.cpList = []; rh.cpF = -1;
+  }
+  if (rh.cpF === frameNo) return rh.cpList;
+  rh.cpF = frameNo; rh.cpList.length = 0;
+  rh.cp.forEach(p => {
+    const c = p.c;
+    if (!c.ok || c === m.cTorso || !c.part) return;
+    p.r = c.r; p.part = c.part; p.bc.addVectors(c.a, c.b).multiplyScalar(0.5); p.br = c.a.distanceTo(c.b) / 2 + c.r;
+    rh.cpList.push(p);
+  });
+  const T = rh.cpT, o = m.o, y0 = o.legLen - 0.03, y1 = m.neckTop;
+  m.torsoG.updateWorldMatrix(true, false);
+  T.inv.copy(m.torsoG.matrixWorld).invert(); T.ws = m.torsoG.matrixWorld.getMaxScaleOnAxis();
+  T.oy = (y0 + y1) / 2; T.hx = o.torsoW / 2; T.hy = (y1 - y0) / 2; T.hz = o.torsoD / 2 + 0.01;
+  T.bc.set(0, T.oy, 0).applyMatrix4(m.torsoG.matrixWorld); T.br = Math.hypot(T.hx, T.hy, T.hz) * T.ws;
+  rh.cpList.push(T);
+  return rh.cpList;
+}
+const CANDS = [];
+function gather(p, R){
+  CANDS.length = 0;
+  for (const pr of worldPrims()){ if (pr.s && pr.s.off) continue; if (p.distanceTo(pr.bc) - pr.br < R) CANDS.push(pr); }
+  for (const rh of remoteHumans()) for (const pr of humanPrims(rh)) if (p.distanceTo(pr.bc) - pr.br < R) CANDS.push(pr);
+  return CANDS;
+}
+function smin(a, b, k){ const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h*h*k*0.25; }
+const FR = {d:0, pr:null};
+function field(p, list){
+  let d = p.y, dm = p.y, best = GROUND_PR;
+  for (let i = 0; i < list.length; i++){ const di = sdPrim(list[i], p); if (di < dm){ dm = di; best = list[i]; } d = smin(d, di, CRAWL_BLEND); }
+  FR.d = d; FR.pr = best; return d;
+}
+function fieldGrad(p, list, out){
+  const e = 0.01, x = p.x, y = p.y, z = p.z;
+  p.x = x + e; const a = field(p, list); p.x = x - e; const b = field(p, list); p.x = x;
+  p.y = y + e; const c = field(p, list); p.y = y - e; const d = field(p, list); p.y = y;
+  p.z = z + e; const f = field(p, list); p.z = z - e; const g = field(p, list); p.z = z;
+  out.set(a - b, c - d, f - g); const L = out.length();
+  if (L < 1e-8) out.set(0, 1, 0); else out.divideScalar(L);
+  field(p, list);
+  return out;
+}
+/* move p to height h above the surface; returns how far it was before */
+function projectTo(p, list, h, n){
+  let d0 = null;
+  for (let i = 0; i < 4; i++){
+    fieldGrad(p, list, n); if (d0 == null) d0 = FR.d;
+    const err = h - FR.d; if (Math.abs(err) < 1e-3) break;
+    p.addScaledVector(n, err);
+  }
+  fieldGrad(p, list, n);
+  return d0;
+}
+const _fX = new V3(), _fZ = new V3(), _fM = new THREE.Matrix4();
+function frameQuat(N, F, q){                    // rig axes: +Y along the surface normal, -Z along the heading
+  _fX.crossVectors(F, N).normalize(); _fZ.crossVectors(_fX, N).normalize();
+  _fM.makeBasis(_fX, N, _fZ); return q.setFromRotationMatrix(_fM);
+}
+function anyPerp(n, out){ out.set(Math.abs(n.y) < 0.9 ? 0 : 1, Math.abs(n.y) < 0.9 ? 1 : 0, 0); out.addScaledVector(n, -out.dot(n)).normalize(); return out; }
+
+const crH = new V3(), crT = new V3(), crU = new V3(), crIn = new V3(), crQ = new THREE.Quaternion(), crQ2 = new THREE.Quaternion(), crM = new THREE.Matrix4();
+function startCrawl(now){
+  camera.getWorldPosition(crH);
+  const list = gather(crH, 6);
+  const C = crH.clone(), N = new V3();
+  const d0 = projectTo(C, list, tune.crawlH, N);
+  if (d0 > 6) return false;
+  rig.updateMatrixWorld(true);
+  const F = new V3(0, 0, -1).applyQuaternion(rig.quaternion);
+  F.addScaledVector(N, -F.dot(N));
+  if (F.lengthSq() < 1e-4){ camera.getWorldDirection(F); F.addScaledVector(N, -F.dot(N)); }
+  if (F.lengthSq() < 1e-6) anyPerp(N, F);
+  F.normalize();
+  const cr = game.crawl = {C, N, F, lC:new V3(), lN:new V3(), lF:new V3(), host:null, pr:null, cv:new V3(), turn:0,
+    K:new V3().copy(camera.position), hy0:camera.position.y, q0:rig.quaternion.clone(), H0:crH.clone(), blend:0,
+    Qs:frameQuat(N, F, new THREE.Quaternion()), t0:now, grabT:0, onHandT:now, bit:false, ph:0, idleT:0, speed:0, label:'',
+    st:{kind:'solid', crawl:true, part:null, food:-1, owner:null, pkind:'', side:0, ci:-1, t0:now, prev:new V3(), local:null}};
+  cr.st.local = cr.lC;
+  game.level = null; game.levVig = 0;
+  setCrawlPrim(cr, FR.pr, now); storeOnHost(cr);
+  stopAll(); landTick();
+  return true;
+}
+/* on the human, keep position, normal and heading on that body part so its motion carries you */
+function storeOnHost(cr){
+  if (!cr.host) return;
+  const part = cr.host.part;
+  part.updateWorldMatrix(true, false);
+  crM.copy(part.matrixWorld).invert(); cr.lC.copy(cr.C).applyMatrix4(crM);
+  part.getWorldQuaternion(crQ).invert(); cr.lN.copy(cr.N).applyQuaternion(crQ); cr.lF.copy(cr.F).applyQuaternion(crQ);
+}
+function setCrawlPrim(cr, pr, now){
+  if (pr !== cr.pr){
+    const wasPart = cr.host && cr.host.part;
+    cr.pr = pr; cr.label = pr.label || 'something';
+    if (!wasPart || wasPart !== (pr.part || null)){ cr.onHandT = now; cr.bit = false; }
+  }
+  const human = pr.owner != null, st = cr.st;
+  if (human){
+    if (!cr.host) cr.host = {};
+    Object.assign(cr.host, {owner:pr.owner, ci:pr.ci, part:pr.part, pkind:pr.c.kind, side:pr.c.side > 0 ? 1 : 0});
+  } else cr.host = null;
+  st.kind = human ? 'human' : pr === GROUND_PR ? 'ground' : 'solid';
+  st.part = human ? pr.part : null; st.food = pr.food >= 0 ? pr.food : -1;
+  st.owner = human ? pr.owner : null; st.pkind = human ? pr.c.kind : ''; st.side = human && pr.c.side > 0 ? 1 : 0; st.ci = human ? pr.ci : -1;
+  game.stuck = st;
+}
+/* stick (or right stick up/down), bare-hand pointing, or W/S on screen; returns a world direction along the surface */
+const ciF = new V3(), ciR = new V3(), ciH = new V3(), ciQ = new THREE.Quaternion();
+function crawlInput(xr, out){
+  out.set(0, 0, 0);
+  if (menuOpen) return out;
+  const cr = game.crawl, N = cr.N;
+  camera.getWorldDirection(ciF);
+  const toward = ciF.dot(N) < 0;
+  ciF.addScaledVector(N, -ciF.dot(N));
+  const fl = ciF.length();
+  if (fl < 0.4){                                   // looking straight at (or away from) the surface: the top of your head points forward
+    camera.getWorldQuaternion(ciQ); ciH.set(0, 1, 0).applyQuaternion(ciQ); ciH.addScaledVector(N, -ciH.dot(N));
+    ciF.addScaledVector(ciH, (toward ? 1 : -1) * (0.4 - fl) * 2.5);
+  }
+  if (ciF.lengthSq() < 1e-6) ciF.copy(cr.F);
+  ciF.normalize(); ciR.crossVectors(ciF, N).normalize();
+  if (!xr){
+    const f = ((keys.KeyW || keys.ArrowUp || fwdHeld) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 1 : 0);
+    if (game.testCrawl) return out.copy(ciF).multiplyScalar(game.testCrawl[1]).addScaledVector(ciR, game.testCrawl[0]);
+    return out.copy(ciF).multiplyScalar(f);
+  }
+  const L = HAND.left, R = HAND.right;
+  let sx = L.stickX, sy = L.stickY;
+  if (Math.hypot(sx, sy) < 0.15){ sx = 0; sy = R.stickY; }
+  const mag = Math.hypot(sx, sy);
+  if (mag > 0.15){ const k = Math.min(1, (mag - 0.15) / 0.75) / mag; return out.copy(ciF).multiplyScalar(-sy * k).addScaledVector(ciR, sx * k); }
+  // bare hands: reach out and point where you want to walk, pull your hands in to stop. Flapping never steers.
+  let n = 0;
+  for (const h of HANDS){
+    if (!h.has || !h.isHand || h.speed > 1.2) continue;
+    ciH.subVectors(h.pos, camera.position); ciH.y = 0;
+    const reach = ciH.length(); if (reach < tune.handReach) continue;
+    ciH.multiplyScalar(smoothstep(tune.handReach, tune.handReach + 0.15, reach) / reach).applyQuaternion(rig.quaternion);
+    out.add(ciH); n++;
+  }
+  if (n){ out.divideScalar(n); out.addScaledVector(N, -out.dot(N)); if (out.length() > 1) out.normalize(); }
+  return out;
+}
+function crawlStep(dt, now, xr){
+  const cr = game.crawl;
+  // 1. ride a moving host: everything is stored on the body part, so the human's turns carry you exactly
+  if (cr.host){
+    const part = cr.host.part, rh = net.remotes.get(cr.host.owner);
+    if (!part || !part.parent || !rh || rh.kind !== 'human' || !rh.on || rh.model !== (rh.cpModel || rh.model)){ crawlRelease(now, false, 'host gone'); return; }
+    cr.C.copy(cr.lC).applyMatrix4(part.matrixWorld);
+    part.getWorldQuaternion(crQ); cr.N.copy(cr.lN).applyQuaternion(crQ); cr.F.copy(cr.lF).applyQuaternion(crQ);
+  }
+  // 2. stepping around your real room walks the fly along the surface
+  const hl = camera.position;
+  crT.set(hl.x - cr.K.x, 0, hl.z - cr.K.z).applyQuaternion(rig.quaternion);
+  if (crT.lengthSq() < 1) cr.C.add(crT);
+  cr.hy0 += (hl.y - cr.hy0) * (1 - Math.exp(-dt / 2));
+  cr.K.set(hl.x, cr.hy0, hl.z);
+  // 3. walk: no flapping needed
+  crawlInput(xr, crIn);
+  crT.copy(crIn).multiplyScalar(tune.crawlSpeed * speedMul()).sub(cr.cv);
+  const dv = tune.crawlAccel * dt * (crIn.lengthSq() < 1e-4 ? 1.6 : 1);
+  if (crT.length() > dv) crT.setLength(dv);
+  cr.cv.add(crT); cr.cv.addScaledVector(cr.N, -cr.cv.dot(cr.N));
+  if (menuOpen) cr.cv.set(0, 0, 0);
+  cr.C.addScaledVector(cr.cv, dt);
+  // 4. keep the feet on the surface, around edges and underneath
+  const list = gather(cr.C, tune.crawlH + 3);
+  const d0 = projectTo(cr.C, list, tune.crawlH, crU);
+  if (d0 > tune.crawlH + 1.2){ crawlRelease(now, false, 'surface lost ' + d0.toFixed(2) + ' ' + (cr.pr && cr.pr.label)); return; }      // the surface went away (walked off a thin edge, or the human moved off)
+  if (cr.C.x < -99.5 || cr.C.x > 99.5 || cr.C.z < -94 || cr.C.z > 112 || cr.C.y > 96){ cr.C.addScaledVector(cr.cv, -dt); cr.cv.set(0, 0, 0); }
+  // 5. smooth the normal so facets and seams don't jerk the view (the view still follows the surface fully)
+  cr.N.lerp(crU, tune.normSmooth > 0.005 ? 1 - Math.exp(-dt / tune.normSmooth) : 1).normalize();
+  // 6. heading rides along the surface; snap and smooth turns spin it around the normal
+  if (cr.turn){ cr.F.applyAxisAngle(cr.N, cr.turn); cr.turn = 0; }
+  cr.F.addScaledVector(cr.N, -cr.F.dot(cr.N));
+  if (cr.F.lengthSq() < 1e-6) anyPerp(cr.N, cr.F);
+  cr.F.normalize();
+  // 7. which surface you're on now; on the human, store yourself on that body part
+  setCrawlPrim(cr, FR.pr, now);
+  storeOnHost(cr);
+  // 8. walking onto food grabs a piece; sitting on a hand bites it
+  const f = cr.st.food;
+  if (f >= 0 && game.carry < 0 && !game.out && foods[f] && foods[f].hp > 0 && now > cr.grabT){ cr.grabT = now + 1.2; requestFood('grab', f); }
+  if (cr.host && cr.host.pkind === 'hand' && now - cr.onHandT > 1.2 && !cr.bit){ cr.bit = true; sendEvent({k:'bite', to:cr.host.owner, side:cr.host.side}); }
+  // 9. turn the whole world with the surface (fully at 100%), easing in from the landing pose
+  frameQuat(cr.N, cr.F, crQ);
+  if (tune.surfOrient < 100){ crQ2.setFromUnitVectors(cr.N, V3UP).multiply(crQ); crQ2.slerp(crQ, tune.surfOrient / 100); crQ.copy(crQ2); }
+  cr.Qs.slerp(crQ, 1 - Math.exp(-dt / 0.06));
+  cr.blend = Math.min(1, cr.blend + dt / Math.max(0.01, tune.landTime));
+  const e = smoothstep(0, 1, cr.blend);
+  rig.quaternion.copy(cr.q0).slerp(cr.Qs, e);
+  crT.copy(cr.H0).lerp(cr.C, e);
+  crH.copy(cr.K).applyQuaternion(rig.quaternion);
+  rig.position.copy(crT).sub(crH);
+  rig.updateMatrixWorld(true);
+  // 10. state for the HUD, legs and other players
+  vel.copy(cr.cv); grounded = true; contact.hit = false;
+  cr.speed = cr.cv.length(); cr.ph += cr.speed / 0.14 * Math.PI * dt;
+  cr.idleT = cr.speed < 0.05 ? cr.idleT + dt : 0;
+  flightState = (cr.speed > 0.05 ? 'crawling on ' : 'standing on ') + cr.label;
+}
+function crawlRelease(now, push, why){
+  const cr = game.crawl; if (!cr) return;
+  game.lastRelease = why || (push ? 'takeoff' : 'hit');
+  game.crawl = null; game.stuck = null; game.stickCool = now + 0.4;
+  stopAll();
+  if (push) vMove.addScaledVector(cr.N, tune.pushOff);
+  startLevel(now);
+}
+/* takeoff: rotate the world back to gravity around your head, behind a vignette */
+function startLevel(now){
+  rig.updateMatrixWorld(true);
+  crU.set(0, 1, 0).applyQuaternion(rig.quaternion);
+  const ang = Math.acos(Math.max(-1, Math.min(1, crU.y)));
+  if (ang < 0.01){ game.level = null; return; }
+  const axis = new V3().crossVectors(crU, V3UP);
+  if (axis.length() < 0.05){ camera.getWorldDirection(axis); axis.addScaledVector(crU, -axis.dot(crU)); if (axis.lengthSq() < 1e-6) anyPerp(crU, axis); }   // upside down: roll level around where you look
+  axis.normalize();
+  const deg = ang * 180 / Math.PI, big = deg >= tune.vigAngle;
+  const qT = new THREE.Quaternion().setFromAxisAngle(axis, ang).multiply(rig.quaternion);
+  game.level = {q0:rig.quaternion.clone(), qT, t0:now, lead:big ? tune.vigLead : 0, T:big ? tune.levelTime * Math.min(1, 0.5 + deg / 180) : 0.25,
+    vig:big ? tune.vigMax / 100 * Math.min(1, 0.5 + deg / 180) : 0, done:false, tEnd:0, deg};
+}
+const lvE = new THREE.Euler();
+function updateLevel(dt, now){
+  const L = game.level; if (!L) return 0;
+  const t = now - L.t0;
+  if (!L.done){
+    const u = smoothstep(0, 1, (t - L.lead) / Math.max(0.01, L.T));
+    camera.getWorldPosition(crH);
+    rig.quaternion.copy(L.q0).slerp(L.qT, u); rig.updateMatrixWorld(true);
+    camera.getWorldPosition(crT); rig.position.add(crH).sub(crT);
+    if (u >= 1){
+      L.done = true; L.tEnd = now;
+      yaw = lvE.setFromQuaternion(L.qT, 'YXZ').y; rig.rotation.set(0, yaw, 0);
+      rig.updateMatrixWorld(true); camera.getWorldPosition(crT); rig.position.add(crH).sub(crT);
+    }
+    rig.updateMatrixWorld(true);
+  }
+  let v;
+  if (t < L.lead) v = L.vig * t / Math.max(1e-3, L.lead);
+  else if (!L.done) v = L.vig;
+  else { v = L.vig * (1 - (now - L.tEnd) / Math.max(0.01, tune.vigFade)); if (v <= 0){ game.level = null; v = 0; } }
+  return Math.max(0, v);
+}
+/* the body quaternion other players see: the rig's surface frame turned to where your head faces */
+const bqF = new V3(), bqY = new THREE.Quaternion();
+function bodyQuat(out){
+  bqF.set(0, 0, -1).applyQuaternion(camera.quaternion);
+  bqY.setFromAxisAngle(V3UP, Math.atan2(-bqF.x, -bqF.z));
+  return out.copy(rig.quaternion).multiply(bqY);
+}
+function landTick(){
+  if (!audio || !tune.sound) return;
+  try{
+    const ac = audio.ac, t0 = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(420, t0); o.frequency.exponentialRampToValueAtTime(220, t0 + 0.07);
+    g.gain.setValueAtTime(0.08, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+    o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + 0.1);
+  }catch(e){}
+}
+
+/* ---------- six legs for every fly, drawn as one instanced mesh (one draw call for all of them) ---------- */
+const LEG_MAX = 24 * 12;
+const legGeo = new THREE.CylinderGeometry(1, 0.75, 1, 5, 1); legGeo.translate(0, 0.5, 0);
+const legMesh = new THREE.InstancedMesh(legGeo, new THREE.MeshLambertMaterial({color:0x1d2026, flatShading:true}), LEG_MAX);
+legMesh.frustumCulled = false; legMesh.count = 0; scene.add(legMesh);
+let legN = 0;
+const lgM = new THREE.Matrix4(), lgQ = new THREE.Quaternion(), lgS = new V3(), lgD = new V3(), lgHip = new V3(), lgFoot = new V3(), lgKnee = new V3(), lgA = new V3(), lgB = new V3(), lgP = new V3(), lgMv = new V3();
+function legSeg(a, b, w){
+  if (legN >= LEG_MAX) return;
+  lgD.subVectors(b, a); const len = lgD.length(); if (len < 1e-5) return;
+  lgQ.setFromUnitVectors(V3UP, lgD.divideScalar(len)); lgS.set(w, len, w);
+  legMesh.setMatrixAt(legN++, lgM.compose(a, lgQ, lgS));
+}
+/* mode: 'hang' in flight, 'plant' on a surface (with a tripod gait when moving), 'flail' when swatted.
+   obj gives the body frame (eyes toward -Z, up +Y); s scales the legs; the feet sit at -footY. */
+function drawLegs(obj, s, mode, o){
+  obj.updateMatrixWorld(true);
+  const M = obj.matrixWorld, t = o.t, ph = o.ph || 0, moving = (o.speed || 0) > 0.05, a = 0.17*s, b = 0.22*s, wk = o.wk || 1, drop = o.drop || 0;
+  for (let row = 0; row < 3; row++) for (const side of [-1, 1]){
+    lgHip.set(side*0.06*s, -0.13*s - drop, (-0.07 + row*0.1)*s);
+    // hanging pose
+    lgA.set(lgHip.x + side*0.08*s, lgHip.y - 0.17*s, lgHip.z + (0.07 + row*0.03)*s + Math.sin(t*9 + row + side)*0.012*s);
+    if (mode === 'flail') lgA.set(lgHip.x + side*0.16*s*Math.cos(t*21 + row*2), lgHip.y - 0.06*s + 0.13*s*Math.sin(t*17 + row), lgHip.z + 0.13*s*Math.sin(t*25 + row*3 + side));
+    lgFoot.copy(lgA);
+    if (mode === 'plant'){
+      lgB.set(side*(0.27 - (row === 1 ? -0.02 : 0))*s, -o.footY, (-0.22 + row*0.2)*s);
+      if (moving && o.mv){
+        const grp = (row + (side > 0 ? 1 : 0)) % 2, p = ph + grp*Math.PI;
+        lgB.addScaledVector(o.mv, 0.075*s*Math.sin(p));
+        lgB.y += 0.09*s*Math.max(0, Math.cos(p));            // cartoon high-step
+      } else if (row === 0 && (o.idle || 0) > 1.6){            // idle: rub the front feet together
+        lgB.set(side*(0.035 + 0.02*Math.sin(t*15)), -0.07*s, -0.24*s);
+      }
+      lgFoot.lerpVectors(lgA, lgB, o.blend == null ? 1 : o.blend);
+    }
+    // two-bone leg, knee bends up and out
+    lgD.subVectors(lgFoot, lgHip); let L = lgD.length(); const st = Math.max(1, L / (a + b)), aa = a*st, bb = b*st;
+    if (L < 1e-5){ lgD.set(0, -1, 0); L = 1e-5; } else lgD.divideScalar(L);
+    const x = (aa*aa - bb*bb + L*L) / (2*L), h = Math.sqrt(Math.max(0, aa*aa - x*x));
+    lgP.set(side*0.7, 1, 0); lgP.addScaledVector(lgD, -lgP.dot(lgD)).normalize();
+    lgKnee.copy(lgHip).addScaledVector(lgD, x).addScaledVector(lgP, h);
+    lgHip.applyMatrix4(M); lgKnee.applyMatrix4(M); lgFoot.applyMatrix4(M);
+    legSeg(lgHip, lgKnee, 0.017*s*wk); legSeg(lgKnee, lgFoot, 0.013*s*wk);
+  }
+}
+const myLegs = new THREE.Object3D(); scene.add(myLegs);
+const lgInv = new THREE.Quaternion();
+function updateLegs(dt, now){
+  legN = 0;
+  const footY = tune.crawlH;
+  // you see your own legs under you while crawling
+  if (game.role === 'fly' && game.crawl && state !== 'menu'){
+    const cr = game.crawl;
+    myLegs.position.copy(cr.C); bodyQuat(myLegs.quaternion);
+    lgMv.copy(cr.cv).applyQuaternion(lgInv.copy(myLegs.quaternion).invert()); lgMv.y = 0; if (lgMv.lengthSq() > 1e-6) lgMv.normalize();
+    drawLegs(myLegs, 1, 'plant', {t:now, ph:cr.ph, speed:cr.speed, mv:lgMv, idle:cr.idleT, blend:smoothstep(0, 1, cr.blend), footY, wk:0.4, drop:0.07});   // thin, and attached lower, so they never crowd your view
+  }
+  for (const r of net.remotes.values()){
+    if (r.kind !== 'fly' || !r.g.visible) continue;
+    const mode = r.stn ? 'flail' : (r.cw || r.sk) ? 'plant' : 'hang';
+    if (r.cw){ r.legPh = (r.legPh || 0) + (r.gs || 0) / 0.14 * Math.PI * dt; r.idleT = (r.gs || 0) < 0.05 ? (r.idleT || 0) + dt : 0; }
+    lgMv.copy(r.v).applyQuaternion(lgInv.copy(r.g.quaternion).invert()); lgMv.y = 0; if (lgMv.lengthSq() > 1e-6) lgMv.normalize();
+    r.legBlend = Math.min(1, Math.max(0, (r.legBlend || 0) + (mode === 'plant' ? dt : -dt) / 0.25));
+    drawLegs(r.g, 1, r.legBlend > 0 && mode !== 'flail' ? 'plant' : mode, {t:now + r.j, ph:r.legPh || 0, speed:r.gs || 0, mv:lgMv, idle:r.idleT || 0, blend:smoothstep(0, 1, r.legBlend), footY});
+  }
+  for (const b of game.bots){ if (!b.view.visible) continue; const land = b.state === 'land' || b.state === 'onHuman' || b.state === 'web'; drawLegs(b.view.body, 1.6, b.state === 'stun' ? 'flail' : land ? 'plant' : 'hang', {t:now + b.id, footY:0.56}); }
+  game.botViews.forEach((v, i) => { if (v.visible) drawLegs(v.body, 1.6, v.bs === 3 ? 'flail' : v.bs === 4 ? 'plant' : 'hang', {t:now + i, footY:0.56}); });
+  legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true;
+}
+
+const atQ = new THREE.Quaternion(), atQ2 = new THREE.Quaternion();
+const r4 = x => Math.round(x * 1e4) / 1e4;
+function crawlAt(cr){
+  cr.host.part.getWorldQuaternion(atQ).invert(); bodyQuat(atQ2); atQ.multiply(atQ2);
+  return [cr.host.owner, cr.host.ci, r4(cr.lC.x), r4(cr.lC.y), r4(cr.lC.z), r4(atQ.x), r4(atQ.y), r4(atQ.z), r4(atQ.w)];
+}
+function liftLossExtra(now){
+  const r = tune.recoverRamp;
+  if (!game.stunUntil || r <= 0 || now < game.stunUntil || now > game.stunUntil + r) return 0;
+  return tune.fallG * tune.liftLoss / 100 * (1 - (now - game.stunUntil) / r);
+}
+
 /* ---------- fly side: sticking, hits, food ---------- */
 const contact = {hit:false, kind:'', part:null, food:-1};
 function collideHumans(pt, r){
@@ -2313,26 +2826,14 @@ function collideHumans(pt, r){
   }
 }
 function flyStick(now){
+  if (game.crawl) return;
+  if (game.stuck){ stopAll(); return; }                     // held by the spider web
+  if (now < game.stickCool || now < game.stunUntil || game.out) return;
   camera.getWorldPosition(head);
-  if (game.stuck){
-    const s = game.stuck;
-    if (s.part){
-      if (!s.part.parent){ game.stuck = null; return; }
-      s.part.updateWorldMatrix(true, false);
-      wTmp.copy(s.local).applyMatrix4(s.part.matrixWorld);
-      rig.position.add(hP.subVectors(wTmp, s.prev)); s.prev.copy(wTmp);
-      if (s.pkind === 'hand' && now - s.t0 > 1.2 && !s.bit){ s.bit = true; sendEvent({k:'bite', to:s.owner, side:s.side}); }
-    }
-    stopAll();
-    return;
-  }
-  if (!contact.hit || now < game.stickCool || now < game.stunUntil || game.out) return;
-  const s = {kind:contact.kind, part:contact.part, food:contact.food, owner:contact.owner, pkind:contact.pkind, side:contact.side, ci:contact.ci, t0:now, prev:new V3(), local:new V3()};
-  if (s.part){ s.part.updateWorldMatrix(true, false); s.prev.copy(head); s.local.copy(head).applyMatrix4(new THREE.Matrix4().copy(s.part.matrixWorld).invert()); }
-  game.stuck = s; stopAll();
-  if (s.food >= 0 && game.carry < 0 && !game.out) requestFood('grab', s.food);
+  if (!contact.hit){ field(head, gather(head, tune.crawlH + 1)); if (FR.d > tune.crawlH + 0.25) return; }
+  startCrawl(now);                                          // touched something: plant the feet and crawl
 }
-function unstick(now){ if (game.stuck && now >= game.webUntil){ game.stuck = null; game.stickCool = now + 0.4; } }
+function unstick(now){ if (game.crawl){ crawlRelease(now, true); return; } if (game.stuck && now >= game.webUntil){ game.stuck = null; game.stickCool = now + 0.4; } }
 
 function requestFood(kind, f){
   if (isAuthority()) handleFood(kind, f, mySlot());
@@ -2379,7 +2880,7 @@ function flyDie(now, cause){
   dropCarry();
   camera.getWorldPosition(head); splat(head); thwack(1);
   game.lives = Math.max(0, game.lives - 1); game.out = game.lives <= 0; game.hp = tune.hitsToKill;
-  game.deadUntil = now + 1.4; game.stuck = null; game.stunUntil = 0; game.tumbleUntil = 0; stopAll();
+  game.deadUntil = now + 1.4; game.stuck = null; game.crawl = null; game.level = null; game.stunUntil = 0; game.tumbleUntil = 0; stopAll();
   game.lastDeath = cause || 'unknown';
   try{ console.info('[Like Flies] fly eliminated:', game.lastDeath, 'lives left', game.lives); }catch(e){}
   popup((game.out ? 'OUT OF LIVES' : 'SPLAT! Lives ' + game.lives) + ' · ' + game.lastDeath, 2.5);
@@ -2392,6 +2893,7 @@ function flyHit(imp, from, now){
   game.hp--;
   dropCarry();                                   // adopted test default: a hit drops the food, it returns to its plate
   if (game.hp <= 0){ flyDie(now, tune.hitsToKill + ' air swats'); return; }
+  if (game.crawl) crawlRelease(now, false);
   game.stuck = null; game.webUntil = 0;
   game.lastHitBy = from; game.styleDone = new Set();
   game.stunUntil = now + tune.stun; game.tumbleUntil = now + tune.ragdoll;
@@ -2489,7 +2991,7 @@ function updateBots(dt, now){
     b.view.visible = true;
     if (b.state === 'wait'){ if (now > b.t) pickBotTarget(b); }
     else if (b.state === 'stun'){
-      b.v.y -= 14*dt; b.v.multiplyScalar(Math.exp(-tune.knockDecay*dt)); b.p.addScaledVector(b.v, dt);
+      b.v.y -= tune.fallG * tune.liftLoss / 100 * dt; b.v.multiplyScalar(Math.exp(-tune.knockDecay*dt)); b.p.addScaledVector(b.v, dt);
       if (b.p.y < 0.6){ b.p.y = 0.6; b.v.y = Math.abs(b.v.y) * 0.4; }
       b.view.body.rotateOnAxis(b.spin, (now - (b.t - tune.stun)) * 14);
       checkProps(b.p, b.styleDone, b.attacker, () => { b.state = 'web'; b.t = now + 1.5; b.v.set(0, 0, 0); });
@@ -2516,11 +3018,11 @@ function updateBots(dt, now){
       wTmp.x += Math.sin(now*3 + b.id*7) * 2.5; wTmp.y += Math.sin(now*4.1 + b.id) * 1.5; wTmp.z += Math.cos(now*2.7 + b.id*3) * 2.5;
       b.v.lerp(wTmp, 1 - Math.exp(-3*dt)); b.p.addScaledVector(b.v, dt);
       if (b.p.y < 1) b.p.y = 1;
-      if (b.state === 'toFood' && d < 2.5){ b.state = 'land'; b.t = now + 1.2; b.v.set(0, 0, 0); }
+      if (b.state === 'toFood' && d < 2.5){ b.state = 'land'; b.t = now + 1.2; b.v.set(0, 0, 0); const fp = foods[b.food].g.position; b.p.set(fp.x + (Math.random() - 0.5) * 3, fp.y + 3.2 + 0.56, fp.z + (Math.random() - 0.5) * 3); eul.setFromQuaternion(b.view.quaternion, 'YXZ'); b.view.rotation.set(0, eul.y, 0); }
       if (b.state === 'toHuman' && d < b.col.r + 0.6){
         b.col.part.updateWorldMatrix(true, false);
         b.attach = {part:b.col.part, kind:b.col.kind, side:b.col.side > 0 ? 1 : 0, local:b.p.clone().applyMatrix4(new THREE.Matrix4().copy(b.col.part.matrixWorld).invert())};
-        b.state = 'onHuman'; b.t = now + 2.2;
+        b.state = 'onHuman'; b.t = now + 2.2; segDist(b.p, b.col.a, b.col.b, hQ); hN.subVectors(b.p, hQ).normalize(); b.view.quaternion.setFromUnitVectors(V3UP, hN);
       }
     }
     b.view.position.copy(b.p);
@@ -2533,7 +3035,7 @@ function updateBots(dt, now){
 function showRemoteBots(list){
   while (game.botViews.length < list.length) game.botViews.push(makeBotView());
   game.botViews.forEach((v, i) => {
-    const d = list[i]; v.visible = !!d && d[3] !== 0;
+    const d = list[i]; v.visible = !!d && d[3] !== 0; v.bs = d ? d[3] : 0;
     if (!v.visible) return;
     v.position.lerp(wTmp.set(d[0], d[1], d[2]), 0.5);
     showPiece(v.piece, d[3] === 2 ? d[4] : -1);
@@ -2586,7 +3088,7 @@ function gameTick(dt, now){
   if (now - (game.remoteBotsT || 0) > 1.5 && game.botViews.length) showRemoteBots([]);
 }
 
-window.__likeflies = {net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+window.__likeflies = {net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
