@@ -104,7 +104,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.07 · Backyard cookout · Quest 2 &amp; 3</div>
+      <div class="eyebrow">Test v0.0.08 · Physics &amp; interaction</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard cookout. The giant human stands at the grill with food on all four sides. Flies spawn from trash cans around the yard, grab a piece of food, and score by surviving long enough to eat it.</p>
@@ -163,7 +163,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
     <div>
       <h2>How to be the human</h2>
       <dl class="how">
-        <dt>Stand</dt><dd>You stand at the grill with food in front, behind and to both sides. Turn all the way around to defend it. If you step too far, the view dims. A or X re-centers your spot.</dd>
+        <dt>Stand</dt><dd>Wherever you're standing when you become the human is your spot at the grill. Turn all the way around to defend the food. If you step too far, the view dims. A or X re-centers your spot where you stand.</dd>
         <dt>Swat</dt><dd>Hit a fly in the air to knock it back, stun it, and make it drop food. Three air swats eliminate it.</dd>
         <dt>Crush</dt><dd>Squash a fly that has landed on something, including your own arm or the food. One hit.</dd>
         <dt>Clap</dt><dd>Clap a fly between your hands.</dd>
@@ -183,7 +183,8 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
           <label><input type="checkbox" id="tSnd">Buzz sound</label>
           <label><input type="checkbox" id="tHud">Flight data panel</label>
         </div>
-        <button type="button" id="tReset">Reset to defaults</button>
+        <div class="actions"><button type="button" id="tReset">Reset to defaults</button><button type="button" id="tCopy">Copy my settings</button></div>
+        <p class="note" id="tCopyNote">Paste your settings into test notes so results can be compared.</p>
       </div>
     </details>
 
@@ -241,6 +242,9 @@ const TUNE = [
   {g:'Combat', k:'ragdoll',    label:'Tumble time',       min:0.2, max:3,   step:0.1,  def:1.2, unit:'s', hint:'How long other players see a swatted fly tumble.'},
   {g:'Combat', k:'hitsToKill', label:'Hits to eliminate', min:1,   max:6,   step:1,    def:3,   hint:'Air swats that cost a fly one life.'},
   {g:'Combat', k:'immunity',   label:'Hit immunity',      min:0.1, max:2,   step:0.05, def:0.5, unit:'s', hint:'After a hit, a fly cannot be hit again for this long.'},
+  {g:'Combat', k:'swingInf',   label:'Swing influence',   min:0,   max:2,   step:0.05, def:1,   hint:'How much a faster swing launches a fly harder. 0 makes every hit the same.'},
+  {g:'Combat', k:'knockMax',   label:'Max swat impulse',  min:20,  max:250, step:5,    def:150, unit:' m/s', hint:'Cap so a tracking glitch can never fling a fly across the map.'},
+  {g:'Combat', k:'upAssist',   label:'Upward assist',     min:0,   max:0.5, step:0.05, def:0,   hint:'Extra lift added to every swat. 0 means flies go exactly where you hit them.'},
   {g:'Combat', k:'knockDecay', label:'Knockback slowdown',min:0.2, max:5,   step:0.1,  def:1.5, hint:'How quickly a swatted fly loses its knockback speed.'},
   {g:'Combat', k:'styleScale', label:'Style bonus scale', min:0,   max:3,   step:0.1,  def:1,   hint:'Multiplies style points from props.'},
   {g:'Carry',  k:'carrySlow',  label:'Carry slowdown',    min:0,   max:80,  step:5,    def:35,  unit:'%', hint:'Lower cruise and top speed while carrying food. Flapping still pushes at full strength.'},
@@ -271,6 +275,33 @@ const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreferenc
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.xr.enabled = true;
 renderer.xr.setReferenceSpaceType('local-floor');
+/* three.js builds one combined camera for culling in VR. When the rig is scaled (the giant human),
+   it mixes scaled and unscaled units, which pushes the culling near plane ~0.7 m out and hides
+   hands, swatters, food and flies close to the eyes. Rebuild that camera with consistent units. */
+const _uL = new V3(), _uR = new V3();
+const _xrGetCamera = renderer.xr.getCamera;
+renderer.xr.getCamera = function(cam){
+  const c = _xrGetCamera.call(this, cam);
+  const S = rig.scale.x;
+  if (Math.abs(S - 1) > 1e-3 && c.cameras && c.cameras.length === 2) fixUnionCamera(c, c.cameras[0], c.cameras[1], S);
+  return c;
+};
+function fixUnionCamera(camera, cameraL, cameraR, S){
+  _uL.setFromMatrixPosition(cameraL.matrixWorld); _uR.setFromMatrixPosition(cameraR.matrixWorld);
+  const ipd = _uL.distanceTo(_uR) / S;                       // real meters, like the projection
+  const projL = cameraL.projectionMatrix.elements, projR = cameraR.projectionMatrix.elements;
+  const near = projL[14] / (projL[10] - 1), far = projL[14] / (projL[10] + 1);
+  const topFov = (projL[9] + 1) / projL[5], bottomFov = (projL[9] - 1) / projL[5];
+  const leftFov = (projL[8] - 1) / projL[0], rightFov = (projR[8] + 1) / projR[0];
+  const left = near * leftFov, right = near * rightFov;
+  const zOffset = ipd / (-leftFov + rightFov), xOffset = zOffset * -leftFov;
+  cameraL.matrixWorld.decompose(camera.position, camera.quaternion, camera.scale);
+  camera.translateX(xOffset * S); camera.translateZ(zOffset * S);
+  camera.matrixWorld.compose(camera.position, camera.quaternion, camera.scale);
+  camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+  const near2 = near + zOffset, far2 = far + zOffset;
+  camera.projectionMatrix.makePerspective(left - xOffset, right + (ipd - xOffset), topFov * far / far2 * near2, bottomFov * far / far2 * near2, near2, far2);
+}
 if (typeof renderer.xr.setFoveation === 'function') renderer.xr.setFoveation(1);
 
 const scene = new THREE.Scene();
@@ -515,21 +546,21 @@ const PROPS = [];
   const cup = HK.group(scene, 38, 12.8, 24); HK.hex(2.4, 1.7, 5.6, 0xd8392b, cup, 0, 0, 0, 10); HK.hex(2.45, 2.45, 0.6, 0xf6f3ea, cup, 0, 5.2, 0, 10);
   PROPS.push({id:'cup', name:'Cup Crash', pts:2, c:new V3(38, 15, 24), r:5.5, obj:cup});
   // wind chime on a shepherd's hook
-  const hook = HK.group(scene, -36, 0, 30); HK.hex(0.5, 0.5, 52, 0x2b2b2b, hook, 0, 0, 0, 5); HK.box(8, 0.6, 0.6, 0x2b2b2b, hook, 4, 51, 0);
-  const chime = HK.group(scene, -28, 50, 30);
+  const hook = HK.group(scene, -62, 0, 46); HK.hex(0.5, 0.5, 52, 0x2b2b2b, hook, 0, 0, 0, 5); HK.box(8, 0.6, 0.6, 0x2b2b2b, hook, 4, 51, 0);
+  const chime = HK.group(scene, -54, 50, 46);
   HK.hex(2.6, 2.6, 0.6, 0x8a6a42, chime, 0, -1, 0, 8);
   const tubes = [0, 1, 2, 3, 4].map(i => { const a = i / 5 * Math.PI * 2, tg = HK.group(chime, Math.cos(a) * 2, -1, Math.sin(a) * 2); HK.hex(0.35, 0.35, 5 + i, 0xbfc7d1, tg, 0, -(5 + i), 0, 6); return tg; });
-  solidBox(-37, 0, 29, -35, 52, 31);
-  PROPS.push({id:'chime', name:'Chime Time', pts:2, c:new V3(-28, 45, 30), r:6, obj:chime, tubes});
-  // spider web strung between two garden stakes
-  const A = new V3(28, 0, -34), B = new V3(46, 0, -24);
-  for (const p of [A, B]){ HK.hex(0.5, 0.6, 42, 0x7a5532, scene, p.x, 0, p.z, 5); solidBox(p.x - 0.8, 0, p.z - 0.8, p.x + 0.8, 42, p.z + 0.8); }
-  const web = new THREE.Group(); web.position.set(37, 24, -29); web.lookAt(0, 24, 0); scene.add(web);
+  solidBox(-63, 0, 45, -61, 52, 47);
+  PROPS.push({id:'chime', name:'Chime Time', pts:2, c:new V3(-54, 45, 46), r:6.5, obj:chime, tubes});
+  // spider web in the big tree, strung between the trunk and a low branch
+  const br = HK.box(3, 3, 34, 0x7a5532, scene, -52, 52, -48); br.lookAt(-38, 54, -34); br.position.set(-52, 52, -48);
+  solidBox(-60, 50, -56, -42, 56, -40);
+  const web = new THREE.Group(); web.position.set(-54, 40, -50); web.lookAt(0, 40, 0); scene.add(web);
   const pts = [];
   for (let i = 0; i < 12; i++){ const a = i / 12 * Math.PI * 2; pts.push(new V3(), new V3(Math.cos(a) * 11, Math.sin(a) * 11, 0)); }
   for (let ring = 1; ring <= 5; ring++) for (let i = 0; i < 12; i++){ const r = ring * 2.1, a0 = i / 12 * Math.PI * 2, a1 = (i + 1) / 12 * Math.PI * 2; pts.push(new V3(Math.cos(a0) * r, Math.sin(a0) * r, 0), new V3(Math.cos(a1) * r, Math.sin(a1) * r, 0)); }
   web.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0xf4f4f4, transparent:true, opacity:0.8})));
-  PROPS.push({id:'web', name:'Web Wrap', pts:2, c:new V3(37, 24, -29), r:10, obj:web, sticky:true});
+  PROPS.push({id:'web', name:'Web Wrap', pts:2, c:new V3(-54, 40, -50), r:11, obj:web, sticky:true});
   // fire: the grill and the fire pit
   PROPS.push({id:'grill', name:'Overcooked', pts:3, c:new V3(0, 19, -15.5), r:9, fire:true});
   PROPS.push({id:'pit', name:'Overcooked', pts:3, c:new V3(70, 6, 62), r:9, fire:true});
@@ -658,7 +689,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.07 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.08 · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
     const n = PAGES.length, tw = (PW - 60 - (n - 1)*8) / n, x = 30 + i*(tw + 8), on = pg === panelPage;
     c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
@@ -803,7 +834,7 @@ const strokes = {arm:[], flut:[], any:[]};
 function dashSepNow(now){ const W = tune.rhythm; while (strokes.any.length && now - strokes.any[0] > W) strokes.any.shift(); return tune.dashSep * (strokes.any.length >= 2 ? 2 : 1); }
 const POOLS = [vDash, vMove, boostVec], nTmp = new V3();
 function stopAll(){ vel.set(0, 0, 0); vDash.set(0, 0, 0); vMove.set(0, 0, 0); boostVec.set(0, 0, 0); boost = 0; strokes.arm.length = 0; strokes.flut.length = 0; }
-function stopAlong(x, y, z){ const e = clock.elapsedTime < game.stunUntil ? 1.6 : 1; nTmp.set(x, y, z); for (const v of POOLS){ const d = v.dot(nTmp); if (d < 0) v.addScaledVector(nTmp, -d*e); } const d = vel.dot(nTmp); if (d < 0) vel.addScaledVector(nTmp, -d*e); }
+function stopAlong(x, y, z){ const e = clock.elapsedTime < game.stunUntil ? 1.25 : 1; nTmp.set(x, y, z); for (const v of POOLS){ const d = v.dot(nTmp); if (d < 0) v.addScaledVector(nTmp, -d*e); } const d = vel.dot(nTmp); if (d < 0) vel.addScaledVector(nTmp, -d*e); }
 function burstGain(){
   // Calibrated so a big two-arm throw (hands at about 4 m/s for 0.15 s) carries you the "Dash distance".
   const D = tune.dashDist * 0.3048, c = tune.carry / 100, kM = 3 / Math.max(0.2, tune.drift);
@@ -1204,7 +1235,7 @@ function integrate(dt, now, xr){
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
   collide(head, 0.35); collideHumans(head, 0.35);
-  tmp.set(head.x, rig.position.y + 0.5, head.z); collide(tmp, 0.5); collideHumans(tmp, 0.5);
+  tmp.set(head.x, rig.position.y + 0.5, head.z); collide(tmp, 0.5);   // the human and swatters only touch the fly's body, not its feet sphere
   if (now >= game.deadUntil) flyStick(now);
   if (game.stuck) grounded = true;
   if (grounded){ const f = Math.exp(-6*dt); for (const v of [vel, vDash, vMove]){ v.x *= f; v.z *= f; } }
@@ -1401,7 +1432,7 @@ function sendState(force){
       hp:[r3(camera.position.x), r3(camera.position.y), r3(camera.position.z)], hq:[r3(camera.quaternion.x), r3(camera.quaternion.y), r3(camera.quaternion.z), r3(camera.quaternion.w)],
       L:pk(hHands[0]), R:pk(hHands[1]), sw:[game.swat[0] ? 1 : 0, game.swat[1] ? 1 : 0], k:game.kills, sty:game.style});
     if (isAuthority() && game.bots.length) msg.b = game.bots.map(b => [r3(b.p.x), r3(b.p.y), r3(b.p.z), b.state === 'dead' ? 0 : b.state === 'stun' ? 3 : b.carry ? 2 : 1, b.food]);
-  } else { const nw = clock.elapsedTime; Object.assign(msg, {lv:game.lives, hpt:game.hp, sk:game.stuck ? 1 : 0, cr:game.carry, out:game.out ? 1 : 0, stn:nw < game.tumbleUntil ? 1 : 0, sc:game.points}); }
+  } else { const nw = clock.elapsedTime; Object.assign(msg, {lv:game.lives, hpt:game.hp, sk:game.stuck ? 1 : 0, at:(game.stuck && game.stuck.kind === 'human' && game.stuck.part) ? [game.stuck.owner, game.stuck.ci, r3(game.stuck.local.x), r3(game.stuck.local.y), r3(game.stuck.local.z)] : 0, cr:game.carry, out:game.out ? 1 : 0, stn:nw < game.tumbleUntil ? 1 : 0, sc:game.points}); }
   for (const c of net.conns.values()){ if (c.open){ try{ c.send(msg); }catch(e){} } }
 }
 
@@ -1426,8 +1457,8 @@ function makeRemote(j){
   const thorax = new THREE.Mesh(flyBodyGeo, flyBodyMat); thorax.scale.set(0.8, 0.8, 0.8); thorax.position.set(0, -0.08, 0.02); g.add(thorax);
   const eyeMat = new THREE.MeshLambertMaterial({color, emissive:color, emissiveIntensity:0.35});
   for (const sx of [-1, 1]){ const e = new THREE.Mesh(flyEyeGeo, eyeMat); e.position.set(0.08*sx, 0.0, -0.1); e.scale.set(1, 1.1, 0.9); g.add(e); }
-  scene.add(g);
-  const wings = [0, 1].map(() => { const w = new THREE.Mesh(wingGeo, wingMat); scene.add(w); return w; });
+  scene.add(g); g.traverse(o => { o.frustumCulled = false; });
+  const wings = [0, 1].map(() => { const w = new THREE.Mesh(wingGeo, wingMat); w.frustumCulled = false; scene.add(w); return w; });
   const r = {j, g, wings, color, label:null, name:'', pos:new V3(), tgt:new V3(), v:new V3(), q:new THREE.Quaternion(), tq:new THREE.Quaternion(),
     l:new V3(-0.6, -0.1, 0.1), r:new V3(0.6, -0.1, 0.1), tl:null, tr:null, recv:0, first:true, f:0, st:'', rg:0, buzz:null, on:1,
     kind:'fly', ci:-1, model:null, cont:null, lv:10, sk:0, out:false, dead:false,
@@ -1469,6 +1500,7 @@ function onState(j, d){
     r.tl = Array.isArray(d.l) ? new V3().fromArray(d.l) : null;
     r.tr = Array.isArray(d.r) ? new V3().fromArray(d.r) : null;
     r.f = +d.f || 0; r.st = d.st || ''; r.rg = d.rg | 0;
+    r.at = Array.isArray(d.at) ? d.at : null;
     r.lv = d.lv != null ? d.lv | 0 : tune.lives; r.sk = d.sk | 0; r.out = !!d.out; r.cr = d.cr != null ? d.cr : -1; r.stn = d.stn | 0; r.hpt = d.hpt | 0; r.sc = d.sc | 0;
     if (r.dead && clock.elapsedTime - r.deadAt > 1.5) r.dead = false;
     if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
@@ -1509,7 +1541,9 @@ function updateRemotes(dt, now){
     if (!vis) continue;
     wTmp.copy(r.tgt).addScaledVector(r.v, Math.min(0.25, now - r.recv));      // predict a little ahead
     const k = 1 - Math.exp(-14 * dt);
-    if (r.pos.distanceTo(wTmp) > 15) r.pos.copy(wTmp); else r.pos.lerp(wTmp, k);
+    const atPart = flyAttachPart(r);
+    if (atPart){ atPart.updateWorldMatrix(true, false); r.pos.set(r.at[2], r.at[3], r.at[4]).applyMatrix4(atPart.matrixWorld); }   // landed on a human: draw it on our copy of that body part, no lag
+    else if (r.pos.distanceTo(wTmp) > 15) r.pos.copy(wTmp); else r.pos.lerp(wTmp, k);
     r.q.slerp(r.tq, k);
     r.g.position.copy(r.pos); r.g.quaternion.copy(r.q);
     if (r.stn){ r.g.rotateX(now * 9 % (Math.PI*2)); r.g.rotateZ(now * 7 % (Math.PI*2)); }
@@ -1534,6 +1568,14 @@ function updateRemotes(dt, now){
   }
 }
 const V3UP = new V3(0, 1, 0);
+function flyAttachPart(r){
+  if (!r.at) return null;
+  let m = null;
+  if (r.at[0] === mySlot() && game.role === 'human') m = game.local;
+  else { const h = net.remotes.get(r.at[0]); if (h && h.kind === 'human') m = h.model; }
+  const c = m && m.cols[r.at[1]];
+  return c && c.part && c.part.parent ? c.part : null;
+}
 
 /* each friend buzzes from where they are, so you can find them by ear */
 function remoteBuzz(r){
@@ -1706,7 +1748,7 @@ function buildHuman(ci){
     cLegs:[col('leg', legsG), col('leg', legsG)],
     cUpper:arms.map(a => col('upper', a.upper, {side:a.side})), cFore:arms.map(a => col('fore', a.fore, {side:a.side})),
     cHand:arms.map(a => col('hand', a.hand, {side:a.side})),
-    cSwat:[col('swatter', null, {side:-1}), col('swatter', null, {side:1})]};
+    cSwat:[col('swatter', null, {side:-1}), col('swatter', null, {side:1})], noCull:space.traverse(o => { o.frustumCulled = false; })};
 }
 /* first-person: hide the torso and head so the belly never blocks your hands or the food */
 function firstPerson(m){ m.torsoG.visible = false; m.headPivot.visible = false; }
@@ -1782,7 +1824,11 @@ function updateColliders(m, now){
   const M4 = m.space.matrixWorld, ws = m.space.getWorldScale(cW).x, o = m.o, ms = m.ms;
   const track = c => {
     pd.addVectors(c.a, c.b).multiplyScalar(0.5);
-    if (c.ok){ const dt = Math.max(1e-3, now - c.t); c.v.subVectors(pd, c.prev).divideScalar(dt); } else c.v.set(0, 0, 0);
+    if (!c.vf) c.vf = new V3();
+    if (c.ok){
+      const dt = Math.max(1e-3, now - c.t); c.v.subVectors(pd, c.prev).divideScalar(dt);
+      if (c.v.length() / ws < 14) c.vf.lerp(c.v, 1 - Math.exp(-dt / 0.03));   // light smoothing; ignore tracking jumps
+    } else { c.v.set(0, 0, 0); c.vf.set(0, 0, 0); }
     c.prev.copy(pd); c.t = now; c.ok = true;
   };
   const set = (c, a, b, r) => { c.a.copy(a).applyMatrix4(M4); c.b.copy(b).applyMatrix4(M4); c.r = r * ws; track(c); };
@@ -1825,6 +1871,7 @@ function makeSwatter(){
   HK.box(0.22, 0.02, 0.016, 0x5e9a2a, s, 0, -0.3, 0);
   HK.box(0.02, 0.2, 0.016, 0x5e9a2a, s, -0.1, -0.5, 0);
   HK.box(0.02, 0.2, 0.016, 0x5e9a2a, s, 0.1, -0.5, 0);
+  s.traverse(o => { o.frustumCulled = false; });
   return s;
 }
 
@@ -1931,6 +1978,7 @@ function applyRole(){
     rig.scale.setScalar(tune.humanSize);
     rig.position.copy(game.spot); rig.rotation.set(0, HUMAN_YAW, 0); yaw = HUMAN_YAW; pitch = 0;
     stopAll(); game.centerSet = false;
+    game.alignPending = true; game.eyeH = 0; game.eyeLockT = clock.elapsedTime + 1.2;
   } else { rig.scale.setScalar(1); resetCourse(); }
   HANDS.forEach(h => h.obj.visible = false);
 }
@@ -1956,10 +2004,24 @@ function readGrab(frame){
 
 /* ---------- local human: VR ---------- */
 const hHands = [{has:false, pos:new V3(), q:new THREE.Quaternion()}, {has:false, pos:new V3(), q:new THREE.Quaternion()}];
+/* Put the human's working spot (the grill) exactly where the player's head is right now,
+   so nobody has to walk across their real room. Runs on entry, role switch, A/X, and headset recenter. */
+const alV = new V3();
+function alignHuman(frame){
+  let x = camera.position.x, z = camera.position.z;
+  const ref = renderer.xr.getReferenceSpace();
+  if (frame && ref){ const vp = frame.getViewerPose(ref); if (!vp) return false; x = vp.transform.position.x; z = vp.transform.position.z; }
+  const S = rig.scale.x;
+  alV.set(x, 0, z).applyQuaternion(rig.quaternion).multiplyScalar(S);
+  rig.position.set(game.spot.x - alV.x, 0, game.spot.z - alV.z);
+  game.center.set(x, 0, z); game.centerSet = true; game.alignPending = false;
+  return true;
+}
 function simulateHumanXR(dt, now, frame){
   readInputs(frame); readGrab(frame);
+  if (game.alignPending) alignHuman(frame);
   for (const h of HANDS){
-    if (h.btnA && !h.prevA){ if (menuOpen) closeMenu(); game.center.set(camera.position.x, 0, camera.position.z); game.centerSet = true; }
+    if (h.btnA && !h.prevA){ if (menuOpen) closeMenu(); alignHuman(frame); popup('Spot re-centered where you stand', 1.5); }
     if (h.btnB && !h.prevB){ menuOpen ? closeMenu() : openMenu(); }
     h.prevA = h.btnA; h.prevB = h.btnB;
   }
@@ -1973,7 +2035,8 @@ function simulateHumanXR(dt, now, frame){
   HANDS.forEach(h => h.obj.visible = false);
   if (menuOpen) updateMenuPointer();
   const m = game.local; if (!m) return;
-  game.eyeH = Math.max(1.0, Math.min(2.1, Math.max(game.eyeH - 0.02*dt, camera.position.y)));
+  if (now < game.eyeLockT || game.eyeH < 1) game.eyeH = Math.max(game.eyeH, Math.min(2.1, camera.position.y));   // measure height for ~1 s, then lock it (no size pops)
+  game.eyeH = Math.max(1.0, game.eyeH);
   m.ms = Math.max(0.55, Math.min(1.6, game.eyeH / m.EY));
   HANDS.forEach((h, i) => { hHands[i].has = h.has; hHands[i].pos.copy(h.pos); hHands[i].q.copy(h.q); });
   poseHuman(m, camera.position, camera.quaternion, hHands, now);
@@ -2004,9 +2067,54 @@ function simulateHumanFlat(dt, now){
 }
 
 /* shared human logic: swatters, safety spot, hits, HUD */
+/* the real hand keeps moving, but the virtual hand and swatter stop at the surface,
+   with a knock sound and a controller buzz when they first touch */
+const NEAR_SOLIDS = solids.filter(sd => sd.box && sd.food == null && sd.box.distanceToPoint(COOK) < 30);
+const cpW = new V3(), cpPush = new V3(), cpBest = new V3(), cpQ = new THREE.Quaternion();
+function pushOut(p, r, out){
+  out.set(0, 0, 0); let best = 0;
+  if (p.y < r){ out.set(0, r - p.y, 0); best = r - p.y; }
+  for (const sd of NEAR_SOLIDS){
+    const b = sd.box;
+    if (p.x < b.min.x - r || p.x > b.max.x + r || p.y < b.min.y - r || p.y > b.max.y + r || p.z < b.min.z - r || p.z > b.max.z + r) continue;
+    const opts = [[b.max.x + r - p.x, 1, 0, 0], [p.x - (b.min.x - r), -1, 0, 0], [b.max.y + r - p.y, 0, 1, 0], [p.y - (b.min.y - r), 0, -1, 0], [b.max.z + r - p.z, 0, 0, 1], [p.z - (b.min.z - r), 0, 0, -1]];
+    opts.sort((a, c) => a[0] - c[0]);
+    const [d, x, y, z] = opts[0];
+    if (d > best){ best = d; out.set(x*d, y*d, z*d); }
+  }
+  return best;
+}
+function constrainHands(m, now){
+  m.space.updateMatrixWorld(true);
+  const S = rig.scale.x; cpQ.copy(rig.quaternion).invert();
+  m.arms.forEach((arm, i) => {
+    let push = 0; cpBest.set(0, 0, 0);
+    cpW.copy(arm.C).applyMatrix4(m.space.matrixWorld);
+    const d1 = pushOut(cpW, 0.08 * m.o.handS * m.ms * S, cpPush); if (d1 > push){ push = d1; cpBest.copy(cpPush); }
+    const sw = m.swatters[i];
+    if (sw){ sw.updateMatrixWorld(true); cpW.set(0, -0.5, 0).applyMatrix4(sw.matrixWorld); const d2 = pushOut(cpW, 0.1 * S, cpPush); if (d2 > push){ push = d2; cpBest.copy(cpPush); } }
+    if (push > 0){
+      cpBest.divideScalar(S).applyQuaternion(cpQ);
+      arm.hand.position.add(cpBest); arm.C.add(cpBest); arm.W.add(cpBest);
+      if (!arm.inContact){ const c = m.cHand[i]; const spd = c.vf ? c.vf.length() / S : 0; if (spd > 0.25){ clank(Math.min(1, spd / 3), !!sw); try{ const h = HANDS[i], a = h.src && h.src.gamepad && h.src.gamepad.hapticActuators && h.src.gamepad.hapticActuators[0]; if (a && a.pulse) a.pulse(Math.min(1, 0.3 + spd / 3), 45); }catch(e){} } }
+    }
+    arm.inContact = push > 0;
+  });
+}
+function clank(v, metal){
+  if (!audio || !tune.sound) return;
+  try{
+    const ac = audio.ac, t0 = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = metal ? 'square' : 'triangle'; o.frequency.setValueAtTime(metal ? 520 : 180, t0); o.frequency.exponentialRampToValueAtTime(metal ? 260 : 90, t0 + 0.12);
+    g.gain.setValueAtTime(0.18 * v, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.15);
+    o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + 0.16);
+  }catch(e){}
+  thwack(0.25 * v);
+}
 function humanCommon(dt, now, grips, anyReach){
   const m = game.local;
   if (!game.centerSet){ game.center.set(camera.position.x, 0, camera.position.z); game.centerSet = true; }
+  constrainHands(m, now);
   updateColliders(m, now);
   for (let i = 0; i < 2; i++){
     if (!game.swat[i] && grips[i]){
@@ -2054,8 +2162,8 @@ function popupText(now){ return now < game.popupUntil ? game.popup : ''; }
 const hQ = new V3(), hN = new V3(), hP = new V3();
 function hitTargets(){
   const t = [];
-  for (const r of net.remotes.values()) if (r.kind === 'fly' && r.on && !r.dead && !r.out) t.push({id:'p' + r.j, pos:r.pos, stuck:!!r.sk, remote:r});
-  for (const b of game.bots) if (b.state !== 'dead') t.push({id:'b' + b.id, pos:b.p, stuck:b.state === 'land' || b.state === 'onHuman' || b.state === 'web', bot:b});
+  for (const r of net.remotes.values()) if (r.kind === 'fly' && r.on && !r.dead && !r.out) t.push({id:'p' + r.j, pos:r.pos, stuck:!!r.sk, remote:r, onCi:(r.at && r.at[0] === mySlot()) ? r.at[1] : -1});
+  for (const b of game.bots) if (b.state !== 'dead') t.push({id:'b' + b.id, pos:b.p, stuck:b.state === 'land' || b.state === 'onHuman' || b.state === 'web', bot:b, onPart:b.attach ? b.attach.part : null});
   return t;
 }
 function humanHits(m, now){
@@ -2070,30 +2178,35 @@ function humanHits(m, now){
   for (const tg of hitTargets()){
     if ((game.hitCool.get(tg.id) || 0) > now) continue;
     const d0 = segDist(tg.pos, sideC(0).a, sideC(0).b, hQ) - sideC(0).r, d1 = segDist(tg.pos, sideC(1).a, sideC(1).b, hQ) - sideC(1).r;
-    if (d0 < fr*1.6 && d1 < fr*1.6 && closing > 0.4){ killTarget(tg, now, 'Clap!'); continue; }
+    if (d0 < fr*1.6 && d1 < fr*1.6 && closing > 0.4 && gap / HS < 0.3){ killTarget(tg, now, 'Clap!', 'clap'); continue; }
     for (const c of parts){
+      if (tg.onCi >= 0 && m.cols[tg.onCi] === c) continue;       // the part a fly is riding on carries it, it doesn't squash it
+      if (tg.onPart && tg.onPart === c.part) continue;
       if (segDist(tg.pos, c.a, c.b, hQ) - c.r > fr) continue;
-      const spd = c.v.length() / HS;
-      if (tg.stuck && spd > tune.crushSpeed){ killTarget(tg, now, 'Squashed!'); break; }
-      if (!tg.stuck && spd > tune.swatSpeed){ airHit(tg, c.v, spd, now); break; }
+      const spd = c.vf.length() / HS;
+      if (tg.stuck && spd > tune.crushSpeed){ killTarget(tg, now, 'Squashed!', 'crush'); break; }
+      if (!tg.stuck && spd > tune.swatSpeed){ airHit(tg, c.vf, spd, now); break; }
     }
   }
 }
 function airHit(tg, v, spd, now){
   game.hitCool.set(tg.id, now + Math.max(0.35, tune.immunity));
-  const imp = v.clone().normalize().multiplyScalar(tune.knockPow * Math.max(0.6, Math.min(1.4, spd / 3)));
-  if (imp.y < imp.length() * 0.25) imp.y = imp.length() * 0.25;
+  // direction = how the swatter or hand was actually moving at contact; strength grows with swing speed
+  const k = Math.max(0.35, Math.min(2.2, 1 + tune.swingInf * (spd / 3 - 1)));
+  const imp = v.clone().normalize().multiplyScalar(tune.knockPow * k);
+  if (tune.upAssist > 0) imp.y += imp.length() * tune.upAssist;
+  if (imp.length() > tune.knockMax) imp.setLength(tune.knockMax);
   thwack(0.6); pulseAll(0.5, 40);
   if (tg.bot) botHit(tg.bot, imp, mySlot(), now);
   else sendEvent({k:'hit', to:tg.remote.j, imp:[r3(imp.x), r3(imp.y), r3(imp.z)]});
 }
-function killTarget(tg, now, label){
+function killTarget(tg, now, label, cause){
   game.hitCool.set(tg.id, now + 1.5);
   game.kills++; popup(label + ' Kills ' + game.kills, 1.5);
   splat(tg.pos); thwack(1); pulseAll(0.9, 70);
   sendEvent({k:'splat', to:0, p:[r3(tg.pos.x), r3(tg.pos.y), r3(tg.pos.z)]});
   if (tg.bot) botKill(tg.bot, now);
-  else { tg.remote.dead = true; tg.remote.deadAt = now; sendEvent({k:'kill', to:tg.remote.j}); }
+  else { tg.remote.dead = true; tg.remote.deadAt = now; sendEvent({k:'kill', to:tg.remote.j, cause:cause || 'crush', by:net.name || 'the human'}); }
 }
 function pulseAll(i, ms){ HANDS.forEach(h => { try{ const a = h.src && h.src.gamepad && h.src.gamepad.hapticActuators && h.src.gamepad.hapticActuators[0]; if (a && a.pulse) a.pulse(i, ms); }catch(e){} }); }
 
@@ -2186,14 +2299,15 @@ function checkProps(pos, styleDone, attacker, onSticky){
 const contact = {hit:false, kind:'', part:null, food:-1};
 function collideHumans(pt, r){
   for (const rh of remoteHumans()){
-    for (const c of rh.model.cols){
+    for (let ci = 0; ci < rh.model.cols.length; ci++){
+      const c = rh.model.cols[ci];
       if (!c.ok) continue;
       const d = segDist(pt, c.a, c.b, hQ), min = c.r + r;
       if (d < min && d > 1e-4){
         hN.subVectors(pt, hQ).divideScalar(d);
         const push = min - d; rig.position.addScaledVector(hN, push); pt.addScaledVector(hN, push);
         stopAlong(hN.x, hN.y, hN.z);
-        contact.hit = true; contact.kind = 'human'; contact.part = c.part; contact.food = -1; contact.owner = rh.j; contact.pkind = c.kind; contact.side = c.side > 0 ? 1 : 0;
+        contact.hit = true; contact.kind = 'human'; contact.part = c.part; contact.food = -1; contact.owner = rh.j; contact.pkind = c.kind; contact.side = c.side > 0 ? 1 : 0; contact.ci = ci;
       }
     }
   }
@@ -2213,7 +2327,7 @@ function flyStick(now){
     return;
   }
   if (!contact.hit || now < game.stickCool || now < game.stunUntil || game.out) return;
-  const s = {kind:contact.kind, part:contact.part, food:contact.food, owner:contact.owner, pkind:contact.pkind, side:contact.side, t0:now, prev:new V3(), local:new V3()};
+  const s = {kind:contact.kind, part:contact.part, food:contact.food, owner:contact.owner, pkind:contact.pkind, side:contact.side, ci:contact.ci, t0:now, prev:new V3(), local:new V3()};
   if (s.part){ s.part.updateWorldMatrix(true, false); s.prev.copy(head); s.local.copy(head).applyMatrix4(new THREE.Matrix4().copy(s.part.matrixWorld).invert()); }
   game.stuck = s; stopAll();
   if (s.food >= 0 && game.carry < 0 && !game.out) requestFood('grab', s.food);
@@ -2260,13 +2374,15 @@ function roundReset(){
   game.kills = 0; game.style = 0;
 }
 function dropCarry(){ if (game.carry >= 0){ requestFood('drop', game.carry); game.carry = -1; } }
-function flyDie(now){
+function flyDie(now, cause){
   if (game.role !== 'fly' || now < game.deadUntil) return;
   dropCarry();
   camera.getWorldPosition(head); splat(head); thwack(1);
   game.lives = Math.max(0, game.lives - 1); game.out = game.lives <= 0; game.hp = tune.hitsToKill;
   game.deadUntil = now + 1.4; game.stuck = null; game.stunUntil = 0; game.tumbleUntil = 0; stopAll();
-  popup(game.out ? 'OUT OF LIVES' : 'SPLAT! Lives ' + game.lives, 2);
+  game.lastDeath = cause || 'unknown';
+  try{ console.info('[Like Flies] fly eliminated:', game.lastDeath, 'lives left', game.lives); }catch(e){}
+  popup((game.out ? 'OUT OF LIVES' : 'SPLAT! Lives ' + game.lives) + ' · ' + game.lastDeath, 2.5);
   setTimeout(() => resetCourse(), 1200);
   if (isAuthority()) checkWin();
 }
@@ -2275,7 +2391,7 @@ function flyHit(imp, from, now){
   game.immuneUntil = now + tune.immunity;
   game.hp--;
   dropCarry();                                   // adopted test default: a hit drops the food, it returns to its plate
-  if (game.hp <= 0){ flyDie(now); return; }
+  if (game.hp <= 0){ flyDie(now, tune.hitsToKill + ' air swats'); return; }
   game.stuck = null; game.webUntil = 0;
   game.lastHitBy = from; game.styleDone = new Set();
   game.stunUntil = now + tune.stun; game.tumbleUntil = now + tune.ragdoll;
@@ -2331,6 +2447,7 @@ function makeBotView(){
   for (const s of [-1, 1]){ const e = new THREE.Mesh(flyEyeGeo, em); e.scale.setScalar(1.6); e.position.set(0.14*s, 0.05, -0.3); body.add(e); }
   g.wings = [-1, 1].map(s => { const w = new THREE.Mesh(wingGeo, wingMat); w.scale.set(1.6, 1, 2); w.position.set(0.1*s, 0.12, 0); if (s < 0) w.rotation.y = Math.PI; body.add(w); return w; });
   g.piece = makePiece(0.5); g.piece.position.set(0, -0.5, 0); body.add(g.piece);
+  g.traverse(o => { o.frustumCulled = false; });
   scene.add(g); return g;
 }
 function syncBotCount(now){
@@ -2435,7 +2552,7 @@ function sendEvent(e){
 function onEvent(e){
   const now = clock.elapsedTime;
   if (e.to && e.to !== mySlot()) return;
-  if (e.k === 'kill') flyDie(now);
+  if (e.k === 'kill') flyDie(now, (e.cause || 'crush') + ' by ' + (e.by || 'the human'));
   else if (e.k === 'hit') flyHit(new V3().fromArray(e.imp), e.from, now);
   else if (e.k === 'splat') splat(new V3().fromArray(e.p));
   else if (e.k === 'grab' || e.k === 'drop' || e.k === 'eat'){ if (isAuthority()) handleFood(e.k, e.f, e.from); }
@@ -2492,6 +2609,7 @@ async function enterVR(){
     camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
     await renderer.xr.setSession(session);
     state = 'xr'; lastHud = ''; hudInit = false; resetCourse();
+    try{ const ref = renderer.xr.getReferenceSpace(); if (ref && ref.addEventListener) ref.addEventListener('reset', () => { if (game.role === 'human') game.alignPending = true; }); }catch(e){}
     session.addEventListener('end', () => { closeMenu(); dropSwatter(0); dropSwatter(1); vig.material.opacity = 0; hudMesh.visible = arrow.visible = friendArrow.visible = false; HANDS.forEach(h => h.obj.visible = false); showMenu(); resize(); });
   }catch(err){
     setNote('The headset would not start VR here (' + (err && err.name || 'error') + '). Open the standalone link in the Quest browser instead.', true);
@@ -2527,6 +2645,13 @@ $('#tVig').addEventListener('change', e => { tune.vignette = e.target.checked; s
 $('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; saveTune(); if (tune.sound) startAudio(); });
 $('#tHud').addEventListener('change', e => { tune.hud = e.target.checked; saveTune(); });
 $('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });
+$('#tCopy').addEventListener('click', () => {
+  const lines = ['Like Flies v0.0.08 settings'].concat(TUNE.map(t => (GROUP_TITLE[groupOf(t)] || groupOf(t)) + ' / ' + t.label + ': ' + fmtVal(t) + (tune[t.k] !== t.def ? '  (default ' + t.def + (t.unit || '') + ')' : '')));
+  const text = lines.join('\n');
+  const note = $('#tCopyNote');
+  const show = () => { note.textContent = text; note.style.whiteSpace = 'pre-wrap'; };
+  try{ navigator.clipboard.writeText(text).then(() => { note.textContent = 'Copied. Paste it into your test notes.'; }, show); }catch(e){ show(); }
+});
 syncDom();
 if (best != null) $('#bestTime').textContent = fmt(best);
 
