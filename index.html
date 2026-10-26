@@ -104,7 +104,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.14 · Backyard Composition</div>
+      <div class="eyebrow">Test v0.0.15 · Bigger Yard</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -184,7 +184,8 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
           <label><input type="checkbox" id="tSnd">Buzz sound</label>
           <label><input type="checkbox" id="tHud">Flight data panel</label>
         </div>
-        <div class="actions"><button type="button" id="tReset">Reset to defaults</button><button type="button" id="tCopy">Copy my settings</button></div>
+        <p class="note" id="tShareNote">Sliders change only your game until you press "Apply my tuning to everyone".</p>
+        <div class="actions"><button type="button" id="tShare">Apply my tuning to everyone</button><button type="button" id="tReset">Reset to defaults</button><button type="button" id="tCopy">Copy my settings</button></div>
         <p class="note" id="tCopyNote">Paste your settings into test notes so results can be compared.</p>
       </div>
     </details>
@@ -2477,6 +2478,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 			const URL = self.URL || self.webkitURL;
 			let sourceURI = source.uri;
 			let isObjectURL = false;
+			let embedBlob = null;
 			let hasAlpha = true;
 			if ( source.mimeType === 'image/jpeg' ) hasAlpha = false;
 
@@ -2498,12 +2500,13 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
 					}
 
-					isObjectURL = true;
+					// Like Flies v0.0.15: embedded images are decoded straight from memory (no blob: URL fetch),
+					// so the page also works where blob: fetches are blocked (sandboxed previews)
 					const blob = new Blob( [ bufferView ], {
 						type: source.mimeType
 					} );
-					sourceURI = URL.createObjectURL( blob );
-					return sourceURI;
+					if ( typeof createImageBitmap !== 'undefined' && loader.isImageBitmapLoader === true ) { embedBlob = blob; return null; }
+					return new Promise( function ( res, rej ) { const fr = new FileReader(); fr.onload = function () { sourceURI = fr.result; res( sourceURI ); }; fr.onerror = rej; fr.readAsDataURL( blob ); } );
 
 				} );
 
@@ -2515,6 +2518,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
 			return Promise.resolve( sourceURI ).then( function ( sourceURI ) {
 
+				if ( embedBlob ) return createImageBitmap( embedBlob, { premultiplyAlpha: 'none' } ).then( function ( bm ) { return new THREE.CanvasTexture( bm ); } );
 				return new Promise( function ( resolve, reject ) {
 
 					let onLoad = resolve;
@@ -3927,6 +3931,23 @@ let tune = Object.assign({}, DEFAULTS, store.get(TUNE_KEY, {}));
 const saveTune = () => store.set(TUNE_KEY, tune);
 // v0.0.10 one-time update: saved settings would keep the old hand reach (the hand-crawl fix needs the new one) and the old bot count
 if (store.get('likeflies.migrated', 0) < 10){ tune.handReach = DEFAULTS.handReach; tune.bots = DEFAULTS.bots; store.set('likeflies.migrated', 10); saveTune(); }
+/* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
+   so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
+   flight data panel), the room and player number, and headset tracking are never sent. */
+const PERSONAL_KEYS = new Set();
+const SHARED_TUNE = TUNE.filter(t => !PERSONAL_KEYS.has(t.k));
+const shareState = {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'};
+/* a snapshot is accepted only when every shared slider is there as a finite number; values are clamped to the slider range, unknown keys dropped */
+function cleanTuneSnapshot(v){
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const out = {};
+  for (const t of SHARED_TUNE){
+    const x = Object.prototype.hasOwnProperty.call(v, t.k) ? v[t.k] : undefined;
+    if (typeof x !== 'number' || !Number.isFinite(x)) return null;
+    out[t.k] = +Math.min(t.max, Math.max(t.min, x)).toFixed(4);
+  }
+  return out;
+}
 const fmtVal = t => Number(tune[t.k]).toFixed(t.step >= 1 ? 0 : t.step >= 0.1 ? 1 : 2) + (t.unit || '');
 let best = store.get('likeflies.best', null);
 
@@ -4220,6 +4241,33 @@ const PAL = {sky:0x1479f5, horizon:0x9fd8ff, grass:0x49b61d, foliage:0x267d26, s
 const mats = {};
 const mat = c => mats[c] || (mats[c] = rampMaterial(c, styleOf(c), false));
 const solids = [];
+/* v0.0.15: THE YARD IS TWICE AS BIG. Each side is longer by sqrt 2, so the footprint doubles (v0.0.14: 200 x 199, now 282.8 x 281.4).
+   Nothing is scaled: props keep their sizes. Each prop cluster below (v0.0.14 coordinates) moves out as one rigid piece by
+   (sqrt 2 - 1) x its anchor, colliders and all; lawn scenery (grass, leaf clumps) spreads evenly to fill the new space.
+   The cookout in the middle is laid out directly in new coordinates (walking corridors). */
+const YS = Math.SQRT2, YK = YS - 1;
+const YARD = {x0:-100 * YS, x1:100 * YS, z0:-95 * YS, z1:104 * YS};   // side fences, back fence (house side), open front edge
+// [x0, z0, x1, z1, anchorX, anchorZ, priority]: inside a box, a thing moves with that cluster (higher priority, then nearest anchor)
+const SPREAD = [
+  [35, 25, 45, 35, 40, 30, 1], [51, -47, 61, -37, 56, -42, 1], [-35, 91, -25, 101, -30, 96, 1], [-23, 37, -13, 47, -18, 42, 1],   // dandelions
+  [-46, 18, -34, 30, -40, 24], [-34, 30, -22, 42, -28, 36], [-48, 80, -36, 92, -42, 86],                                     // flamingos
+  [-66, 40, -48, 52, -58, 46], [42, 26, 54, 38, 48, 32], [-90, 47, -66, 63, -78, 55],                                         // chime, cup table, garden bed
+  [23, 30, 41, 46, 32, 38], [38, -80, 76, -48, 57, -64], [14, -66, 46, -24, 30, -45],                                         // lawn chair, chair pair, doghouse
+  [42, -40, 100, 26, 95, -10], [60, 52, 80, 72, 70, 62], [36, 49, 52, 72, 44, 56], [-7, 44, 35, 88, 14, 66],                  // garden, fire pit, tricycle, pool
+  [-100, -46, -46, 30, -74, -16], [-95, -92, -24, -47, -66, -62], [-82, -170, 82, -84, 0, -95]                                // coop corner, tree + hammock, house
+];
+function spreadCluster(x, z){
+  let best = null, bp = -1, bd = 1e9;
+  for (const c of SPREAD){
+    if (x < c[0] || x > c[2] || z < c[1] || z > c[3]) continue;
+    const pr = c[6] || 0, d = Math.hypot(x - c[4], z - c[5]);
+    if (pr > bp || (pr === bp && d < bd)){ best = c; bp = pr; bd = d; }
+  }
+  return best;
+}
+const _sD = new V3();
+function spreadOff(x, z){ const c = spreadCluster(x, z); return c ? _sD.set(YK * c[4], 0, YK * c[5]) : _sD.set(YK * x, 0, YK * z); }
+const spreadPt = (x, z) => { const d = spreadOff(x, z); return [x + d.x, z + d.z]; };
 function box(w,h,d,color,x,y,z,solid=true){
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(color));
   m.position.set(x, y + h/2, z); scene.add(m);
@@ -4241,12 +4289,13 @@ function post(r,h,color,x,y,z,solid=true){
 
 /* ---------- the backyard (everything is giant: you are a fly) ---------- */
 { // lawn
-  const g = new THREE.PlaneGeometry(420, 420, 42, 42); g.rotateX(-Math.PI/2);
+  const g = new THREE.PlaneGeometry(420 * YS, 420 * YS, 42, 42); g.rotateX(-Math.PI/2);
   const col = new THREE.Color(), arr = [];
   for (let i = 0; i < g.attributes.position.count; i++){ col.setHSL(0.27 + rnd()*0.06, 0.56, 0.23 + rnd()*0.09); arr.push(col.r, col.g, col.b); }
   g.setAttribute('color', new THREE.Float32BufferAttribute(arr, 3));
-  scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({vertexColors:true, map:texRep(PIX.lawn, 13, 13)})));   // v0.0.14: authored tufts
+  scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({vertexColors:true, map:texRep(PIX.lawn, 13 * YS, 13 * YS)})));   // v0.0.14: authored tufts (v0.0.15: same tuft size on the bigger lawn)
 }
+const YARD_MARK = [scene.children.length, solids.length];   // v0.0.15: everything built after this is spread out once the yard is done
 
 /* ---------- flat-shaded kit for characters and props ---------- */
 const HK = (() => {
@@ -4333,8 +4382,18 @@ const solidBall = (x, y, z, r, extra) => { const s = Object.assign({c:new V3(x, 
    and curved props like the flamingo use them as colliders too. ---------- */
 const _sp = new V3(), _sq = new V3(), _sab = new V3();
 function boxDist(qx, qy, qz, r){ return Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qy, qz), 0) - r; }
-function sdPrim(pr, p){
+function sdPrim(pr, p){ let d = sdPrim0(pr, p); if (pr.clipY != null) d = Math.max(d, pr.clipY - p.y); if (pr.clipTop != null) d = Math.max(d, p.y - pr.clipTop); return d; }   // v0.0.15: clipY keeps only the part above a height
+function sdPrim0(pr, p){
   switch (pr.k){
+    case 'cone': { const qx = Math.hypot(p.x - pr.cx, p.z - pr.cz), qy = p.y - pr.cy, h = pr.hh, r1 = pr.r1, r2 = pr.r2;   // v0.0.15: upright capped cone (iq)
+      const k2x = r2 - r1, k2y = 2 * h, cax = qx - Math.min(qx, qy < 0 ? r1 : r2), cay = Math.abs(qy) - h;
+      const t = Math.max(0, Math.min(1, ((r2 - qx) * k2x + (h - qy) * k2y) / (k2x * k2x + k2y * k2y))), cbx = qx - r2 + k2x * t, cby = qy - h + k2y * t;
+      return (cbx < 0 && cay < 0 ? -1 : 1) * Math.sqrt(Math.min(cax * cax + cay * cay, cbx * cbx + cby * cby)); }
+    case 'ocyl': { _sp.copy(p).applyMatrix4(pr.inv); const dx = Math.hypot(_sp.x, _sp.z) - pr.r, dy = Math.abs(_sp.y) - pr.hh;   // v0.0.15: a turned flat cylinder (watermelon slices)
+      return (Math.min(Math.max(dx, dy), 0) + Math.hypot(Math.max(dx, 0), Math.max(dy, 0))) * pr.ws; }
+    case 'lathe': { _sp.copy(p).applyMatrix4(pr.inv); const rho = Math.hypot(_sp.x, _sp.z), dx = pr.bx - pr.ax, dy = pr.by - pr.ay, L2 = dx * dx + dy * dy;   // v0.0.15: a rounded segment spun round the local y axis
+      const u = L2 > 1e-12 ? Math.max(0, Math.min(1, ((rho - pr.ax) * dx + (_sp.y - pr.ay) * dy) / L2)) : 0;
+      return Math.hypot(rho - pr.ax - dx * u, _sp.y - pr.ay - dy * u) - pr.t; }
     case 'aabb': return boxDist(Math.abs(p.x - pr.cx) - pr.hx, Math.abs(p.y - pr.cy) - pr.hy, Math.abs(p.z - pr.cz) - pr.hz, 0);
     case 'obox': { _sp.copy(p).applyMatrix4(pr.inv); const r = pr.rad || 0;
       return boxDist(Math.abs(_sp.x - pr.ox) - pr.hx + r, Math.abs(_sp.y - pr.oy) - pr.hy + r, Math.abs(_sp.z - pr.oz) - pr.hz + r, r) * pr.ws; }
@@ -4358,6 +4417,9 @@ const PR = {
   obox(m4, hx, hy, hz, rad, extra){ return Object.assign({k:'obox', inv:m4.clone().invert(), ox:0, oy:0, oz:0, hx, hy, hz, rad:rad || 0, ws:1, bc:new V3().setFromMatrixPosition(m4), br:Math.hypot(hx, hy, hz), food:-1}, extra || {}); },
   cyl(cx, cy, cz, r, hh, extra){ return Object.assign({k:'cyl', cx, cy, cz, r, hh, bc:new V3(cx, cy, cz), br:Math.hypot(r, hh), food:-1}, extra || {}); },
   tube(cx, cy, cz, r, t, hh, extra){ return Object.assign({k:'tube', cx, cy, cz, r, t, hh, bc:new V3(cx, cy, cz), br:Math.hypot(r + t, hh), food:-1}, extra || {}); },
+  cone(cx, cy, cz, r1, r2, hh, extra){ return Object.assign({k:'cone', cx, cy, cz, r1, r2, hh, bc:new V3(cx, cy, cz), br:Math.hypot(Math.max(r1, r2), hh), food:-1}, extra || {}); },
+  ocyl(m4, r, hh, ws, extra){ return Object.assign({k:'ocyl', inv:m4.clone().invert(), r, hh, ws:ws || 1, bc:new V3().setFromMatrixPosition(m4), br:Math.hypot(r, hh), food:-1}, extra || {}); },
+  lathe(m4, ax, ay, bx, by, t, extra){ return Object.assign({k:'lathe', inv:m4.clone().invert(), ax, ay, bx, by, t, bc:new V3().setFromMatrixPosition(m4), br:Math.max(ax, bx) + t + Math.max(Math.abs(ay), Math.abs(by)), food:-1}, extra || {}); },
   cap(a, b, r, extra){ return Object.assign({k:'cap', a:a.clone(), b:b.clone(), r, bc:a.clone().add(b).multiplyScalar(0.5), br:a.distanceTo(b)/2 + r, food:-1}, extra || {}); }
 };
 /* a collider made of smooth shapes; flies bump into it and crawl on it */
@@ -4437,7 +4499,7 @@ function loadProps(){
         d.style.cssText = 'position:fixed;left:8px;bottom:' + (40 + 30 * Object.keys(PROP_ART.status).length) + 'px;z-index:99;background:#5a1d1d;color:#fff;font:13px system-ui;padding:6px 10px;border-radius:6px;max-width:80vw'; document.body.appendChild(d); } catch(_){} };
     try {
       const bin = atob(PROP_GLB[j.key].b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      new THREE.GLTFLoader().parse(buf.buffer, '', gl => { try { PROP_ART.tris[j.key] = prepPropScene(gl.scene, gl.parser && gl.parser.json, gl.parser); j.build(gl.scene); PROP_ART.status[j.key] = 'imported'; done(); } catch(e){ fail(e); } }, fail);
+      new THREE.GLTFLoader().parse(buf.buffer, '', gl => { try { PROP_ART.tris[j.key] = prepPropScene(gl.scene, gl.parser && gl.parser.json, gl.parser); const bef = new Set(scene.children), s0 = solids.length; j.build(gl.scene); if (j.key !== 'grover') spreadNew(bef, s0); PROP_ART.status[j.key] = 'imported'; done(); } catch(e){ fail(e); } }, fail);
     } catch(e){ fail(e); }
   }, 150 + n * 90));
 }
@@ -4449,13 +4511,20 @@ const MP = {
   ell:(g, sc, c, rx, ry, rz) => PR.ell(new THREE.Matrix4().copy(g.matrixWorld).multiply(_pm.makeTranslation(c[0]*sc, c[1]*sc, c[2]*sc)), rx*sc, ry*sc, rz*sc)
 };
 const setOff = (list, off) => list.forEach(so => { if (so) so.off = off; });
+/* v0.0.15: colliders riding on a moving model part (ellipsoids and boxes keep an inverse matrix) */
+const ATTACHED = [], _atP = new V3(), _atQ = new THREE.Quaternion(), _atM = new THREE.Matrix4(), _atO = new V3(1, 1, 1);
+function attachPrim(pr, obj, lx, ly, lz){ ATTACHED.push({pr, obj, local:new THREE.Matrix4().makeTranslation(lx, ly, lz)}); return pr; }
+function updateAttached(){
+  for (const a of ATTACHED){ a.obj.updateWorldMatrix(true, false); a.obj.matrixWorld.decompose(_atP, _atQ, _atO); _atO.set(1, 1, 1);
+    _atM.compose(_atP, _atQ, _atO).multiply(a.local); a.pr.inv.copy(_atM).invert(); a.pr.bc.setFromMatrixPosition(_atM); }
+}
 MP.box = (g, sc, c, h, rx, rz) => PR.obox(new THREE.Matrix4().copy(g.matrixWorld).multiply(_pm.makeTranslation(c[0]*sc, c[1]*sc, c[2]*sc)).multiply(_pr.makeRotationX(rx || 0)).multiply(new THREE.Matrix4().makeRotationZ(rz || 0)), h[0]*sc, h[1]*sc, h[2]*sc, 0);
 const markBuilt = () => [scene.children.length, solids.length];
 /* move everything built since the mark into one group kept out of the big merge, so it can be swapped for imported art */
 function takeBuilt(mark, keep){
   const g = new THREE.Group(); g.userData.dyn = true;
   scene.children.slice(mark[0]).filter(o => !(keep && keep.includes(o))).forEach(o => g.add(o));
-  scene.add(g); return {g, solids:solids.slice(mark[1])};
+  g.userData.built = true; scene.add(g); return {g, solids:solids.slice(mark[1])};
 }
 /* imported colliders start on; if the file fails, the procedural ones come back */
 function artSwap(key, proc, artSolids, build, extraFail){
@@ -4467,46 +4536,50 @@ function artSwap(key, proc, artSolids, build, extraFail){
 // practice flight course: a loop of rings around the yard, well outside the human's reach
 /* v0.0.10: the course loops through the new landmarks: high, low, narrow and open */
 const RINGS = [
-  {name:'Over the grill',  p:[-7, 40, 16],     r:3.5},
+  {name:'Over the grill',  p:[-8, 40, 18],     r:3.5, fix:true},     // v0.0.15: new cookout coordinates
   {name:'Doghouse door',   p:[30, 6.5, -30],   r:3.5, face:[0, 0, 1]},
-  {name:'Under the chair', p:[48, 5, -70],     r:3,   face:[1, 0, 0.67]},
+  {name:'Under the chair', p:[71.6, 5, -96.5], r:3,   face:[0.479, 0, 0.878], fix:true},   // v0.0.15: front to back under the seat, between the real side frames
   {name:'Corn row',        p:[82, 14, 0],      r:3.5, face:[0, 0, 1]},     // v0.0.14: the garden moved to the east corner
-  {name:'Sunflower top',   p:[62, 84, -12],    r:4,   face:[0, 1, 0]},
+  {name:'Sunflower top',   p:[92, 84, -15],    r:4,   face:[0, 1, 0], fix:true},   // v0.0.15: just in front of the tallest head (its real petals reach 83 high)
   {name:'Over the fire',   p:[70, 30, 62],     r:4},
   {name:'Tricycle',        p:[46, 6, 68],      r:3},                      // v0.0.14: the tricycle sits beside the pool
   {name:'Rubber duck',     p:[14, 19, 66],     r:3.5},                    // v0.0.14: the pool is the foreground clearing
   {name:'Chicken coop',    p:[-66, 21.6, -17], r:3.5, face:[0, 0, 1]},    // v0.0.14: the coop moved to the west corner (raised: see COOP_ROUTE)
-  {name:'Under the table', p:[-16.5, 10, 0],   r:3,   face:[1, 0, 0]}
+  {name:'Under the table', p:[-25.5, 10, -15], r:3,   face:[1, 0, 0], fix:true}   // v0.0.15: under the moved prep table
 ];
 /* practice flies follow these points; ring points are where the rings are (v0.0.14 route) */
-const BOT_PATH = [[-7,40,16,0], [30,30,14], [40,14,-10], [34,12,-20], [30,9,-23], [30,6.5,-30,1], [30,8,-45], [30,10.5,-55], [33,10,-63], [48,5,-70,2], [66,5,-58],
-  [67,6,-44], [74,20,-34], [82,17,-24], [82,14,0,3], [82,16,12], [82,26,24], [70,58,20], [63,80,6], [62,84,-12,4], [56,70,-22], [50,60,-6], [52,40,34],
+const BOT_PATH = [[-8,40,18,0,1], [12,32,24,null,1], [12,26,-14,null,1], [32,16,-15,null,1], [44,12,-30,null,1], [42.4,9,-39,null,1], [30,6.5,-30,1], [30,8,-45], [30,10.5,-55], [33,10,-63], [60,8,-78,null,1], [77.35,6,-86,null,1], [71.6,5,-96.5,2,1], [65.85,6,-107,null,1],
+  [85,10,-112,null,1], [104,12,-95,null,1], [113.4,20,-42,null,1], [82,17,-24], [82,14,0,3], [82,16,12], [82,26,24], [70,58,20], [63,80,6], [92,84,-15,4,1], [56,70,-22], [50,60,-6], [52,40,34],
   [70,30,62,5], [58,14,70], [46,6,68,6], [31,13,68], [14,19,66,7], [-14,24,60], [-48,18,40], [-64,12,20], [-66,22,4], [-66,21.6,-17,8],
-  [-66,22,-44], [-40,14,-42], [-34,10,0], [-16.5,10,0,9], [-6,14,2]].map(a => ({p:new V3(a[0], a[1], a[2]), ring:a.length > 3 ? a[3] : null}));
+  [-66,22,-44], [-70,14,-40,null,1], [-45,10,-15,null,1], [-25.5,10,-15,9,1], [-12,14,-12,null,1], [-24,30,14,null,1]].map(a => ({p:new V3(a[0], a[1], a[2]), ring:a.length > 3 ? a[3] : null, fix:a[4] === 1}));
 const BOT_ENTRY = BOT_PATH.findIndex(w => w.ring === RINGS.findIndex(r => r.name === 'Over the fire')), BOT_START = new V3(80, 18, 86);
 /* no grass inside the pool, coop, doghouse and garden */
 const NO_GRASS = [[-6, 45, 34, 87], [-86, -34, -46, 22], [17, -57, 43, -33], [46, -33, 95, 14]];   // v0.0.14: pool, coop, doghouse, garden
 
 { // grass blades, kept out of the cookout circle
-  const N = 900;
+  const N = 1800;   // v0.0.15: twice the blades for twice the lawn
   const geo = new THREE.ConeGeometry(0.35, 1, 4); geo.translate(0, 0.5, 0);
   const grass = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff, map:PIX.leaf}), N);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new V3(), p = new V3(), col = new THREE.Color();
   let n = 0, guard = 0;
-  while (n < N && guard++ < 20000){
-    const x = (rnd()*2 - 1) * 98, z = -90 + rnd()*196;
-    if (Math.hypot(x, z) < 30) continue;
+  let s2 = 0x5eed15;
+  const rnd2 = () => { s2 = s2 + 0x6D2B79F5 | 0; let t = Math.imul(s2 ^ s2 >>> 15, 1 | s2); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  while (n < N && guard++ < 40000){
+    const rr = n < 900 ? rnd : rnd2;
+    const x = (rr()*2 - 1) * 98, z = -90 + rr()*196;
+    if (Math.hypot(x, z) < 31) continue;
     if (NO_GRASS.some(([a, b, c, d]) => x > a && x < c && z > b && z < d)) continue;
     if (RINGS.some(r => r.p[1] < 12 && Math.hypot(x - r.p[0], z - r.p[2]) < 5)) continue;
-    const h = 2 + rnd()*5.5;
-    p.set(x, 0, z); e.set((rnd() - .5)*.35, rnd()*6.3, (rnd() - .5)*.35); q.setFromEuler(e); s.set(.6 + rnd()*.6, h, .6 + rnd()*.6);
+    const h = 2 + rr()*5.5;
+    p.set(x, 0, z); e.set((rr() - .5)*.35, rr()*6.3, (rr() - .5)*.35); q.setFromEuler(e); s.set(.6 + rr()*.6, h, .6 + rr()*.6);
     grass.setMatrixAt(n, m.compose(p, q, s));
-    grass.setColorAt(n, col.setHSL(0.27 + rnd()*0.07, 0.55, 0.22 + rnd()*0.14));   // v0.0.14: deeper, less fluorescent greens
+    grass.setColorAt(n, col.setHSL(0.27 + rr()*0.07, 0.55, 0.22 + rr()*0.14));   // v0.0.14: deeper, less fluorescent greens
     n++;
   }
-  grass.count = n; scene.add(grass);
+  grass.count = n; grass.userData.scaleAll = grass.userData.ringClear = true; scene.add(grass);
   // a patio of pavers under the cookout
-  const pg = new THREE.CircleGeometry(30, 12); pg.rotateX(-Math.PI/2);
+  const pg = new THREE.CircleGeometry(44, 14);   // v0.0.15: a wider patio under the new cookout layout
+  pg.rotateX(-Math.PI/2);
   const pat = new THREE.Mesh(pg, new THREE.MeshLambertMaterial({color:0xd9c7a8, map:PIX.stone})); pat.position.y = 0.05; scene.add(pat);
 }
 
@@ -4514,8 +4587,8 @@ const fenceMark = markBuilt();
 { // fence on both sides, with the house across the back
   const geo = new THREE.BoxGeometry(5.6, 1, 1.2); geo.translate(0, 0.5, 0);
   const planks = [];
-  for (let x = -99; x <= 99; x += 6) if (Math.abs(x) > 80) planks.push([x, -95, 0]);
-  for (let z = -92; z <= 104; z += 6){ planks.push([-100, z, Math.PI/2]); planks.push([100, z, Math.PI/2]); }
+  for (let x = Math.ceil(YARD.x0) + 1; x <= YARD.x1 - 1; x += 6) if (Math.abs(x) > 78) planks.push([x, YARD.z0, 0]);   // v0.0.15: the bigger yard's perimeter
+  for (let z = YARD.z0 + 3; z <= YARD.z1; z += 6){ planks.push([YARD.x0, z, Math.PI/2]); planks.push([YARD.x1, z, Math.PI/2]); }
   const fence = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff, map:PIX.woodV}), planks.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new V3(), p = new V3(), col = new THREE.Color(), up = new V3(0,1,0);
   planks.forEach((pl, i) => {
@@ -4527,19 +4600,21 @@ const fenceMark = markBuilt();
 }
 
 { // v0.0.12: fence rails and post caps
-  for (const sx of [-1, 1]){ for (const y of [9, 24]) HK.box(0.9, 1.8, 196, 0x7a4a28, scene, sx * 98.9, y, 6); }
-  for (const sx of [-1, 1]) for (const y of [9, 24]) HK.box(20, 1.8, 0.9, 0x7a4a28, scene, sx * 90, y, -94.0);
+  for (const sx of [-1, 1]){ for (const y of [9, 24]) HK.box(0.9, 1.8, YARD.z1 - YARD.z0 - 3, 0x7a4a28, scene, sx * (YARD.x1 - 1.1), y, (YARD.z0 + YARD.z1) / 2 + 1.5); }
+  for (const sx of [-1, 1]) for (const y of [9, 24]) HK.box(YARD.x1 - 78, 1.8, 0.9, 0x7a4a28, scene, sx * (78 + YARD.x1) / 2, y, YARD.z0 + 1);
 }
 { // v0.0.14: the exact Blender fence panel (LF_Fence.glb), tiled along the boundary in one instanced draw; boundary collisions unchanged
-  const proc = takeBuilt(fenceMark), FS = 33;
+  const proc = takeBuilt(fenceMark), FS = 33; proc.g.userData.ns = true;   // v0.0.15: built on the new perimeter, never spread
   propJob('fence', root => {
     const src = root.getObjectByName('LF_Fence_Body'); if (!src) throw new Error('missing LF_Fence_Body');
     const P = [];
-    for (let i = 0; i < 6; i++){ const z = -95 + 16.6 + i * 33.2; P.push([-100 + 0.06 * FS, z, Math.PI / 2], [100 - 0.06 * FS, z, -Math.PI / 2]); }
-    P.push([-89, -95 + 0.06 * FS, 0], [89, -95 + 0.06 * FS, 0]);
+    // v0.0.15: 9 panels down each side and 2 on each side of the house (panels overlap a little; every other one sits 0.12 proud so they never flicker)
+    const SL = (YARD.z1 - YARD.z0) / 9, BL = (YARD.x1 - 78) / 2;
+    for (let i = 0; i < 9; i++){ const z = YARD.z0 + SL * (i + 0.5), o = i % 2 ? 0.12 : 0; P.push([YARD.x0 + 0.06 * FS + o, z, Math.PI / 2], [YARD.x1 - 0.06 * FS - o, z, -Math.PI / 2]); }
+    for (let i = 0; i < 2; i++){ const x = 78 + BL * (i + 0.5), o = i % 2 ? 0.12 : 0; P.push([-x, YARD.z0 + 0.06 * FS + o, 0], [x, YARD.z0 + 0.06 * FS + o, 0]); }
     const im = new THREE.InstancedMesh(src.geometry, src.material, P.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new V3(0, 1, 0), sc = new V3(FS, FS, FS);
     P.forEach(([x, z, r], i) => im.setMatrixAt(i, m4.compose(new V3(x, 0, z), q.setFromAxisAngle(up, r), sc)));
-    scene.add(im); scene.remove(proc.g);
+    im.userData.ns = true; scene.add(im); scene.remove(proc.g);
   }, () => scene.add(proc.g));
 }
 const houseMark = markBuilt();
@@ -4620,9 +4695,11 @@ const CHAIR_MAT = (() => { const t = PIX.plaid.clone(); t.needsUpdate = true; t.
     g.updateMatrixWorld(true); g.userData.dyn = true;                                     // kept apart from the big merge, so it can be swapped
     const procSolid = solidShape([meshBox(seat, 14, 1.2, 14), meshBox(back, 14, 16, 1.2), ...cl.map(l => meshAxis(l, 10, 0.4))], {label:'a lawn chair'});
     // the imported chair (LF_Chair.glb), scale 21: seat 9.7 high, 17.6 wide, back reclined about 30 degrees; shapes measured from the model
-    const CS = 21, art = solidShape([MP.box(g, CS, [0, 0.46, 0.11], [0.34, 0.02, 0.22]), MP.box(g, CS, [0, 0.81, -0.27], [0.34, 0.355, 0.02], -0.5),
-      MP.box(g, CS, [-0.38, 0.72, 0.05], [0.035, 0.025, 0.27]), MP.box(g, CS, [0.38, 0.72, 0.05], [0.035, 0.025, 0.27]),
-      ...[-0.38, 0.38].flatMap(x => [MP.cap(g, CS, [x, 0, 0.41], [x, 0.7, 0.28], 0.02), MP.cap(g, CS, [x, 0, -0.41], [x, 0.7, -0.15], 0.02)])], {label:'a lawn chair'});
+    const CS = 21, art = solidShape([   /* v0.0.15: shapes measured from LF_Chair.glb, lowered 0.03 with the model */ MP.box(g, CS, [0, 0.45, 0.11], [0.345, 0.01, 0.21]), MP.box(g, CS, [0, 0.79, -0.275], [0.345, 0.3735, 0.01], -0.487),   // v0.0.15: the webbing is a flat seat at 0.49 and a back tilted 0.487
+      MP.box(g, CS, [-0.37, 0.72, 0.04], [0.05, 0.024, 0.315]), MP.box(g, CS, [0.37, 0.72, 0.04], [0.05, 0.024, 0.315]),   // arms (v0.0.15: measured)
+      ...[-0.37, 0.37].flatMap(x => [MP.cap(g, CS, [x, 0.02, -0.42], [x, 0.58, 0.27], 0.026), MP.cap(g, CS, [x, 0.02, 0.42], [x, 0.69, -0.18], 0.026),   // crossed side bars
+        MP.cap(g, CS, [x, 0.17, -0.36], [x, 0.88, -0.43], 0.019), MP.cap(g, CS, [x, 0.37, 0.28], [x, 0.7, 0.28], 0.023), MP.cap(g, CS, [x, 1.12, -0.45], [x, 0.41, -0.02], 0.032)]),   // back supports, front posts, back rails
+      MP.cap(g, CS, [-0.37, 0.45, 0.32], [0.37, 0.45, 0.32], 0.026), MP.cap(g, CS, [-0.37, 1.12, -0.45], [0.37, 1.12, -0.45], 0.026)], {label:'a lawn chair'});   // front and top cross bars
     procSolid.off = true;
     propJob('chair', root => { const a = root.clone(); a.scale.setScalar(CS); a.position.y = -0.03 * CS; g.clear(); g.add(a); g.userData.art = true; },
       () => { procSolid.off = false; art.off = true; mergeGroup(g); });
@@ -4634,7 +4711,10 @@ const CHAIR_MAT = (() => { const t = PIX.plaid.clone(); t.needsUpdate = true; t.
   for (let i = 0; i < 10; i++){ const a = i / 10 * Math.PI * 2; HK.box(4, 4, 3, 0x8d8d8d, g, Math.cos(a) * 8, 0, Math.sin(a) * 8).rotation.y = -a; }
   for (const r of [0, 1.2, 2.4]){ const l = HK.box(1.6, 1.6, 10, 0x6a4628, g, 0, 1, 0); l.rotation.y = r; }
   for (const [x, z] of [[-1.5, 0], [1.5, 1], [0, -1.5]]) torchFlames.push(HK.mesh(new THREE.ConeGeometry(2.2, 9, 5), 0xff9f43, g, x, 3, z));
-  solidBox(62, 0, 54, 78, 4.5, 70, {label:'the fire pit'});
+  { const P = [], q = new THREE.Quaternion(), up = new V3(0, 1, 0);   // v0.0.15: ten stones (the gaps between them are open) and three logs
+    for (let i = 0; i < 10; i++){ const a = i / 10 * Math.PI * 2; P.push(PR.obox(new THREE.Matrix4().compose(new V3(70 + Math.cos(a) * 8, 2, 62 + Math.sin(a) * 8), q.setFromAxisAngle(up, -a), new V3(1, 1, 1)), 2, 2, 1.5, 0.15)); }
+    for (const r of [0, 1.2, 2.4]) P.push(PR.obox(new THREE.Matrix4().compose(new V3(70, 1.8, 62), q.setFromAxisAngle(up, r), new V3(1, 1, 1)), 0.8, 0.8, 5, 0.1));
+    solidShape(P, {label:'the fire pit'}); }
 }
 
 /* a ring of flat petals around a flower center (scenery) */
@@ -4644,7 +4724,7 @@ function petals(x, y, z, r, col){ for (let k = 0; k < 10; k++){ const a = k / 10
     const g = HK.group(scene, x, 0, z);
     HK.hex(0.6, 0.7, 36, 0x8a6a42, g, 0, 0, 0, 5); HK.hex(2, 1.4, 4, 0x6a4628, g, 0, 36, 0, 6);
     torchFlames.push(HK.mesh(new THREE.ConeGeometry(1.6, 6, 5), 0xff9f43, g, 0, 43, 0));
-    solidBox(x - 1, 0, z - 1, x + 1, 40, z + 1, {label:'a tiki torch'});
+    solidShape([PR.cone(x, 18, z, 0.66, 0.57, 18), PR.cone(x, 38, z, 1.3, 1.86, 2)], {label:'a tiki torch'});   // v0.0.15: the pole and the cup, not a 2 x 2 post
   }
   const FLAMINGOS = [];
   for (const [x, z, ry] of [[-40, 24, 2.2], [-28, 36, 1.6], [-42, 86, 2.6]]){   // v0.0.14: two flamingos stand by the coop, like the key art
@@ -4660,14 +4740,20 @@ function petals(x, y, z, r, col){ for (let k = 0; k < 10; k++){ const a = k / 10
       meshAxis(nk, 9, 0.75), PR.sph(hd.getWorldPosition(new V3()), 1.8), meshBox(bk, 0.9, 0.9, 3)], {label:'a flamingo'});
     // v0.0.14: the exact Blender flamingo (LF_Flamingo.glb), scale 18, turned to face where the old one looked; shapes measured from the model
     const proc = takeBuilt(fm), FS = 18, fg = HK.group(scene, x, 0, z); fg.rotation.y = ry + Math.PI; fg.updateMatrixWorld(true);
-    const art = [solidShape([MP.ell(fg, FS, [0, 0.86, 0.02], 0.13, 0.1, 0.24), MP.cap(fg, FS, [-0.035, 0, 0], [-0.035, 0.78, 0], 0.014), MP.cap(fg, FS, [0.035, 0, 0], [0.035, 0.78, 0], 0.014),
-      MP.cap(fg, FS, [0, 0.95, 0.2], [0, 1.42, 0.28], 0.035), MP.ell(fg, FS, [0, 1.46, 0.36], 0.06, 0.07, 0.12)], {label:'a flamingo'})];
+    // v0.0.15: measured from LF_Flamingo.glb (v0.0.14's body sat 0.16 too high and the legs 0.02 too far in)
+    const art = [solidShape([MP.ell(fg, FS, [0, 0.70, 0], 0.143, 0.22, 0.247), ...[-1, 1].map(sx => { const v = new V3(-sx, 0, 0.031), n = new V3(0.016 * sx, -0.857, 0.514), m = new THREE.Matrix4().makeBasis(v, n, new V3().crossVectors(v, n)), c = new V3(0.145 * sx, 0.74, -0.054).addScaledVector(n, -0.0085).multiplyScalar(FS);
+        return PR.obox(new THREE.Matrix4().copy(fg.matrixWorld).multiply(new THREE.Matrix4().makeTranslation(c.x, c.y, c.z)).multiply(m), 0.13 * FS, 0.0155 * FS, 0.186 * FS, 0); }),   // wing panels, tilted like the model
+      MP.cap(fg, FS, [-0.055, 0.025, 0], [-0.055, 0.57, 0], 0.012), MP.cap(fg, FS, [0.055, 0.025, 0], [0.055, 0.57, 0], 0.012), MP.box(fg, FS, [-0.055, 0.02, 0.005], [0.014, 0.014, 0.075]), MP.box(fg, FS, [0.055, 0.02, 0.005], [0.014, 0.014, 0.075]),
+      MP.cap(fg, FS, [0, 0.73, 0.17], [0, 1.03, 0.3], 0.06), MP.cap(fg, FS, [0, 1.03, 0.3], [0, 1.32, 0.19], 0.05), MP.cap(fg, FS, [0, 1.32, 0.19], [0, 1.47, 0.31], 0.06),
+      MP.ell(fg, FS, [0, 1.46, 0.34], 0.081, 0.09, 0.095), MP.cap(fg, FS, [0, 1.35, 0.47], [0, 1.29, 0.475], 0.03), MP.cap(fg, FS, [0, 1.35, 0.47], [0, 1.44, 0.42], 0.04)], {label:'a flamingo'})];
     artSwap('flamingo', proc, art, root => { const a = root.clone(); a.scale.setScalar(FS); fg.add(a); });
   }
   { const g = HK.group(scene, -82, 0, 22);
     HK.block(5, 6, 6, 4.5, 5.5, 0x3d6fc4, g, 0, 0, 0); HK.ball(2.6, SKIN_GNOME, g, 0, 7.5, 0, 7, 5);
     HK.block(4.2, 1.2, 4, 4, 1.2, 0xffffff, g, 0, 4.6, 1.4); HK.mesh(new THREE.ConeGeometry(2.8, 7, 6), 0xd8392b, g, 0, 12.5, 0);
-    HK.ball(0.7, 0xf0a28a, g, 0, 7.5, 2.5, 5, 4); solidBox(-85, 0, 19, -79, 16, 25, {label:'the gnome'}); }
+    HK.ball(0.7, 0xf0a28a, g, 0, 7.5, 2.5, 5, 4);
+    solidShape([PR.obox(new THREE.Matrix4().makeTranslation(-82, 3, 22), 2.75, 3, 2.5, 0.2), PR.sph(new V3(-82, 7.5, 22), 2.55), PR.cone(-82, 12.5, 22, 2.7, 0.1, 3.5),
+      PR.obox(new THREE.Matrix4().makeTranslation(-82, 6.6, 23.4), 1.4, 2, 1, 0.2), PR.sph(new V3(-82, 7.5, 24.5), 0.7)], {label:'the gnome'}); }   // v0.0.15: body, head, hat, beard, nose
   { const cx = -78, cz = 55; HK.box(22, 3, 14, 0x6a4628, scene, cx, 0, cz); solidBox(cx - 11, 0, cz - 7, cx + 11, 3, cz + 7);
     post(0.5, 38, 0x8a6a42, cx + 1.5, 0, cz - 1.5); post(0.9, 32, 0x4f7f2e, cx, 0, cz);
     for (const [x,y,z] of [[-4,12,2],[4,18,-3],[-3,24,-2],[3,29,3]]) ball(3.4, 0x3f7a2a, cx + x, y, cz + z, false, 0.35);
@@ -4684,28 +4770,30 @@ function shiftBuilt(sceneFrom, solidFrom, dx, dz){
     if (so.box) so.box.translate(d); if (so.c) so.c.add(d); if (so.bc) so.bc.add(d);
     if (so.sdf) for (const pr of so.sdf){
       if (pr.bc && pr.s === so) pr.bc.add(d);
-      if (pr.k === 'aabb' || pr.k === 'cyl' || pr.k === 'tube'){ pr.cx += dx; pr.cz += dz; }
+      if (pr.k === 'aabb' || pr.k === 'cyl' || pr.k === 'tube' || pr.k === 'cone'){ pr.cx += dx; pr.cz += dz; }
       else if (pr.k === 'sph') pr.c.add(d);
       else if (pr.k === 'cap'){ pr.a.add(d); pr.b.add(d); }
-      else if (pr.k === 'obox' || pr.k === 'ell') pr.inv.multiply(T);
+      else if (pr.inv) pr.inv.multiply(T);
     }
   }
 }
 
 /* ---------- the cookout in the middle: grill in front, food tables left, right and behind ---------- */
 const COOK = new V3(0, 0, 0), GRILL_LID = {}; let PICNIC_MARK = null;
+const COOK_FIX = [scene.children.length, solids.length];   // v0.0.15: the cookout is laid out in final coordinates
+function fixBuilt(mark){ for (let i = mark[0]; i < scene.children.length; i++) scene.children[i].userData.ns = true; for (let i = mark[1]; i < solids.length; i++) solids[i].ns = true; }
 {
   // grill (north): grate at 22, hood up behind
   // v0.0.11: a round red kettle grill, lid open behind. Its colliders follow the new shape:
   // the bowl, the open lid and the three legs (the old box grill collider is gone).
   const grillMark = markBuilt();
-  const g = HK.group(scene, -7, 0, 15.5), RED = 0xe72f27; g.rotation.y = Math.PI; g.updateMatrixWorld(true);   // v0.0.14: in front of Grover, who now faces the yard
+  const g = HK.group(scene, -8, 0, 18), RED = 0xe72f27;   // v0.0.15: grill at (-8, 18), leaving a west corridor and a south corridor g.rotation.y = Math.PI; g.updateMatrixWorld(true);   // v0.0.14: in front of Grover, who now faces the yard
   HK.mesh(new THREE.SphereGeometry(9, 12, 5, 0, Math.PI*2, Math.PI/2, Math.PI/2), RED, g, 0, 20.2, 0);
   HK.mesh(new THREE.CylinderGeometry(8.7, 8.7, 0.5, 12), 0x2b2b2b, g, 0, 19.9, 0);
   for (let k = -3; k <= 3; k++) HK.box(0.4, 0.3, 16, 0x8a8f99, g, k * 2.2, 20.1, 0);
-  const lp = HK.group(g, 0, 20.2, -8.6); lp.rotation.x = -1.9;
-  HK.mesh(new THREE.SphereGeometry(9, 12, 5, 0, Math.PI*2, 0, Math.PI/2), RED, lp, 0, 0, 8.6);
-  HK.box(4, 0.9, 1.2, 0x2b2b2b, lp, 0, 9, 8.6); HK.box(0.9, 1.4, 0.9, 0x2b2b2b, lp, -1.6, 8.6, 8.6); HK.box(0.9, 1.4, 0.9, 0x2b2b2b, lp, 1.6, 8.6, 8.6);
+  const lp = HK.group(g, 0, 20.2, 8.6); lp.rotation.x = 1.9;   // v0.0.15: the fallback lid hinges open away from Grover's spot, like the imported grill
+  HK.mesh(new THREE.SphereGeometry(9, 12, 5, 0, Math.PI*2, 0, Math.PI/2), RED, lp, 0, 0, -8.6);
+  HK.box(4, 0.9, 1.2, 0x2b2b2b, lp, 0, 9, -8.6); HK.box(0.9, 1.4, 0.9, 0x2b2b2b, lp, -1.6, 8.6, -8.6); HK.box(0.9, 1.4, 0.9, 0x2b2b2b, lp, 1.6, 8.6, -8.6);
   HK.mesh(new THREE.CylinderGeometry(4.5, 4.5, 0.5, 10), 0x8a8f99, g, 0, 5, 0);
   g.updateMatrixWorld(true);
   const legCaps = [];
@@ -4716,15 +4804,26 @@ const COOK = new V3(0, 0, 0), GRILL_LID = {}; let PICNIC_MARK = null;
     legCaps.push(PR.cap(A.clone().applyMatrix4(g.matrixWorld), B.clone().applyMatrix4(g.matrixWorld), 0.6));
   }
   for (let i = 0; i < 5; i++) grillFlames.push(HK.mesh(new THREE.ConeGeometry(1.1, 3.5, 5), 0xff9f43, g, -5 + i * 2.5, 20.3, 1));
-  solidShape([PR.cyl(-7, 16, 15.5, 9, 4.2), ...legCaps], {label:'the grill'});
+  solidShape([PR.cyl(-8, 16, 18, 9, 4.2), ...legCaps], {label:'the grill'});
   lp.updateMatrixWorld(true);
-  solidShape([PR.ell(new THREE.Matrix4().copy(lp.matrixWorld).multiply(new THREE.Matrix4().makeTranslation(0, 3, 8.6)), 9, 6, 9)], {label:'the grill lid'});
+  { // v0.0.15: the open hemisphere lid is a thin shell (v0.0.14's solid ellipsoid filled the air in front of it, right over Grover's spot)
+    const lm = new THREE.Matrix4().copy(lp.matrixWorld).multiply(new THREE.Matrix4().makeTranslation(0, 0, -8.6)), arc = [0, 22.5, 45, 67.5, 90].map(a => [9 * Math.cos(a * Math.PI / 180) - 0.3, 9 * Math.sin(a * Math.PI / 180) - 0.3]);
+    solidShape(arc.slice(0, -1).map((a, i) => PR.lathe(lm, Math.max(0, a[0]), a[1], Math.max(0, arc[i + 1][0]), arc[i + 1][1], 0.3)), {label:'the grill lid'}); }
   { // v0.0.14: the exact Blender kettle (LF_Grill.glb), scale 20.3 so the grate stays at 20; its own lid opens on its hinge
-    const proc = takeBuilt(grillMark), GS = 20.3, ig = HK.group(scene, -7, 0, 15.5); ig.rotation.y = Math.PI; ig.updateMatrixWorld(true);
+    const proc = takeBuilt(grillMark), GS = 20.3, ig = HK.group(scene, -8, 0, 18); ig.rotation.y = Math.PI; ig.updateMatrixWorld(true);
     const OPEN = -1.9, lidHinge = new V3(0, 1.02 * GS, -0.39 * GS), lq = new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), OPEN);
     const lidM = new THREE.Matrix4().copy(ig.matrixWorld).multiply(_pm.makeTranslation(lidHinge.x, lidHinge.y, lidHinge.z)).multiply(new THREE.Matrix4().makeRotationFromQuaternion(lq)).multiply(new THREE.Matrix4().makeTranslation(0, 0, 0.39 * GS));
-    const legs = [[0.37, -0.0], [-0.19, -0.29], [0.36, -0.31]].map(([x, z]) => MP.cap(ig, GS, [x * 0.5, 0.52, z * 0.5], [x, 0.02, z], 0.025));
-    const art = [solidShape([PR.cyl(-7, 0.77 * GS, 15.5, 0.38 * GS, 0.27 * GS), ...legs], {label:'the grill'}), solidShape([PR.ell(lidM, 0.46 * GS, 0.44 * GS, 0.46 * GS)], {label:'the grill lid'})];
+    // v0.0.15: measured from LF_Grill.glb. Bowl radius by height: 0.10 at 0.66, 0.25 at 0.70, 0.38 at 0.80, 0.45 at 0.94, 0.46 at the rim (1.0);
+    // grate disc r 0.472; legs from (0.37, 0.1, 0) to (0.25, 0.79, 0) and (-0.185, 0.1, +-0.32) to (-0.125, 0.79, +-0.217); wheels r 0.116 at x +-0.36, z -0.25.
+    // (v0.0.14 used a narrower cylinder, put a leg where a wheel is, and a solid ellipsoid for the lid that filled the air over the back of the bowl.)
+    const bowl = [[0.66, 0.70, 0.10, 0.25], [0.70, 0.80, 0.25, 0.38], [0.80, 0.94, 0.38, 0.45], [0.94, 0.981, 0.45, 0.46]].map(([y0, y1, r0, r1]) => PR.cone(-8, (y0 + y1) / 2 * GS, 18, r0 * GS, r1 * GS, (y1 - y0) / 2 * GS));
+    const wheel = x => { const m = new THREE.Matrix4().compose(new V3(x, 0.13, -0.25).multiplyScalar(GS).applyMatrix4(ig.matrixWorld), new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), Math.PI / 2), new V3(1, 1, 1)); return PR.lathe(m, 0, 0, 0.093 * GS, 0, 0.023 * GS); };
+    const legs = [[[0.37, 0.1, 0], [0.25, 0.79, 0]], [[-0.185, 0.1, -0.32], [-0.125, 0.79, -0.217]], [[-0.185, 0.1, 0.32], [-0.125, 0.79, 0.217]]].map(([a, b]) => MP.cap(ig, GS, a, b, 0.028));
+    const lidSeg = [[0.46, -0.01], [0.43, 0.09], [0.34, 0.22], [0.18, 0.29], [0.05, 0.31], [0, 0.31]];
+    const art = [solidShape([...bowl, PR.cyl(-8, 1.0 * GS, 18, 0.472 * GS, 0.019 * GS), MP.cap(ig, GS, [-0.43, 0.95, -0.1], [-0.43, 0.95, 0.1], 0.025), MP.cap(ig, GS, [0.43, 0.95, -0.1], [0.43, 0.95, 0.1], 0.025),
+        ...legs, MP.cap(ig, GS, [-0.37, 0.13, -0.25], [0.37, 0.13, -0.25], 0.02), wheel(-0.36), wheel(0.36)], {label:'the grill'}),
+      solidShape([...lidSeg.slice(0, -1).map((a, i) => PR.lathe(lidM, a[0] * GS, a[1] * GS, lidSeg[i + 1][0] * GS, lidSeg[i + 1][1] * GS, 0.012 * GS)),
+        PR.cap(new V3(0, 0.30 * GS, 0).applyMatrix4(lidM), new V3(0, 0.44 * GS, 0).applyMatrix4(lidM), 0.04 * GS)], {label:'the grill lid'})];
     artSwap('grill', proc, art, root => {
       const a = root.clone(); a.scale.setScalar(GS); ig.add(a);
       const lid = a.getObjectByName('LF_Grill_Lid'); if (!lid) throw new Error('missing LF_Grill_Lid');
@@ -4733,7 +4832,7 @@ const COOK = new V3(0, 0, 0), GRILL_LID = {}; let PICNIC_MARK = null;
       grillFlames.forEach(f => ig.add(f));                                           // the flames move over with the same local positions
     });
   }
-  for (const sx of [-18, 4]){ HK.box(0.5, 38, 0.5, 0x8a8f99, scene, sx, 0, 13); HK.box(0.5, 0.5, 2.4, 0x8a8f99, scene, sx, 37.5, 12); }   // swatter hooks
+  for (const sx of [-19.5, 3.5]){ HK.box(0.5, 38, 0.5, 0x8a8f99, scene, sx, 0, 15.5); HK.box(0.5, 0.5, 2.4, 0x8a8f99, scene, sx, 37.5, 14.5); }   // swatter hooks, either side of the grill
   // prep table (west), side table (east), dessert table (south)
   const cloth = (t, rx, rz) => { const c = t.clone(); c.needsUpdate = true; c.repeat.set(rx, rz); return patMat(c); };
   const table = (x0, z0, x1, z1, top, leg) => {
@@ -4744,8 +4843,8 @@ const COOK = new V3(0, 0, 0), GRILL_LID = {}; let PICNIC_MARK = null;
     solidShape(tl, {label:'a table leg'});
     solidBox(x0, 19.5, z0, x1, 21.2, z1, {label:'a table'});
   };
-  table(-21, -9, -12, 9, 0xb07a45, 0x7a5232);
-  table(-9, -21, 9, -12, cloth(PIX.checkBlue, 4, 2), 0x7a5232);   // v0.0.14: the dessert table is behind Grover now
+  table(-30, -24, -21, -6, 0xb07a45, 0x7a5232);                    // v0.0.15: prep table to the north-west, clear of the west corridor
+  table(8, -32, 26, -23, cloth(PIX.checkBlue, 4, 2), 0x7a5232);   // v0.0.15: dessert table to the north-east, clear of the north and east corridors
   const picnicMark = markBuilt();
   { // v0.0.14: a real wooden picnic table: plank top with a red-check runner, A-frame legs, one bench on the far side
     const W1 = 0xa8743f, W2 = 0x8a5a30, W3 = 0x6e4526;
@@ -4770,24 +4869,33 @@ const COOK = new V3(0, 0, 0), GRILL_LID = {}; let PICNIC_MARK = null;
   for (let k = 0; k < 8; k++){ const a = k / 8 * Math.PI * 2 + Math.PI / 8; HK.ball(0.6, 0xffd31f, scene, 16.5 + Math.cos(a) * 17.5, 58.2, Math.sin(a) * 17.5, 5, 3); }
   solidShape([PR.cyl(16.5, 59.8, 0, 17.5, 1.8), PR.cap(new V3(16.5, 21.2, 0), new V3(16.5, 61, 0), 0.6)], {label:'the umbrella'});
 }
+shiftBuilt(PICNIC_MARK[0], PICNIC_MARK[1], 10, 6);   // v0.0.15: the fallback picnic table and umbrella follow the imported one east
 { // v0.0.14: the exact Blender picnic table and green umbrella (LF_Picnic_Umbrella.glb), scale 26 (top at 21.2), long side north-south
-  const proc = takeBuilt(PICNIC_MARK), TS = 26, X = 24, Z = 6, LIFT = 0.55, pg = HK.group(scene, X, 0, Z); pg.rotation.y = Math.PI / 2; pg.updateMatrixWorld(true);
+  const proc = takeBuilt(PICNIC_MARK), TS = 26, X = 34, Z = 12, LIFT = 0.55,   /* v0.0.15: east, leaving south and east corridors */ pg = HK.group(scene, X, 0, Z); pg.rotation.y = Math.PI / 2; pg.updateMatrixWorld(true);
   const ends = [Z - 13, Z + 13];
   const art = [solidBox(X - 9.1, 19.8, Z - 18.7, X + 9.1, 21.2, Z + 18.7, {label:'a table'}),
     solidBox(X - 16.9, 10.6, Z - 19.5, X - 11.7, 11.8, Z + 19.5, {label:'the picnic bench'}), solidBox(X + 11.7, 10.6, Z - 19.5, X + 16.9, 11.8, Z + 19.5, {label:'the picnic bench'}),
     solidShape(ends.flatMap(z => [PR.cap(new V3(X - 12, 0, z), new V3(X - 4, 20, z), 0.8), PR.cap(new V3(X + 12, 0, z), new V3(X + 4, 20, z), 0.8)]), {label:'a table leg'}),
     solidShape([PR.cap(new V3(X, 21.2, Z), new V3(X, 50.5 + LIFT * TS, Z), 0.6)], {label:'the umbrella'}),
-    solidShape([PR.cyl(X, 47.2 + LIFT * TS, Z, 22.2, 2.6)], {label:'the umbrella', soft:true})];   // the canopy is soft: swatters pass through it like plants
+    // v0.0.15: the canopy is a thin 8-sided cone (rim r 0.83 at model y 1.633, peak 1.947, lifted 0.55), not a flat 5-unit-thick drum
+    solidShape([PR.lathe(new THREE.Matrix4().makeTranslation(X, 0, Z), 0.83 * TS, (1.633 + LIFT) * TS + 0.3, 0.6, (1.947 + LIFT) * TS - 0.3, 0.3)], {label:'the umbrella', soft:true}),   // soft: swatters pass through it like plants
+    // v0.0.15: the two cups, two plates and the bread basket on the imported table (measured from the model; the long side runs north-south)
+    solidShape([[-0.42, 0.08, 0.82, 0.96, 0.045], [0.40, -0.13, 0.82, 0.96, 0.045], [-0.2, 0.1, 0.821, 0.834, 0.1], [0.2, 0.1, 0.821, 0.834, 0.1], [0.2, 0.1, 0.83, 0.93, 0.048]]
+      .map(([mx, mz, y0, y1, r]) => PR.cyl(X + mz * TS, (y0 + y1) / 2 * TS, Z - mx * TS, r * TS, (y1 - y0) / 2 * TS)), {label:'the picnic table'}),
+    solidShape([-1, 1].map(sz => PR.aabb(new V3(X - 0.65 * TS, 0.34 * TS, Z + sz * 0.5 * TS - 0.032 * TS), new V3(X + 0.65 * TS, 0.40 * TS, Z + sz * 0.5 * TS + 0.032 * TS))), {label:'the picnic bench'})];   // v0.0.15: the bench cross beams
   artSwap('picnic', proc, art, root => {
     // the canopy rim sat at Grover's eye height; lift it above his cap by lengthening only the pole (table, plates and canopy keep their shapes)
     const body = root.getObjectByName('LF_Picnic_Umbrella_Body'); if (!body) throw new Error('missing LF_Picnic_Umbrella_Body');
     const pa = body.geometry.attributes.position;
-    for (let i = 0; i < pa.count; i++){ const y = pa.getY(i); if (y > 1.5) pa.setY(i, y + LIFT); else if (y > 0.9) pa.setY(i, y + LIFT * (y - 0.9) / 0.6); }
+    for (let i = 0; i < pa.count; i++){ const y = pa.getY(i); if (y > 1.5) pa.setY(i, y + LIFT); else if (y > 0.9 && Math.abs(pa.getX(i)) < 0.05 && Math.abs(pa.getZ(i)) < 0.05) pa.setY(i, y + LIFT * (y - 0.9) / 0.6); }   // v0.0.15: the pole only, so the cups keep their shape
     pa.needsUpdate = true; body.geometry.computeBoundingSphere(); body.geometry.computeBoundingBox();
     const a = root.clone(); a.scale.setScalar(TS); pg.add(a); });
 }
-{ // v0.0.12: stepping stones from the patio to the garden and the pool (scenery)
-  for (const [x, z] of [[43, 3], [45.5, -2], [47.5, -6], [6, 33.5], [7.5, 38.5], [9.5, 43]]) HK.hex(2.6, 2.9, 0.35, 0x9e9a90, scene, x, 0.02, z, 6);
+fixBuilt(COOK_FIX);
+{ // v0.0.12: stepping stones from the patio to the garden and the pool (scenery; v0.0.15: laid along the new east and south corridors)
+  const m = [scene.children.length, solids.length];
+  for (const [x, z] of [[52, -16], [59, -14], [66, -12], [73, -10], [8, 47], [10, 54], [12, 61], [14, 68]]) HK.hex(2.6, 2.9, 0.35, 0x9e9a90, scene, x, 0.02, z, 6);
+  fixBuilt(m);
 }
 /* v0.0.14: the v0.0.12 octahedron ground cover was removed; the broad-leaf clumps below replace it (4.5k fewer triangles) */
 
@@ -4808,7 +4916,10 @@ const COOK = new V3(0, 0, 0), GRILL_LID = {}; let PICNIC_MARK = null;
     const L = Math.hypot(bx - ax, bz - az), n = Math.round(L / 2.2), ry = -Math.atan2(bz - az, bx - ax);
     for (let i = 0; i <= n; i++){ const u = i / n, x = ax + (bx - ax) * u, z = az + (bz - az) * u; const pk = HK.block(0.4, 1.4, 9, 0.5, 0.5, 0xf6f3ea, scene, x, 0, z); pk.rotation.y = ry; }
     for (const y of [2.5, 6.5]){ const r = HK.box(L, 0.8, 0.5, 0xe9e2d0, scene, (ax + bx) / 2, y, (az + bz) / 2); r.rotation.y = ry; }
-    solidBox(Math.min(ax, bx) - 0.4, 0, Math.min(az, bz) - 0.4, Math.max(ax, bx) + 0.4, 9, Math.max(az, bz) + 0.4, {label:'the garden fence'});
+    const q = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), ry), P = [];   // v0.0.15: each picket and both rails (the gaps between pickets are open)
+    for (let i = 0; i <= n; i++){ const u = i / n; P.push(PR.obox(new THREE.Matrix4().compose(new V3(ax + (bx - ax) * u, 4.5, az + (bz - az) * u), q, new V3(1, 1, 1)), 0.45, 4.5, 0.25, 0)); }
+    for (const y of [2.5, 6.5]) P.push(PR.obox(new THREE.Matrix4().compose(new V3((ax + bx) / 2, y + 0.4, (az + bz) / 2), q, new V3(1, 1, 1)), L / 2, 0.4, 0.25, 0));
+    solidShape(P, {label:'the garden fence'});
   };
   picket(44, -36, 44, -7); picket(44, 1, 44, 17); picket(44, 17, 97, 17);       // gate gap where the stepping stones arrive
 }
@@ -4821,7 +4932,8 @@ const coolerMark = markBuilt();
 }
 { // v0.0.14: the exact Blender cooler (LF_Cooler.glb), scale 16 (12.3 wide, 7.9 tall)
   const proc = takeBuilt(coolerMark), CS = 16, cg = HK.group(scene, -48, 0, 12); cg.rotation.y = 0.3; cg.updateMatrixWorld(true);
-  const art = [solidShape([MP.box(cg, CS, [0, 0.25, 0], [0.385, 0.25, 0.24])], {label:'the cooler'})];
+  const art = [solidShape([MP.box(cg, CS, [0, 0.22, 0], [0.34, 0.21, 0.215]), MP.box(cg, CS, [0, 0.4445, 0], [0.365, 0.0325, 0.24]), MP.box(cg, CS, [0, 0.4855, 0], [0.28, 0.0075, 0.16]),
+    MP.box(cg, CS, [-0.36, 0.34, 0], [0.025, 0.025, 0.1]), MP.box(cg, CS, [0.36, 0.34, 0], [0.025, 0.025, 0.1])], {label:'the cooler'})];   // v0.0.15: measured from LF_Cooler.glb
   artSwap('cooler', proc, art, root => { const a = root.clone(); a.scale.setScalar(CS); cg.add(a); });
 }
 { // v0.0.14: lush, broad, angular leaves in clumps (scenery, no colliders) and a few chunky bushes along the fences
@@ -4841,7 +4953,7 @@ const coolerMark = markBuilt();
   for (const [x, z, sz] of [[-84, -24, 12], [-50, -24, 10], [-50, 4, 9], [-86, 6, 10], [-62, 28, 12], [-36, 50, 14], [-30, 70, 14], [-44, 92, 13], [-70, 80, 14],
     [-20, 90, 12], [24, 92, 12], [50, 84, 12], [86, 82, 12], [60, 40, 10], [86, 40, 12], [40, 22, 7], [-24, 30, 8], [30, -84, 10], [-14, 48, 9], [24, 46, 8],
     [-30, -50, 11], [52, -52, 10], [14, -46, 9], [-44, -76, 12], [72, -82, 12], [92, -70, 12], [42, 20, 6], [97, 22, 9]]) clump(x, z, sz);
-  im.count = n; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; scene.add(im);
+  im.count = n; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.userData.scaleAll = im.userData.ringClear = true; scene.add(im);
   // chunky low-poly bushes in the corners, soft so flies can land on them
   for (const [x, z, r] of [[-92, -86, 11], [-90, 96, 12], [92, 96, 12], [-30, -88, 9], [70, -88, 10], [92, -30, 0], [-92, 52, 10]]){
     if (!r) continue;
@@ -4856,7 +4968,7 @@ const PROPS = [];
 {
   // red party cup on a little side table
   const t = HK.group(scene, 48, 0, 32); HK.hex(4, 4, 0.8, 0xf6f3ea, t, 0, 12, 0, 10); HK.hex(0.6, 0.6, 12, 0x8a8f99, t, 0, 0, 0, 5);
-  solidBox(44, 11.5, 28, 52, 12.8, 36, {label:'the cup table'});
+  solidShape([PR.cyl(48, 12.4, 32, 3.9, 0.4), PR.cyl(48, 6, 32, 0.55, 6)], {label:'the cup table'});   // v0.0.15: round top and its pole
   const cup = HK.group(scene, 48, 12.8, 32); HK.hex(2.4, 1.7, 5.6, 0xd8392b, cup, 0, 0, 0, 10); HK.hex(2.45, 2.45, 0.6, 0xf6f3ea, cup, 0, 5.2, 0, 10);
   PROPS.push({id:'cup', name:'Cup Crash', pts:2, c:new V3(48, 15, 32), r:5.5, obj:cup});
   // wind chime on a shepherd's hook
@@ -4864,7 +4976,7 @@ const PROPS = [];
   const chime = HK.group(scene, -54, 50, 46);
   HK.hex(2.6, 2.6, 0.6, 0x8a6a42, chime, 0, -1, 0, 8);
   const tubes = [0, 1, 2, 3, 4].map(i => { const a = i / 5 * Math.PI * 2, tg = HK.group(chime, Math.cos(a) * 2, -1, Math.sin(a) * 2); HK.hex(0.35, 0.35, 5 + i, 0xbfc7d1, tg, 0, -(5 + i), 0, 6); return tg; });
-  solidBox(-63, 0, 45, -61, 52, 47, {label:'the chime hook'});
+  solidShape([PR.cyl(-62, 26, 46, 0.48, 26), PR.aabb(new V3(-62, 51, 45.7), new V3(-54, 51.6, 46.3))], {label:'the chime hook'});   // v0.0.15: the pole and its arm
   PROPS.push({id:'chime', name:'Chime Time', pts:2, c:new V3(-54, 45, 46), r:6.5, obj:chime, tubes});
   // spider web in the big tree, strung between the trunk and a low branch
   const br = HK.box(3, 3, 34, 0x7a5532, scene, -52, 52, -48); br.lookAt(-38, 54, -34); br.position.set(-52, 52, -48);
@@ -4876,7 +4988,7 @@ const PROPS = [];
   web.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0xf4f4f4, transparent:true, opacity:0.8})));
   PROPS.push({id:'web', name:'Web Wrap', pts:2, c:new V3(-54, 40, -50), r:11, obj:web, sticky:true});
   // fire: the grill and the fire pit
-  PROPS.push({id:'grill', name:'Overcooked', pts:3, c:new V3(-7, 19, 15.5), r:9, fire:true});
+  PROPS.push({id:'grill', name:'Overcooked', pts:3, c:new V3(-8, 19, 18), r:9, fire:true, fix:true});
   PROPS.push({id:'pit', name:'Overcooked', pts:3, c:new V3(70, 6, 62), r:9, fire:true});
 }
 
@@ -4885,7 +4997,7 @@ const SPAWNS = [new V3(80, 0, 86), new V3(-82, 0, 88), new V3(84, 0, -40), new V
 SPAWNS.forEach(p => {
   const g = HK.group(scene, p.x, 0, p.z);
   HK.hex(6, 5, 14, 0x6f7b86, g, 0, 0, 0, 10); const lid = HK.hex(6.4, 6.4, 0.8, 0x56606a, g, -2, 14.4, 0, 10); lid.rotation.z = 0.4;
-  solidBox(p.x - 5.5, 0, p.z - 5.5, p.x + 5.5, 14, p.z + 5.5, {label:'a trash can'});
+  solidShape([PR.cone(p.x, 7, p.z, 4.88, 5.86, 7), PR.lathe(new THREE.Matrix4().compose(new V3(p.x - 2, 14.4, p.z), new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), 0.4), new V3(1, 1, 1)), 0, 0.4, 5.85, 0.4, 0.4)], {label:'a trash can', ref:[p.x, p.z]});   // v0.0.15: tapered can and its tipped lid
 });
 
 
@@ -4937,6 +5049,12 @@ function slab(w, h, d, color, x, y, z){ return HK.box(w, h, d, color, scene, x, 
     const dk = duck.clone(); dk.position.set(0, 0, 0); dk.scale.setScalar(PS);   // duck taken out at its own pivot; its pool offset becomes the float height
     d.clear(); d.add(dk);
     const D = LIFE.duck; D.y0 = duck.position.y * PS; D.bo.set(0, 0.02 * PS, -0.05 * PS); D.ho.set(0, 0.2 * PS, 0.27 * PS); pb.r = 0.21 * PS; ph.r = 0.12 * PS;
+    // v0.0.15: measured from the duck in LF_Pool_Duck.glb (v0.0.14's body ball was 1.4 too tall and missed the tail and wings)
+    ds.sdf.length = 0; const lab = {label:'the rubber duck'};
+    for (const [c, r] of [[[0, 0, 0], [0.2, 0.14, 0.28]], [[0, 0.08, 0.16], [0.114, 0.12, 0.114]], [[0, 0.17, 0.21], [0.133, 0.14, 0.13]], [[-0.163, 0.039, -0.08], [0.085, 0.069, 0.1]], [[0.163, 0.039, -0.08], [0.085, 0.069, 0.1]], [[0, 0.076, -0.275], [0.11, 0.066, 0.065]]]){
+      const pr = attachPrim(PR.ell(new THREE.Matrix4(), r[0] * PS, r[1] * PS, r[2] * PS, lab), d, c[0] * PS, c[1] * PS, c[2] * PS); pr.s = ds; ds.sdf.push(pr); }
+    { const pr = attachPrim(PR.obox(new THREE.Matrix4(), 0.095 * PS, 0.028 * PS, 0.072 * PS, 0, lab), d, 0, 0.14 * PS, 0.35 * PS); pr.s = ds; ds.sdf.push(pr); }
+    D.parts = true;
     g.parent.remove(g);
   }, () => { poolProc.off = false; poolArt.off = true; mergeGroup(g); });
 }
@@ -5007,8 +5125,15 @@ shiftBuilt(coopMark[0], coopMark[1], COOP_DX, 0); LIFE.coop.x += COOP_DX;
     const hd = a.getObjectByName('LF_Chicken_Head'), lL = a.getObjectByName('LF_Chicken_Leg_L'), lR = a.getObjectByName('LF_Chicken_Leg_R');
     if (!hd || !lL || !lR) throw new Error('missing chicken nodes');
     C.g.clear(); C.g.add(a); C.head = hd; C.legs = [lL, lR]; C.headRest = hd.quaternion.clone();
-    if (chickenSolid){ const base = C.g.position; chickenSolid.sdf[0].c.copy(base).add(new V3(0, 0.5 * CH, -0.12 * CH)); chickenSolid.sdf[0].r = 0.27 * CH;
-      chickenSolid.sdf[1].c.copy(base).add(new V3(0, 0.82 * CH, 0.36 * CH)); chickenSolid.sdf[1].r = 0.15 * CH; chickenSolid.sdf.forEach(pr => { pr.bc.copy(pr.c); pr.br = pr.r; }); }
+    if (chickenSolid){   // v0.0.15: measured from LF_Chicken.glb (v0.0.14 used two balls set back from the real body)
+      const lab = {label:'the chicken'}, P = [];
+      for (const [c, r] of [[[0, 0.42, -0.04], [0.212, 0.2, 0.27]]]) P.push(attachPrim(PR.ell(new THREE.Matrix4(), r[0] * CH, r[1] * CH, r[2] * CH, lab), C.g, c[0] * CH, c[1] * CH, c[2] * CH));
+      for (const [c, h] of [[[-0.2125, 0.44, -0.06], [0.0425, 0.1, 0.21]], [[0.2125, 0.44, -0.06], [0.0425, 0.1, 0.21]], [[0, 0.675, -0.335], [0.14, 0.115, 0.13]]]) P.push(attachPrim(PR.obox(new THREE.Matrix4(), h[0] * CH, h[1] * CH, h[2] * CH, 0, lab), C.g, c[0] * CH, c[1] * CH, c[2] * CH));
+      const HO = [0, 0.55, 0.22];   // the head node's pivot; its shapes turn with it
+      for (const [c, r] of [[[0, 0.6, 0.245], [0.13, 0.18, 0.15]], [[0, 0.82, 0.33], [0.124, 0.15, 0.124]], [[0, 0.81, 0.51], [0.07, 0.07, 0.08]]]) P.push(attachPrim(PR.ell(new THREE.Matrix4(), r[0] * CH, r[1] * CH, r[2] * CH, lab), hd, (c[0] - HO[0]) * CH, (c[1] - HO[1]) * CH, (c[2] - HO[2]) * CH));
+      P.push(attachPrim(PR.obox(new THREE.Matrix4(), 0.03 * CH, 0.07 * CH, 0.1 * CH, 0, lab), hd, 0, (0.99 - HO[1]) * CH, (0.32 - HO[2]) * CH));
+      P.forEach(pr => pr.s = chickenSolid); chickenSolid.sdf = P; updateAttached();
+      chickenSolid.bc.copy(C.g.position).add(new V3(0, 0.6 * CH, 0.05 * CH)); chickenSolid.br = 0.75 * CH; }
     LIFE.eggOff = new V3(0, 0.6, -0.5 * CH);
   }, () => {});
   artSwap('coop', proc, art, root => { const a = root.clone(); a.scale.setScalar(CS); cg.add(a); nest.visible = perch.visible = true; },
@@ -5043,7 +5168,7 @@ shiftBuilt(coopMark[0], coopMark[1], COOP_DX, 0); LIFE.coop.x += COOP_DX;
   for (const s of [-1, 1]) HK.ball(0.8, 0xf44b98, g, 5, 13, s*4.4, 6, 4);
   HK.box(4, 1.2, 3, dark, g, -2, 8.4, 0);
   g.updateMatrixWorld(true); const W = (x, y, z) => new V3(x, y, z).applyMatrix4(g.matrixWorld);
-  solidShape([PR.cyl(W(6, 5, 0).x, 5, W(6, 5, 0).z, 5, 0.6), PR.cap(W(-6, 3, -4.8), W(-6, 3, 4.8), 3), PR.cap(W(6, 5, 0), W(5, 13, 0), 0.6), PR.cap(W(5, 11, 0), W(-4, 6, 0), 0.7),
+  solidShape([PR.lathe(new THREE.Matrix4().compose(W(6, 5, 0), new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), Math.PI / 2), new V3(1, 1, 1)), 0, 0, 4.55, 0, 0.45),   /* v0.0.15: the upright front wheel (v0.0.14 had it lying flat) */ PR.cap(W(-6, 3, -4.8), W(-6, 3, 4.8), 3), PR.cap(W(6, 5, 0), W(5, 13, 0), 0.6), PR.cap(W(5, 11, 0), W(-4, 6, 0), 0.7),
     PR.cap(W(5, 13, -4.6), W(5, 13, 4.6), 0.6), PR.aabb(W(-4, 8.4, -1.5), W(0, 9.6, 1.5))], lab);
   const trikeProc = solids[solids.length - 1]; trikeProc.off = true;
   // the imported tricycle (LF_Tricycle.glb), scale 19, its front (+Z) turned to face east like before; shapes measured from the model
@@ -5055,7 +5180,7 @@ shiftBuilt(coopMark[0], coopMark[1], COOP_DX, 0); LIFE.coop.x += COOP_DX;
     () => { trikeProc.off = false; trikeArt.off = true; scene.remove(tg); mergeGroup(g); });
 }
 
-const gardenMark = markBuilt(), GARDEN_FLOWER_SOLIDS = [];
+const gardenMark = markBuilt(), GARDEN_FLOWER_SOLIDS = [], SUN_SOLIDS = [];
 { // the vegetable garden (v0.0.14: mirrored into the east corner): rows of corn, tomatoes and sunflowers with flowers along the front
   const leafGeo = new THREE.BoxGeometry(1, 1, 1);
   const leafMesh = new THREE.InstancedMesh(leafGeo, new THREE.MeshLambertMaterial({color:0xffffff}), 220);
@@ -5119,15 +5244,49 @@ const gardenMark = markBuilt(), GARDEN_FLOWER_SOLIDS = [];
     if (KINDS.some(k => !got[k])){ PROP_ART.status.garden = 'kept the procedural garden (a plant file failed)'; return; }
     const body = k => got[k].getObjectByName({sunflower:'LF_Sunflower_Body', corn:'LF_Corn_Body', tomato:'LF_Tomato_Body', flowers:'LF_Flowers_Body'}[k]);
     // sunflowers: head center (model 0, 1.47, 0.06) on the old head positions, faces turned west to the yard
-    scene.add(inst(body('sunflower'), [[-26, 48], [-19, 58], [-12, 72], [-5, 52], [2, 64]].map(([z, h], i) => [62 + 0.06 * h / 1.47, 0, z, -Math.PI / 2 + (i % 2 ? 0.25 : -0.2), h / 1.47])));
+    const SUNS = [[-26, 48], [-19, 58], [-12, 72], [-5, 52], [2, 64]].map(([z, h], i) => [62 + 0.06 * h / 1.47, 0, z, -Math.PI / 2 + (i % 2 ? 0.25 : -0.2), h / 1.47]);
+    scene.add(inst(body('sunflower'), SUNS));
+    // v0.0.15: LF_Sunflower.glb measured: the seed disc is centered at (0.03, 1.37) in model units (not 1.47), radius 0.143, front face at
+    // z 0.062 and back at 0.015, facing +z. The petals are cupped: base r 0.11 at z 0.03, middle r 0.23 at z 0.093, tips r 0.325 at z 0.06.
+    // The stem runs up x 0.015, z -0.007 to y 1.30, radius 0.034. The old procedural head boxes (tilted, at 1.47) are switched off.
+    setOff(proc.solids.filter(so => so.label === 'a sunflower' || so.label === 'a sunflower stem'), true);
+    const up = new V3(0, 1, 0), qa = new THREE.Quaternion(), qx = new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), Math.PI / 2);
+    SUN_SOLIDS.length = 0;
+    for (const [x, , z, ry, sc] of SUNS){
+      qa.setFromAxisAngle(up, ry); const W = (mx, my, mz) => new V3(mx, my, mz).multiplyScalar(sc).applyQuaternion(qa).add(new V3(x, 0, z));
+      const m4 = new THREE.Matrix4().compose(W(0.03, 1.37, 0), qa.clone().multiply(qx), new V3(1, 1, 1));
+      SUN_SOLIDS.push(solidShape([PR.lathe(m4, 0, 0.0385 * sc, 0.1195 * sc, 0.0385 * sc, 0.0235 * sc), PR.lathe(m4, 0.11 * sc, 0.03 * sc, 0.23 * sc, 0.093 * sc, 0.012 * sc),
+        PR.lathe(m4, 0.23 * sc, 0.093 * sc, 0.325 * sc, 0.06 * sc, 0.012 * sc)], {label:'a sunflower', soft:true}));
+      SUN_SOLIDS.push(solidShape([PR.cap(W(0.015, 0.02, -0.007), W(0.015, 1.30, -0.007), 0.034 * sc)], {label:'a sunflower stem', soft:true}));
+    }
     // corn: leaves spread along the row so the corn-row ring stays open
-    scene.add(inst(body('corn'), Array.from({length:7}, (_, i) => { const z = -26 + i * 6, h = 52 + (i * 37 % 9); return [88, 0, z, Math.PI / 2 + (i % 2 ? Math.PI : 0) + (i - 3) * 0.08, (h + 6) / 1.62]; })));
+    const CORNS = Array.from({length:7}, (_, i) => { const z = -26 + i * 6, h = 52 + (i * 37 % 9); return [88, 0, z, Math.PI / 2 + (i % 2 ? Math.PI : 0) + (i - 3) * 0.08, (h + 6) / 1.62]; });
+    scene.add(inst(body('corn'), CORNS));
     // tomatoes: trellis panels along the row, the shallow side toward the ring corridor
-    scene.add(inst(body('tomato'), Array.from({length:5}, (_, i) => [75.5, 0, -24 + i * 8.5, -Math.PI / 2 + (i % 2 ? 0.12 : -0.1), 23])));
+    const TOMS = Array.from({length:5}, (_, i) => [75.5, 0, -24 + i * 8.5, -Math.PI / 2 + (i % 2 ? 0.12 : -0.1), 23]);
+    scene.add(inst(body('tomato'), TOMS));
     // flowers: a front border of clumps, plus lush clumps around the yard (scenery, no colliders)
     scene.add(inst(body('flowers'), [[52, -24, 1.4, 15], [52, -12, 1.9, 16], [51, 0, 1.2, 14], [52, 10, 1.7, 15], [-90, 30, 0.4, 14], [-56, 22, 2.4, 13], [-14, 52, 0.8, 12], [36, 52, 2.0, 13],
       [-60, -84, 0.2, 15], [12, -86, 1.0, 14], [86, 46, 2.6, 15], [-92, 70, 1.1, 14], [-30, 94, 0.5, 13], [58, 92, 1.8, 14]].map(([x, z, r, sc]) => [x, 0, z, r, sc])));
     setOff(GARDEN_FLOWER_SOLIDS, true);
+    // v0.0.15: corn and tomato colliders measured from the imported plants, piece by piece (leaves stay pass-through, as in v0.0.14):
+    // corn = stalk (capsule) + tassel (box); tomato = stake, side posts, rails and ties (boxes), stem (capsule) and tomatoes (ellipsoids)
+    setOff(proc.solids.filter(so => so.label === 'a corn stalk' || so.label === 'a tomato plant'), true);
+    const pieces = geo => { const pa = geo.attributes.position, n = pa.count, par = new Int32Array(n).map((_, i) => i), key = new Map();
+      const fd = x => { while (par[x] !== x){ par[x] = par[par[x]]; x = par[x]; } return x; }, un = (a, b) => { a = fd(a); b = fd(b); if (a !== b) par[a] = b; };
+      const ix = geo.index ? geo.index.array : null; for (let t = 0; t < (ix ? ix.length : n); t += 3){ const a = ix ? ix[t] : t, b = ix ? ix[t + 1] : t + 1, c = ix ? ix[t + 2] : t + 2; un(a, b); un(b, c); }
+      for (let i = 0; i < n; i++){ const k = pa.getX(i).toFixed(4) + ',' + pa.getY(i).toFixed(4) + ',' + pa.getZ(i).toFixed(4); if (key.has(k)) un(i, key.get(k)); else key.set(k, i); }
+      const out = new Map(); for (let i = 0; i < n; i++){ const r = fd(i); let o = out.get(r); if (!o) out.set(r, o = {n:0, min:new V3(1e9, 1e9, 1e9), max:new V3(-1e9, -1e9, -1e9)}); o.n++; const v = new V3(pa.getX(i), pa.getY(i), pa.getZ(i)); o.min.min(v); o.max.max(v); }
+      return [...out.values()]; };
+    const plantSolids = (list, src, rule, label) => { const P = pieces(src.geometry);
+      for (const [x, , z, ry, sc] of list){ const q = new THREE.Quaternion().setFromAxisAngle(up, ry), W = v => v.clone().multiplyScalar(sc).applyQuaternion(q).add(new V3(x, 0, z)), prims = [];
+        for (const pt of P){ const kind = rule(pt.n); if (!kind) continue; const c = pt.min.clone().add(pt.max).multiplyScalar(0.5), h = pt.max.clone().sub(pt.min).multiplyScalar(0.5);
+          if (kind === 'cap'){ const r = Math.min(h.x, h.z) > 0.02 ? Math.max(h.x, h.z) : Math.min(h.x, h.z); prims.push(PR.cap(W(new V3(c.x, pt.min.y + r, c.z)), W(new V3(c.x, pt.max.y - r, c.z)), r * sc)); }
+          else if (kind === 'box') prims.push(PR.obox(new THREE.Matrix4().compose(W(c), q, new V3(1, 1, 1)), h.x * sc, h.y * sc, h.z * sc, 0));
+          else prims.push(PR.ell(new THREE.Matrix4().compose(W(c), q, new V3(1, 1, 1)), h.x * sc, h.y * sc, h.z * sc)); }
+        SUN_SOLIDS.push(solidShape(prims, {label, soft:true})); } };
+    plantSolids(CORNS, body('corn'), n => n === 36 ? 'cap' : n === 120 ? 'box' : null, 'a corn stalk');
+    plantSolids(TOMS, body('tomato'), n => n === 24 ? 'box' : n === 30 ? 'cap' : (n === 144 || n === 240) ? 'ell' : null, 'a tomato plant');
     LIFE.heads.length = 0; scene.remove(proc.g); PROP_ART.status.garden = 'imported';
   };
   for (const k of KINDS) propJob(k, root => { got[k] = root; finish(); }, () => { got[k] = null; finish(); });
@@ -5141,8 +5300,9 @@ function updateLife(dt, now){
   if (D){
     D.g.position.set(D.base.x + Math.cos(now*0.13)*4, D.y0 + Math.sin(now*1.3)*0.35, D.base.z + Math.sin(now*0.11)*4);
     D.g.rotation.set(Math.sin(now*0.9)*0.05, now*0.07, Math.sin(now*1.1)*0.06);
+    if (!D.parts){
     D.pb.c.copy(D.bo).applyEuler(D.g.rotation).add(D.g.position); D.pb.bc.copy(D.pb.c); D.pb.br = D.pb.r;
-    D.ph.c.copy(D.ho).applyEuler(D.g.rotation).add(D.g.position); D.ph.bc.copy(D.ph.c); D.ph.br = D.ph.r;
+    D.ph.c.copy(D.ho).applyEuler(D.g.rotation).add(D.g.position); D.ph.bc.copy(D.ph.c); D.ph.br = D.ph.r; }
   }
   const C = LIFE.chicken;
   if (C){
@@ -5160,6 +5320,7 @@ function updateLife(dt, now){
     if (now > LIFE.cluckT){ LIFE.cluckT = now + 1.5 + Math.random()*3; camera.getWorldPosition(wTmp); if (wTmp.distanceTo(LIFE.coop) < 70 * Math.max(0.4, rig.scale.x)) cluck(false); }
   }
   for (const h of LIFE.heads) h.g.rotation.x = Math.sin(now*0.6 + h.ph) * 0.06;
+  updateAttached();   // v0.0.15: duck and chicken colliders follow the animated parts
 }
 function cluck(big){
   if (!audio || !tune.sound) return;
@@ -5189,8 +5350,10 @@ function cluck(big){
   house(-165, -40, 60, 46, 40, 0xdfe7f2, 0x58607a, 0.3); house(170, -30, 64, 46, 42, 0xf3e1b8, 0x8a4b3a, -0.25);
   house(-160, 125, 56, 44, 36, 0xf6d9e0, 0x58607a, -0.5); house(165, 135, 58, 44, 38, 0xd9f0dc, 0x7a2e22, 0.6); house(0, 175, 70, 48, 40, 0xf3e9d9, 0x58607a, 0);
   for (const [x, z, r] of [[-130, 40, 18], [135, 50, 20], [-90, 160, 16], [90, 170, 18], [-200, -120, 22], [210, 60, 20]]){
+    const tm = [scene.children.length, solids.length];
     HK.hex(2.5, 3.5, r * 1.6, 0x7a5532, scene, x, 0, z, 6);
     HK.mesh(new THREE.IcosahedronGeometry(r, 0), 0x3aa52a, scene, x, r * 2.2, z); HK.mesh(new THREE.IcosahedronGeometry(r * 0.7, 0), 0x49b61d, scene, x + r*0.4, r * 3, z - r*0.2);
+    shiftBuilt(tm[0], tm[1], YK * x, YK * z); for (let i = tm[0]; i < scene.children.length; i++) scene.children[i].userData.ns = true;   // v0.0.15: whole trees move out
   }
 }
 /* the sky: a gradient dome with a low-poly sun that follows you (never fogged, never merged) */
@@ -5231,6 +5394,56 @@ const skyDome = (() => {
 const skyV = new V3();
 function updateSky(){ const tn = performance.now(); for (const m of HUMAN_BLOBS) m.blob.visible = tn - m.blobT < 300; camera.getWorldPosition(skyV); skyDome.position.copy(skyV); skyDome.scale.setScalar(Math.min(450, 590 * rig.scale.x)); const r = skyDome.userData.rays; if (r) r.rotateZ(0.002); }
 
+/* v0.0.15: spread the yard (see SPREAD at the top of the yard) */
+const _sM = new THREE.Matrix4(), _sP = new V3();
+function spreadSolid(so, fixedOff){
+  let x, z;
+  if (so.ref){ x = so.ref[0]; z = so.ref[1]; } else if (so.bc){ x = so.bc.x; z = so.bc.z; } else if (so.box){ x = (so.box.min.x + so.box.max.x) / 2; z = (so.box.min.z + so.box.max.z) / 2; } else if (so.c){ x = so.c.x; z = so.c.z; } else return;
+  const d = fixedOff || spreadOff(x, z), dx = d.x, dz = d.z, v = new V3(dx, 0, dz), T = new THREE.Matrix4().makeTranslation(-dx, 0, -dz);
+  if (so.box) so.box.translate(v); if (so.c) so.c.add(v); if (so.bc) so.bc.add(v);
+  if (so.sdf) for (const pr of so.sdf){
+    if (pr.bc) pr.bc.add(v);
+    if (pr.k === 'aabb' || pr.k === 'cyl' || pr.k === 'tube' || pr.k === 'cone'){ pr.cx += dx; pr.cz += dz; }
+    else if (pr.k === 'sph') pr.c.add(v);
+    else if (pr.k === 'cap'){ pr.a.add(v); pr.b.add(v); }
+    else if (pr.inv) pr.inv.multiply(T);
+  }
+}
+function spreadObj(o){
+  if (o.userData.ns || o === skyDome) return 0;
+  if (o.userData.built){ let n = 0; for (const c of o.children) n += spreadObj(c); return n; }
+  if (o.isInstancedMesh){
+    const all = !!o.userData.scaleAll;
+    for (let i = 0; i < o.count; i++){
+      o.getMatrixAt(i, _sM); _sP.setFromMatrixPosition(_sM);
+      const d = all ? _sD.set(YK * _sP.x, 0, YK * _sP.z) : spreadOff(_sP.x, _sP.z);
+      _sM.elements[12] += d.x; _sM.elements[14] += d.z; o.setMatrixAt(i, _sM);
+    }
+    o.instanceMatrix.needsUpdate = true; return o.count;
+  }
+  const d = spreadOff(o.position.x, o.position.z); o.position.x += d.x; o.position.z += d.z; o.updateMatrixWorld(true); return 1;
+}
+const SPREAD_INFO = (() => {
+  let objs = 0, sol = 0;
+  for (const o of scene.children.slice(YARD_MARK[0])) objs += spreadObj(o);
+  for (let i = YARD_MARK[1]; i < solids.length; i++) if (!solids[i].ns){ spreadSolid(solids[i]); sol++; }
+  const mv = v => { const d = spreadOff(v.x, v.z); v.x += d.x; v.z += d.z; return v; };
+  for (const r of RINGS) if (!r.fix){ const [x, z] = spreadPt(r.p[0], r.p[2]); r.p = [x, r.p[1], z]; }
+  for (const w of BOT_PATH) if (!w.fix) mv(w.p);
+  for (const k of ['art', 'proc']) for (const key of ['pre', 'ring', 'post']){ const a = COOP_ROUTE[k][key], [x, z] = spreadPt(a[0], a[2]); COOP_ROUTE[k][key] = [x, a[1], z]; }
+  mv(BOT_START); SPAWNS.forEach(mv); mv(LIFE.coop); if (LIFE.duck) mv(LIFE.duck.base);
+  for (const p of PROPS) if (!p.fix) mv(p.c);
+  // no grass or leaf blades poking into a low ring
+  for (const o of scene.children) if (o.isInstancedMesh && o.userData.ringClear){
+    for (let i = 0; i < o.count; i++){ o.getMatrixAt(i, _sM); _sP.setFromMatrixPosition(_sM);
+      if (RINGS.some(r => r.p[1] < 14 && Math.hypot(_sP.x - r.p[0], _sP.z - r.p[2]) < (r.r || 3) + 2.5)){ _sM.scale(_sP.set(0, 0, 0)); o.setMatrixAt(i, _sM); } }
+    o.instanceMatrix.needsUpdate = true;
+  }
+  return {objs, solids:sol};
+})();
+/* the imported models arrive later: spread what each one adds, the same way */
+function spreadNew(before, s0){ for (const o of scene.children) if (!before.has(o)) spreadObj(o); for (let i = s0; i < solids.length; i++) if (!solids[i].ns) spreadSolid(solids[i]); }
+
 /* fewer draw calls for Quest 2: merge every static mesh in the yard into one mesh per material.
    Moving things (flames, the cup, the chime, the web, the duck, the chicken, sunflower heads) stay separate. */
 function mergeStatic(){
@@ -5269,13 +5482,13 @@ function mergeStatic(){
   }
   return {merged:victims.length, meshes:made};
 }
-const MERGE_INFO = mergeStatic();
+const MERGE_INFO = new URLSearchParams(location.search).get('nomerge') ? {merged:0, meshes:0, skipped:true} : mergeStatic();   // ?nomerge is for collider probes only
 /* v0.0.14: soft contact blobs under props (one draw call) */
 const BLOB_MAT = new THREE.MeshBasicMaterial({color:0x1c1206, alphaMap:PIX.blob, transparent:true, opacity:0.55, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
 {
-  const B = [[-7, 15.5, 13, 13], [-16.5, 0, 9, 13], [24, 6, 24, 24], [0, -16.5, 13, 9], [14, 66, 24, 24], [44, 56, 10, 8], [48, -70, 11, 11], [66, -58, 11, 11], [32, 38, 11, 11],
-    [30, -45, 16, 14], [-66, -14, 22, 22], [-48, 12, 8, 6], [70, 62, 12, 12], [-66, -62, 22, 22], [48, 32, 5, 5], [-40, 24, 6, 6], [-28, 36, 6, 6], [-42, 86, 6, 6],
-    [80, 86, 7, 7], [-82, 88, 7, 7], [84, -40, 7, 7], [-88, 36, 7, 7], [-82, 22, 5, 5], [-78, 55, 12, 8], [0, -98, 90, 9], [62, -12, 7, 22], [88, -8, 7, 24], [75.5, -7, 7, 24], [52, -6, 5, 22], [-97, 4, 4, 100], [97, 4, 4, 100]];
+  // v0.0.15: cookout and fence blobs in new coordinates; the rest move with their props
+  const B = [[-8, 18, 13, 13], [-25.5, -15, 9, 13], [34, 12, 24, 24], [17, -27.5, 13, 9], [YARD.x0 + 3, 6.4, 4, 141], [YARD.x1 - 3, 6.4, 4, 141],
+    ...[[14, 66, 24, 24], [44, 56, 10, 8], [48, -70, 11, 11], [66, -58, 11, 11], [32, 38, 11, 11], [30, -45, 16, 14], [-66, -14, 22, 22], [-48, 12, 8, 6], [70, 62, 12, 12], [-66, -62, 22, 22], [48, 32, 5, 5], [-40, 24, 6, 6], [-28, 36, 6, 6], [-42, 86, 6, 6], [80, 86, 7, 7], [-82, 88, 7, 7], [84, -40, 7, 7], [-88, 36, 7, 7], [-82, 22, 5, 5], [-78, 55, 12, 8], [0, -98, 90, 9], [62, -12, 7, 22], [88, -8, 7, 24], [75.5, -7, 7, 24], [52, -6, 5, 22]].map(([x, z, rx, rz]) => [...spreadPt(x, z), rx, rz])];
   const geo = new THREE.PlaneGeometry(2, 2); geo.rotateX(-Math.PI / 2);
   const im = new THREE.InstancedMesh(geo, BLOB_MAT, B.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(), pp = new V3();
   B.forEach(([x, z, rx, rz], i) => im.setMatrixAt(i, m4.compose(pp.set(x, 0.09, z), q, sc.set(rx, 1, rz))));
@@ -5405,7 +5618,7 @@ const vig2 = (() => {
 /* ---------- in-headset settings panel ---------- */
 const PW = 800, ROW = 52, ROW0 = 156, TAB_Y = 86;
 const ROWS_MAX = Math.max(...PAGES.map(pg => TUNE.filter(t => groupOf(t) === pg).length));
-const TOG_Y = ROW0 + ROWS_MAX*ROW + 6, BTN_Y = TOG_Y + 70, PH = BTN_Y + 150;
+const TOG_Y = ROW0 + ROWS_MAX*ROW + 6, BTN_Y = TOG_Y + 70, SHARE_Y = BTN_Y + 84, PH = SHARE_Y + 170;   // v0.0.15: Apply-to-everyone row
 let panelPage = 'Flight';
 const ROLE_BTNS = [['Fly', 'fly', 0], ['Grover', 'human', 0]];
 const pageRows = () => TUNE.filter(t => groupOf(t) === panelPage);
@@ -5429,7 +5642,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.14 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.15 · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
     const n = PAGES.length, tw = (PW - 60 - (n - 1)*8) / n, x = 30 + i*(tw + 8), on = pg === panelPage;
     c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
@@ -5462,8 +5675,11 @@ function drawPanel(){
     c.fillStyle = i === 2 ? '#7fe3d6' : 'rgba(238,245,234,0.1)'; rr(c, x, BTN_Y, 230, 70, 14); c.fill();
     c.textAlign = 'center'; c.fillStyle = i === 2 ? '#062420' : '#eef5ea'; c.font = 'bold 28px system-ui, sans-serif'; c.fillText(label, x + 115, BTN_Y + 45);
   });
-  c.textAlign = 'center'; c.fillStyle = '#a7baa6'; c.font = '22px system-ui, sans-serif';
-  c.fillText('Point and pull the trigger, or poke with a finger. B or Y closes.', PW/2, BTN_Y + 112);
+  c.fillStyle = '#ffd23f'; rr(c, 30, SHARE_Y, PW - 60, 64, 14); c.fill();
+  c.textAlign = 'center'; c.fillStyle = '#062420'; c.font = 'bold 28px system-ui, sans-serif'; c.fillText('Apply my tuning to everyone', PW/2, SHARE_Y + 42);
+  c.fillStyle = '#eef5ea'; c.font = '21px system-ui, sans-serif'; c.fillText(shareState.note.length > 70 ? shareState.note.slice(0, 68) + '…' : shareState.note, PW/2, SHARE_Y + 100);
+  c.fillStyle = '#a7baa6'; c.font = '22px system-ui, sans-serif';
+  c.fillText('Point and pull the trigger, or poke with a finger. B or Y closes.', PW/2, SHARE_Y + 140);
   pTex.needsUpdate = true;
 }
 function panelPress(px, py, start){
@@ -5482,6 +5698,7 @@ function panelPress(px, py, start){
       else if (px < 525){ tune = Object.assign({}, DEFAULTS); }
       else { closeMenu(); return; }
     }
+    else if (py >= SHARE_Y && py < SHARE_Y + 64){ publishTune(); drawPanel(); return; }
   }
   if (activeRow != null){
     const t = pageRows()[activeRow];
@@ -5641,7 +5858,7 @@ function collide(pt, r){
         const push = r - d; rig.position.addScaledVector(tmp, push); pt.addScaledVector(tmp, push);
         stopAlong(tmp.x, tmp.y, tmp.z);
         if (tmp.y > 0.6) grounded = true;
-        contact.hit = true; contact.kind = 'solid'; contact.part = null; contact.food = -1;
+        contact.hit = true; contact.kind = 'solid'; contact.part = null; contact.food = s.food != null ? s.food : -1;
       }
     } else {
       const dist = pt.distanceTo(s.c), min = s.r + r;
@@ -5979,6 +6196,13 @@ function simulateFlat(dt){
 /* ---------- shared step: move, collide, rings, HUD ---------- */
 /* v0.0.10: the fly rig is scaled like the giant human's, the other way. Your arms and head move the
    same in your room; the world just looks bigger. Speeds are in your body's units. */
+/* v0.0.15: a human whose Human size changes (a shared Apply, or a local slider) resizes in place around the head, like fly size;
+   no recentering or teleport */
+function syncHumanScale(){
+  const S = tune.humanSize; if (game.role !== 'human' || Math.abs(rig.scale.x - S) < 1e-4) return;
+  rig.updateMatrixWorld(true); camera.getWorldPosition(crH);
+  rig.scale.setScalar(S); rig.updateMatrixWorld(true); camera.getWorldPosition(crT); rig.position.x += crH.x - crT.x; rig.position.z += crH.z - crT.z;   // feet stay on the ground
+}
 function syncFlyScale(){
   const S = tune.flyScale; if (Math.abs(rig.scale.x - S) < 1e-4) return;
   rig.updateMatrixWorld(true); camera.getWorldPosition(crH);
@@ -6001,8 +6225,8 @@ function integrate(dt, now, xr){
   if (head.y < hr){ rig.position.y += hr - head.y; stopAlong(0, 1, 0); grounded = true; contact.hit = true; contact.kind = 'ground'; contact.part = null; contact.food = -1; }
   if (head.y > 89.6){ rig.position.y -= head.y - 89.6; stopAlong(0, -1, 0); }
   const P = rig.position;
-  if (P.x < -97){ P.x = -97; stopAlong(1, 0, 0); } if (P.x > 97){ P.x = 97; stopAlong(-1, 0, 0); }
-  if (P.z < -92){ P.z = -92; stopAlong(0, 0, 1); } if (P.z > 106){ P.z = 106; stopAlong(0, 0, -1); }
+  if (P.x < YARD.x0 + 3){ P.x = YARD.x0 + 3; stopAlong(1, 0, 0); } if (P.x > YARD.x1 - 3){ P.x = YARD.x1 - 3; stopAlong(-1, 0, 0); }   // v0.0.15: the bigger yard
+  if (P.z < YARD.z0 + 3){ P.z = YARD.z0 + 3; stopAlong(0, 0, 1); } if (P.z > YARD.z1 + 2){ P.z = YARD.z1 + 2; stopAlong(0, 0, -1); }
 
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
@@ -6172,14 +6396,17 @@ function setupConn(conn){
     net.pending.delete(j);
     const old = net.conns.get(j); if (old && old !== conn){ try{ old.close(); }catch(e){} }
     net.conns.set(j, conn);
-    sendState(true);
+    sendState(true); sendTuneSnapshot(conn);   // v0.0.15: late joiners and reconnects get the current shared tuning
   });
-  conn.on('data', d => { if (gen !== net.gen || !d) return; if (d.t === 's') onState(j, d); else if (d.t === 'e') onEvent(d); else if (d.t === 'f') onFood(d); });
+  conn.on('data', d => { if (gen !== net.gen || !d) return; if (d.t === 's') onState(j, d); else if (d.t === 'e') onEvent(d); else if (d.t === 'f') onFood(d);
+    else if (d.t === 'tp') onTunePub(j, d); else if (d.t === 'ts') onTuneSet(j, d); });   // v0.0.15: shared tuning
   const gone = () => { if (net.conns.get(j) === conn){ net.conns.delete(j); dropRemote(j); } if (net.pending.get(j) === conn) net.pending.delete(j); };
   conn.on('close', gone); conn.on('error', gone);
 }
 function leaveRoom(quiet){
   net.gen++;
+  // v0.0.15: a shared snapshot belongs to its room: forget it (and its revision) when leaving or switching rooms, keep the slider values
+  if (typeof shareState !== 'undefined'){ Object.assign(shareState, {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'}); try{ syncDom(); }catch(e){} }
   clearInterval(net.dialTimer); net.dialTimer = null;
   for (const c of net.conns.values()){ try{ c.close(); }catch(e){} }
   for (const c of net.pending.values()){ try{ c.close(); }catch(e){} }
@@ -6808,21 +7035,21 @@ function makeSwatter(){
 /* Spot 0 is the cookout center, facing the grill. A second human stands just south of the dessert table.
    v0.0.08 picked the spot from the player's room slot number, so any human in slot 2, 4 or 6 got the second
    spot, 44 units (1.6 m, about 5 ft) south of the cookout. Now the first human always gets the center. */
-const HUMAN_SPOTS = [new V3(0, 0, 0), new V3(0, 0, -32)];   // v0.0.14: the second human stands behind the dessert table
+const HUMAN_SPOTS = [new V3(0, 0, 0), new V3(-4, 0, -34)];   // v0.0.15: the second human stands in the north corridor   // v0.0.14: the second human stands behind the dessert table
 function humanSpotIndex(){ for (const r of net.remotes.values()) if (r.kind === 'human' && r.on && (r.si | 0) === 0) return 1; return 0; }
 const HUMAN_YAW = Math.PI;                            // v0.0.14: facing the grill and the yard (south), like the key art
-const rackSwatters = [-18, 4].map(x => { const s = makeSwatter(); s.scale.setScalar(28); s.position.set(x, 36, 13); scene.add(s); return s; });
+const rackSwatters = [-19.5, 3.5].map(x => { const s = makeSwatter(); s.scale.setScalar(28); s.position.set(x, 36, 15.5); scene.add(s); return s; });
 SPAWNS.forEach(p => { const l = makeLabel('Fly spawn', 0x6fe39a); labelSize(l, 12, 3); l.position.set(p.x, 21, p.z); scene.add(l); });
 
 const FOOD_DEFS = [
-  {name:'burgers', p:[-3.5, 21, 15.5], hp:4, col:0x7a4a2f},
-  {name:'hot dogs', p:[-10.5, 21, 15.5], hp:3, col:0xc8553d},
-  {name:'buns', p:[-16.5, 21.2, -4.5], hp:3, col:0xe7c07a},
-  {name:'tomatoes', p:[-16.5, 21.2, 4.5], hp:3, col:0xd9342b},
-  {name:'mac salad', p:[18.5, 21.2, -2], hp:3, col:0xf2c629},
-  {name:'chips', p:[18.5, 21.2, 8], hp:3, col:0xf2c629},
-  {name:'cake', p:[4.5, 21.2, -16.5], hp:3, col:0xf06fa2},
-  {name:'watermelon', p:[-4.5, 21.2, -16.5], hp:3, col:0xef4f5f}
+  {name:'burgers', p:[-4.5, 21, 18], hp:4, col:0x7a4a2f},
+  {name:'hot dogs', p:[-11.5, 21, 18], hp:3, col:0xc8553d},
+  {name:'buns', p:[-25.5, 21.2, -19.5], hp:3, col:0xe7c07a},
+  {name:'tomatoes', p:[-25.5, 21.2, -10.5], hp:3, col:0xd9342b},
+  {name:'mac salad', p:[28.5, 21.2, 4], hp:3, col:0xf2c629},
+  {name:'chips', p:[28.5, 21.2, 14], hp:3, col:0xf2c629},
+  {name:'cake', p:[21.5, 21.2, -27.5], hp:3, col:0xf06fa2},
+  {name:'watermelon', p:[12.5, 21.2, -27.5], hp:3, col:0xef4f5f}
 ];
 function buildFood(name, g){
   if (name === 'burgers') for (let i = 0; i < 3; i++){ HK.hex(1.6, 1.6, 0.8, 0x7a4a2f, g, -2 + i*2, 0, (i%2)*1.4 - 0.7, 8); HK.hex(1.7, 1.7, 0.2, 0xf2c629, g, -2 + i*2, 0.8, (i%2)*1.4 - 0.7, 8); }
@@ -6834,10 +7061,32 @@ function buildFood(name, g){
   if (name === 'cake'){ HK.hex(3, 3, 2.2, 0xf3e1c8, g, 0, 0, 0, 10); HK.hex(3.05, 3.05, 0.5, 0xf06fa2, g, 0, 2.2, 0, 10); HK.ball(0.5, 0xd8392b, g, 0, 2.9, 0, 6, 4); }
   if (name === 'watermelon') for (let i = 0; i < 3; i++){ const w = HK.mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.8, 8, 1, false, 0, Math.PI), 0x6fb64a, g, -1.6 + i*1.6, 1.2, 0); w.rotation.set(0, Math.PI/2, Math.PI/2); const r = HK.mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.85, 8, 1, false, 0, Math.PI), 0xef4f5f, g, -1.6 + i*1.6, 1.2, 0); r.rotation.copy(w.rotation); }
 }
+/* v0.0.15: each food's collider follows its model piece by piece (patties, buns, bowls, slices...), not one 6 x 3.2 x 6 box,
+   and it shrinks in height with the model as the food is eaten (k is the same height factor the model uses) */
+function foodPrims(name, P, k, i){
+  const o = {food:i, label:'the ' + name}, out = [], Y = y => P[1] + y * k;
+  const cyl = (x, z, y0, y1, r) => out.push(PR.cyl(P[0] + x, (Y(y0) + Y(y1)) / 2, P[2] + z, r, (y1 - y0) * k / 2, o));
+  const cone = (x, z, y0, y1, r1, r2) => out.push(PR.cone(P[0] + x, (Y(y0) + Y(y1)) / 2, P[2] + z, r1, r2, (y1 - y0) * k / 2, o));
+  const ell = (x, y, z, rx, ry, rz, clip) => { const e = PR.ell(new THREE.Matrix4().makeTranslation(P[0] + x, Y(y), P[2] + z), rx, ry * k, rz, o); if (clip != null) e.clipY = Y(clip); out.push(e); };
+  const box = (x, y, z, hx, hy, hz, rad, rot) => { const m = new THREE.Matrix4().makeTranslation(P[0] + x, Y(y), P[2] + z); if (rot) m.multiply(rot);
+    out.push(PR.obox(m, hx, hy * (rot ? 1 : k), hz, Math.min(rad || 0, hy * (rot ? 1 : k) * 0.95), o)); };
+  if (name === 'burgers') for (let j = 0; j < 3; j++) cone(-2 + j * 2, (j % 2) * 1.4 - 0.7, 0, 1.0, 1.5, 1.6);                       // patty + cheese
+  if (name === 'hot dogs') for (let j = 0; j < 3; j++) box(0, 0.6, -1.6 + j * 1.6, 2.2, 0.53, 0.53, 0.45);                             // 6-sided sausages along x
+  if (name === 'buns') for (let j = 0; j < 4; j++) ell(-1.6 + (j % 2) * 3.2, 0.4, -1.4 + Math.floor(j / 2) * 2.8, 1.45, 0.87, 1.45);   // flattened balls
+  if (name === 'tomatoes'){ cyl(0, 0, 0, 0.3, 2.9); for (let j = 0; j < 4; j++) cyl(-1.4 + (j % 2) * 2.8, -1.2 + Math.floor(j / 2) * 2.4, 0.3, 0.8, 1.15); }
+  if (name === 'mac salad'){ cone(0, 0, 0, 1.6, 1.95, 2.93); for (let j = 0; j < 7; j++) ell(Math.cos(j) * 1.4, 1.6, Math.sin(j) * 1.4, 0.66, 0.66, 0.66); }
+  if (name === 'chips'){ cone(0, 0, 0, 1.4, 1.95, 2.93); const e = new THREE.Euler();
+    for (let j = 0; j < 6; j++){ e.set(j, j * 2, 0.4); const R = new THREE.Matrix4().makeRotationFromEuler(e).multiply(new THREE.Matrix4().makeTranslation(0, 0.1, 0)); box(Math.cos(j) * 1.2, 1.5 + (j % 3) * 0.2, Math.sin(j) * 1.2, 0.6, 0.1, 0.45, 0, R); } }
+  if (name === 'cake'){ cyl(0, 0, 0, 2.7, 2.95); ell(0, 2.9, 0, 0.5, 0.5, 0.5); }
+  if (name === 'watermelon') for (let j = 0; j < 3; j++){   // upright half-round slices: flat disks of even thickness along z, cut at the slice base, squashed in height as eaten
+    const m = new THREE.Matrix4().makeTranslation(P[0] - 1.6 + j * 1.6, Y(1.2), P[2]).multiply(new THREE.Matrix4().makeScale(1, k, 1)).multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    const c = PR.ocyl(m, 2.4, 0.425, Math.min(1, k), o); c.clipY = Y(1.2); out.push(c); }
+  return out;
+}
 const foods = FOOD_DEFS.map((f, i) => {
   const g = HK.group(scene, f.p[0], f.p[1], f.p[2]);
   buildFood(f.name, g); mergeGroup(g);
-  const sol = solidBox(f.p[0] - 3, f.p[1], f.p[2] - 3, f.p[0] + 3, f.p[1] + 3.2, f.p[2] + 3, {food:i});
+  const sol = solidShape(foodPrims(f.name, f.p, 1, i), {food:i, label:'the ' + f.name});
   const bar = makeLabel('', 0xffd23f); labelSize(bar, 3.6, 0.9); bar.position.set(f.p[0], f.p[1] + 6, f.p[2]); scene.add(bar);
   return {name:f.name, col:f.col, max:f.hp, hp:f.hp, g, sol, bar, shown:-1};
 });
@@ -6853,6 +7102,9 @@ function drawFoodBars(){
     const k = 0.4 + 0.6 * (f.hp / f.max);
     f.g.scale.set(1, k, 1); f.g.visible = f.hp > 0;
     f.sol.off = f.hp <= 0;
+    { const d = FOOD_DEFS.find(x => x.name === f.name), np = foodPrims(f.name, d.p, k, foods.indexOf(f));   // v0.0.15: the collider shrinks with the model
+      f.sol.sdf.forEach((pr, j) => { const s0 = pr.s; for (const key of Object.keys(pr)) if (!(key in np[j])) delete pr[key]; Object.assign(pr, np[j]); pr.s = s0; });
+      f.sol.bc.set(0, 0, 0); f.sol.sdf.forEach(pr => f.sol.bc.add(pr.bc)); f.sol.bc.divideScalar(f.sol.sdf.length); f.sol.br = 0; f.sol.sdf.forEach(pr => { f.sol.br = Math.max(f.sol.br, f.sol.bc.distanceTo(pr.bc) + pr.br); }); }
   });
 }
 /* the piece of food a fly carries */
@@ -6910,7 +7162,7 @@ function applyRole(){
     const idx = humanSpotIndex(); game.spotIdx = idx;
     game.spot.copy(HUMAN_SPOTS[idx]);
     game.crawl = null; game.level = null; game.alignCheckT = 0; game.alignDeadline = clock.elapsedTime + 2;
-    popup(idx ? 'Second human: across the dessert table' : 'At the grill. A or X re-centers.', 2.5);
+    popup(idx ? 'Second human: north of the cookout' : 'At the grill. A or X re-centers.', 2.5);
     rig.scale.setScalar(tune.humanSize);
     rig.position.copy(game.spot); rig.rotation.set(0, HUMAN_YAW, 0); yaw = HUMAN_YAW; pitch = 0;
     stopAll(); game.centerSet = false;
@@ -6997,6 +7249,15 @@ function primBox(pr){                       // world-space x/y/z range of a smoo
   if (pr.k === 'aabb') return [pr.cx - pr.hx, pr.cy - pr.hy, pr.cz - pr.hz, pr.cx + pr.hx, pr.cy + pr.hy, pr.cz + pr.hz];
   if (pr.k === 'cap') return [Math.min(pr.a.x, pr.b.x) - pr.r, Math.min(pr.a.y, pr.b.y) - pr.r, Math.min(pr.a.z, pr.b.z) - pr.r, Math.max(pr.a.x, pr.b.x) + pr.r, Math.max(pr.a.y, pr.b.y) + pr.r, Math.max(pr.a.z, pr.b.z) + pr.r];
   if (pr.k === 'cyl' || pr.k === 'tube'){ const R = pr.r + (pr.t || 0); return [pr.cx - R, pr.cy - pr.hh, pr.cz - R, pr.cx + R, pr.cy + pr.hh, pr.cz + R]; }
+  if (pr.k === 'cone'){ const R = Math.max(pr.r1, pr.r2); return [pr.cx - R, pr.cy - pr.hh, pr.cz - R, pr.cx + R, pr.cy + pr.hh, pr.cz + R]; }
+  if (pr.k === 'ocyl'){ _bm.copy(pr.inv).invert(); const o = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]){ _bc.set(sx * pr.r, sy * pr.hh, sz * pr.r).applyMatrix4(_bm); o[0] = Math.min(o[0], _bc.x); o[1] = Math.min(o[1], _bc.y); o[2] = Math.min(o[2], _bc.z); o[3] = Math.max(o[3], _bc.x); o[4] = Math.max(o[4], _bc.y); o[5] = Math.max(o[5], _bc.z); }
+    return o; }
+  if (pr.k === 'ell' || pr.k === 'lathe'){ _bm.copy(pr.inv).invert(); const o = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];   // v0.0.15: the real footprint of a turned shape, not its bounding ball
+    const R = pr.k === 'ell' ? [pr.rx, pr.ry, pr.rz] : null, LR = pr.k === 'lathe' ? Math.max(pr.ax, pr.bx) + pr.t : 0, y0 = pr.k === 'lathe' ? Math.min(pr.ay, pr.by) - pr.t : -pr.ry, y1 = pr.k === 'lathe' ? Math.max(pr.ay, pr.by) + pr.t : pr.ry;
+    for (const sx of [-1, 1]) for (const yy of [y0, y1]) for (const sz of [-1, 1]){ _bc.set(R ? sx * R[0] : sx * LR, yy, R ? sz * R[2] : sz * LR).applyMatrix4(_bm);
+      o[0] = Math.min(o[0], _bc.x); o[1] = Math.min(o[1], _bc.y); o[2] = Math.min(o[2], _bc.z); o[3] = Math.max(o[3], _bc.x); o[4] = Math.max(o[4], _bc.y); o[5] = Math.max(o[5], _bc.z); }
+    return o; }
   if (pr.k === 'obox'){ _bm.copy(pr.inv).invert(); const o = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]){ _bc.set(pr.ox + sx*pr.hx, pr.oy + sy*pr.hy, pr.oz + sz*pr.hz).applyMatrix4(_bm); o[0] = Math.min(o[0], _bc.x); o[1] = Math.min(o[1], _bc.y); o[2] = Math.min(o[2], _bc.z); o[3] = Math.max(o[3], _bc.x); o[4] = Math.max(o[4], _bc.y); o[5] = Math.max(o[5], _bc.z); }
     return o; }
@@ -7037,7 +7298,7 @@ function humanCollide(){
     dx += o[1] * o[0]; dz += o[2] * o[0];
   }
   const x = hwH.x + dx, z = hwH.z + dz;
-  dx += Math.max(-96, Math.min(96, x)) - x; dz += Math.max(-92, Math.min(110, z)) - z;
+  dx += Math.max(YARD.x0 + 4, Math.min(YARD.x1 - 4, x)) - x; dz += Math.max(YARD.z0 + 3, Math.min(YARD.z1 + 6, z)) - z;   // v0.0.15: the bigger yard
   rig.position.x += dx; rig.position.z += dz;
 }
 
@@ -7146,6 +7407,7 @@ function clank(v, metal){
   thwack(0.25 * v);
 }
 function humanCommon(dt, now, grips, anyReach){
+  syncHumanScale();   // v0.0.15: shared Human size applies right away
   const m = game.local;
   if (!game.centerSet){ game.center.set(camera.position.x, 0, camera.position.z); game.centerSet = true; }
   constrainHands(m, now);
@@ -7351,8 +7613,15 @@ function worldPrims(){
     else if (s.c) WORLD_PRIMS.push(PR.sph(s.c, s.r, {s, label:s.label || 'something'}));
   }
   // the fences have no flight colliders (the yard edge stops you first), but you can walk up them
-  for (const [x0, z0, x1, z1] of [[-100.6, -95, -99.4, 104], [99.4, -95, 100.6, 104], [-100, -95.6, -80, -94.4], [80, -95.6, 100, -94.4]])
-    WORLD_PRIMS.push(PR.aabb(new V3(x0, 0, z0), new V3(x1, 34, z1), {label:'the fence'}));
+  if (PROP_ART.status.fence === 'imported'){
+    // v0.0.15: LF_Fence.glb panels (scale 33): boards from 0.165 to 1.98 in from the line, two rails 2.87 to 5.05 in, at heights 7.0-9.5 and 22.8-25.3
+    const X0 = YARD.x0, X1 = YARD.x1, Z0 = YARD.z0, Z1 = YARD.z1;
+    for (const [a, b, y0, y1] of [[0.165, 1.98, 0, 33.8], [2.87, 5.05, 7.0, 9.5], [2.87, 5.05, 22.8, 25.3]]){
+      WORLD_PRIMS.push(PR.aabb(new V3(X0 + a, y0, Z0), new V3(X0 + b, y1, Z1), {label:'the fence'}), PR.aabb(new V3(X1 - b, y0, Z0), new V3(X1 - a, y1, Z1), {label:'the fence'}));
+      WORLD_PRIMS.push(PR.aabb(new V3(X0, y0, Z0 + a), new V3(-78, y1, Z0 + b), {label:'the fence'}), PR.aabb(new V3(78, y0, Z0 + a), new V3(X1, y1, Z0 + b), {label:'the fence'}));
+    }
+  } else for (const [x0, z0, x1, z1] of [[YARD.x0 - 0.6, YARD.z0, YARD.x0 + 0.6, YARD.z1], [YARD.x1 - 0.6, YARD.z0, YARD.x1 + 0.6, YARD.z1], [YARD.x0, YARD.z0 - 0.6, -78, YARD.z0 + 0.6], [78, YARD.z0 - 0.6, YARD.x1, YARD.z0 + 0.6]])
+    WORLD_PRIMS.push(PR.aabb(new V3(x0, 0, z0), new V3(x1, 34, z1), {label:'the fence'}));   // the fallback planks
   return WORLD_PRIMS;
 }
 /* the human's body as smooth shapes: capsules for head, arms, hands, legs and swatters, a rounded box for the torso */
@@ -7553,7 +7822,7 @@ function crawlStep(dt, now, xr){
   const d0 = projectTo(cr.C, list, cH, crU);
   updateCrawlCue(cr, cH);
   if (d0 > cH + Math.max(0.6, 1.2 * tune.flyScale)){ crawlRelease(now, false, 'surface lost ' + d0.toFixed(2) + ' ' + (cr.pr && cr.pr.label)); return; }      // the surface went away (walked off a thin edge, or the human moved off)
-  if (cr.C.x < -99.5 || cr.C.x > 99.5 || cr.C.z < -94 || cr.C.z > 112 || cr.C.y > 96){ cr.C.addScaledVector(cr.cv, -dt); cr.cv.set(0, 0, 0); }
+  if (cr.C.x < YARD.x0 + 0.5 || cr.C.x > YARD.x1 - 0.5 || cr.C.z < YARD.z0 + 1 || cr.C.z > YARD.z1 + 8 || cr.C.y > 96){ cr.C.addScaledVector(cr.cv, -dt); cr.cv.set(0, 0, 0); }
   // 5. smooth the normal so facets and seams don't jerk the view (the view still follows the surface fully)
   cr.N.lerp(crU, tune.normSmooth > 0.005 ? 1 - Math.exp(-dt / tune.normSmooth) : 1).normalize();
   // 6. heading rides along the surface; snap and smooth turns spin it around the normal
@@ -8001,6 +8270,56 @@ function sendEvent(e){
   if (e.to && net.conns.get(e.to)){ try{ net.conns.get(e.to).send(e); }catch(err){} return; }
   for (const c of net.conns.values()) if (c.open){ try{ c.send(e); }catch(err){} }
 }
+/* ---------- v0.0.15: "Apply my tuning to everyone" ----------
+   Anyone may publish. The request goes to the room host (the lowest connected player number), which validates it,
+   numbers it (rev) and sends the same snapshot to everyone, itself included. A higher rev always wins and nobody re-sends
+   what they receive, so there are no echo loops and an old snapshot never overrides a newer one. When two players connect,
+   each sends the last shared snapshot it has, so late joiners and reconnects get the current one. */
+const tuneHost = () => { let h = mySlot(); for (const [j, c] of net.conns) if (c.open && j < h) h = j; return h; };
+const snapNewer = (rev, hs, id) => rev > shareState.rev || (rev === shareState.rev && (hs < shareState.hs || (hs === shareState.hs && id > shareState.id)));
+function setShareNote(text){ shareState.note = text; try{ syncDom(); }catch(e){} if (menuOpen) drawPanel(); }
+function publishTune(){
+  const v = {}; for (const t of SHARED_TUNE) v[t.k] = tune[t.k];
+  const req = {t:'tp', id:mySlot() + '.' + Date.now().toString(36) + '.' + Math.floor(Math.random() * 1e6).toString(36), v, by:(net.name || ('Player ' + mySlot())).slice(0, 24), from:mySlot()};
+  if (!net.peer){ setShareNote('You are not in a room, so your sliders apply to just you. Join a room to share them.'); return 'solo'; }
+  const h = tuneHost();
+  if (h === mySlot()){ hostAcceptTune(req); if (!net.conns.size) setShareNote('Saved as the room tuning. Players who join get it.'); return 'host'; }
+  const hc = net.conns.get(h);
+  if (hc && hc.open){ try{ hc.send(req); }catch(e){} }
+  else for (const c of net.conns.values()) if (c.open){ try{ c.send(req); }catch(e){} }   // no direct line to the host: the others pass it on
+  setShareNote('Sent to the room host…'); return 'sent';
+}
+function hostAcceptTune(req){
+  if (!req || typeof req.id !== 'string' || req.id.length > 64 || shareState.seen.has(req.id)) return false;
+  shareState.seen.add(req.id); if (shareState.seen.size > 200) shareState.seen = new Set([...shareState.seen].slice(-100));
+  const v = cleanTuneSnapshot(req.v); if (!v) return false;
+  const snap = {t:'ts', rev:shareState.rev + 1, hs:mySlot(), id:req.id, by:String(req.by || 'a player').slice(0, 24), v};
+  applyTuneSnapshot(snap);
+  for (const c of net.conns.values()) if (c.open){ try{ c.send(snap); }catch(e){} }
+  return true;
+}
+function onTunePub(j, d){
+  if (tuneHost() === mySlot()){ hostAcceptTune(d); return; }
+  if (d.rl) return;                                   // pass a request on at most once
+  const h = tuneHost(), hc = net.conns.get(h);
+  if (h !== j && hc && hc.open){ try{ hc.send(Object.assign({}, d, {rl:1})); }catch(e){} }
+}
+function onTuneSet(j, d){
+  const rev = d && d.rev, hs = d && d.hs;
+  if (!Number.isInteger(rev) || rev < 1 || rev > 1e9 || !Number.isInteger(hs) || hs < 1 || hs > 99 || typeof d.id !== 'string' || d.id.length > 64) return false;
+  if (!snapNewer(rev, hs, d.id)) return false;
+  const v = cleanTuneSnapshot(d.v); if (!v) return false;
+  applyTuneSnapshot({rev, hs, id:d.id, by:String(d.by || 'a player').slice(0, 24), v});
+  return true;
+}
+function applyTuneSnapshot(sn){
+  Object.assign(tune, sn.v);
+  Object.assign(shareState, {rev:sn.rev, hs:sn.hs, id:sn.id, by:sn.by, v:sn.v});
+  saveTune();
+  setShareNote('Shared tuning #' + sn.rev + ' from ' + sn.by + ' is on for everyone (fly lives and hits count from the next round). Sliders change only you until you Apply again.');
+  if (state !== 'menu') popup('Tuning from ' + sn.by + ' applied to everyone', 2);
+}
+function sendTuneSnapshot(conn){ if (shareState.rev > 0 && conn && conn.open){ try{ conn.send({t:'ts', rev:shareState.rev, hs:shareState.hs, id:shareState.id, by:shareState.by, v:shareState.v}); }catch(e){} } }
 function onEvent(e){
   const now = clock.elapsedTime;
   if (e.to && e.to !== mySlot()) return;
@@ -8042,7 +8361,7 @@ function gameTick(dt, now){
   if (now - (game.remoteBotsT || 0) > 1.5 && game.botViews.length) showRemoteBots([]);
 }
 
-window.__likeflies = {dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, RINGS, BOT_PATH, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => cur, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+window.__likeflies = {dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => cur, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -8097,12 +8416,14 @@ TUNE.forEach(t => {
 });
 function syncDom(){
   TUNE.forEach(t => { $('#t_' + t.k).value = tune[t.k]; $('#o_' + t.k).textContent = fmtVal(t); });
+  $('#tShareNote').textContent = shareState.note;
   $('#tVig').checked = tune.vignette; $('#tSnd').checked = tune.sound; $('#tHud').checked = tune.hud;
 }
 $('#tVig').addEventListener('change', e => { tune.vignette = e.target.checked; saveTune(); });
 $('#tSnd').addEventListener('change', e => { tune.sound = e.target.checked; saveTune(); if (tune.sound) startAudio(); });
 $('#tHud').addEventListener('change', e => { tune.hud = e.target.checked; saveTune(); });
-$('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });
+$('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });   // local only: press Apply to share the defaults
+$('#tShare').addEventListener('click', () => publishTune());
 $('#tCopy').addEventListener('click', () => {
   const lines = ['Like Flies v0.0.08 settings'].concat(TUNE.map(t => (GROUP_TITLE[groupOf(t)] || groupOf(t)) + ' / ' + t.label + ': ' + fmtVal(t) + (tune[t.k] !== t.def ? '  (default ' + t.def + (t.unit || '') + ')' : '')));
   const text = lines.join('\n');
