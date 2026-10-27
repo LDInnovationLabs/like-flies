@@ -61,6 +61,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 .row output{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
 .row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--wing)}
 .row small{grid-column:1/-1;color:var(--muted);font-size:12px}
+.raceboard table{width:100%;border-collapse:collapse;font-size:13px}.raceboard th,.raceboard td{text-align:left;padding:4px 6px;border-bottom:1px solid rgba(238,245,234,.12)}.raceboard td.t{font-family:var(--mono)}.raceboard tr.me td{color:#ffd23f}
 .tgroup{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--wing);margin:6px 0 0}
 .checks{display:flex;gap:18px;flex-wrap:wrap}
 .checks label{display:flex;gap:8px;align-items:center}
@@ -104,7 +105,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.15 · Bigger Yard</div>
+      <div class="eyebrow">Test v0.0.16 · Async Racing</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -148,7 +149,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
         <dt>Rest</dt><dd>Stop flapping and you hover in place, drifting a little.</dd>
         <dt>Brake</dt><dd>Drop your arms to your sides for a soft stop.</dd>
         <dt>Turn</dt><dd>While gliding, dip one wing. Or flick the right thumbstick.</dd>
-        <dt>Rings</dt><dd>Ten rings make a loop through the yard: over the grill, through the doghouse, under a lawn chair, through the chicken coop, over the fire, past the tricycle, over the duck, down the corn row, over the tallest sunflower and under a table.</dd>
+        <dt>Race</dt><dd>The rings are always open. Fly through the pulsing green START ring nearest you to start your own time trial, then follow the green NEXT ring (gold = done, red = later) until you have all ten. The yellow arrow points the way. Nobody else's run is affected. 60 seconds without the next ring resets your circuit where you are. The room board keeps the fastest time: a new record earns a race point and the crown.</dd>
         <dt>Settings</dt><dd>B or Y opens settings in VR. With bare hands, pinch your left thumb and finger for one second.</dd>
         <dt>Reset</dt><dd>A or X, or the Reset button in settings.</dd>
         <dt>Land</dt><dd>Touch anything to land on it, including the human. Your six feet plant on the surface.</dd>
@@ -190,9 +191,15 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       </div>
     </details>
 
+    <details id="raceBox" open>
+      <summary>Room race board</summary>
+      <div id="raceBoard" class="raceboard"></div>
+      <p class="note" id="raceNote">Join a room to race for the crown. Solo times stay on this device.</p>
+    </details>
+
     <div class="foot">
-      <span>Best time: <b id="bestTime">none yet</b></span>
-      <span>Screen as fly: Space flap or take off · W glide · W/S crawl and A/D turn when landed · Q/E dash · drag to look. As human: click swat right · F swat left · Space clap · G and H swatters · W/S walk</span>
+      <span>My best in this room competition: <b id="bestTime">none yet</b></span>
+      <span>Screen as fly: T restart my race trial here · Space flap or take off · W glide · W/S crawl and A/D turn when landed · Q/E dash · drag to look. As human: click swat right · F swat left · Space clap · G and H swatters · W/S walk</span>
     </div>
   </div>
 </div>
@@ -3921,8 +3928,8 @@ const TUNE = [
   {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'}
 ];
 const groupOf = t => t.g || 'Flight';
-const PAGES = ['Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play'];
-const TAB_LABEL = {'Powered glide':'Glide'};
+const PAGES = ['Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race'];
+const TAB_LABEL = {'Powered glide':'Glide'};   // 'Race' shows the room board
 const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort'};
 const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
@@ -5642,7 +5649,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.15 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.16 · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
     const n = PAGES.length, tw = (PW - 60 - (n - 1)*8) / n, x = 30 + i*(tw + 8), on = pg === panelPage;
     c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
@@ -5656,6 +5663,18 @@ function drawPanel(){
       c.fillStyle = on ? '#ffd23f' : 'rgba(238,245,234,0.1)'; rr(c, x, ROW0 + 2, bw, 44, 10); c.fill();
       c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold 24px system-ui, sans-serif'; c.fillText(label, x + bw/2, ROW0 + 32);
     });
+  }
+  if (panelPage === 'Race'){   // v0.0.16: the room race board in the headset
+    const B = boardRows(); c.textAlign = 'left'; c.fillStyle = '#ffd23f'; c.font = 'bold 28px system-ui, sans-serif';
+    c.fillText(B.crown ? 'Crown: ' + (ledger.names[B.crown.pid] || 'a fly') + '  ' + fmtCs(B.crown.cs) : (net.room ? 'No room record yet' : 'Join a room to race for the crown'), 30, ROW0 + 30);
+    c.fillStyle = '#a7baa6'; c.font = '22px system-ui, sans-serif'; c.fillText('#   fly                     best        start                      pts', 30, ROW0 + 72);
+    B.rows.slice(0, 9).forEach((r, k) => { const y = ROW0 + 110 + k * 44; c.fillStyle = r.me ? '#ffd23f' : '#eef5ea'; c.font = '26px ui-monospace, monospace';
+      c.fillText(((r.cs != null ? k + 1 : '-') + '').padEnd(3) + ((r.crown ? '* ' : '') + r.name).slice(0, 18).padEnd(19) + (r.cs != null ? fmtCs(r.cs) : '-').padEnd(10) + (r.start != null ? (r.start + 1) + ' ' + rings[r.start].name : '-').slice(0, 18).padEnd(19) + r.pts, 30, y); });
+    c.fillStyle = '#a7baa6'; c.font = '20px system-ui, sans-serif';
+    const lines = ['Competition ' + B.sig + (net.room ? ' · room "' + net.room + '"' : '')]; let cur = '';
+    for (const w of raceHudLine().split(' ')){ const t = cur ? cur + ' ' + w : w; if (c.measureText(t).width > PW - 60 && cur){ lines.push(cur); cur = w; } else cur = t; }
+    if (cur) lines.push(cur);
+    lines.slice(0, 4).forEach((t, i) => c.fillText(t, 30, ROW0 + 110 + 9 * 44 + 10 + i * 28));
   }
   pageRows().forEach((t, i) => {
     const y = ROW0 + (i + off)*ROW, f = (tune[t.k] - t.min) / (t.max - t.min);
@@ -5808,21 +5827,14 @@ function addBurst(d){
 let state = 'menu', cur = 0, startT = 0, finishT = 0, resetAt = 0, grounded = true, flapLevel = 0, turnRate = 0;
 let yaw = 0, pitch = 0.1, lastFlapT = -9, calSpan = 1.4, flightState = 'ground', pinchT = 0, pinchLatch = false;
 const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
-function resetCourse(){
+/* respawn this fly at a trash can (only this fly). keepRun: a new food round respawns flies without erasing their trials */
+function resetCourse(keepRun){
   if (game.role === 'human'){ applyRole(); return; }
   rig.scale.setScalar(tune.flyScale); game.stuck = null; game.crawl = null; game.level = null; game.levVig = 0;
   placeAtSpawn(); stopAll(); game.stunUntil = 0; game.webUntil = 0;
-  cur = 0; startT = 0; finishT = 0; resetAt = 0;
   HANDS.forEach(h => h.prevOk = false); headPrevOk = false;
-}
-function passRing(now){
-  if (cur === 0) startT = now;
-  cur++;
-  if (cur >= rings.length){
-    finishT = now - startT; resetAt = now + 7; ding(true);
-    if (best == null || finishT < best){ best = finishT; store.set('likeflies.best', best); }
-    $('#bestTime').textContent = fmt(best);
-  } else ding(false);
+  raceSampleReset();                                         // v0.0.16: a respawn jump is never a ring crossing
+  if (!(keepRun && race.phase === 'running')) raceCancel(keepRun ? 'round respawn' : 'respawn');
 }
 
 const tA = new V3(), tB = new V3(), tmp = new V3(), head = new V3();
@@ -5935,8 +5947,8 @@ function updateHandVisuals(headL){
   if (L.has){
     camera.getWorldPosition(headW);
     arrow.position.copy(L.pos).add(tmp.set(0, 0.21, 0));
-    arrow.visible = cur < rings.length;
-    if (arrow.visible) arrow.lookAt(rings[cur].mesh.position);
+    const rt = raceTarget(); arrow.visible = rt >= 0;
+    if (arrow.visible) arrow.lookAt(rings[rt].mesh.position);
     const f = nearestFriend();
     friendArrow.visible = !!f;
     if (f){ friendArrow.position.copy(L.pos).add(tmp.set(0.06, 0.2, 0)); friendArrow.lookAt(f); }
@@ -6153,6 +6165,7 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'Space'){ e.preventDefault(); if (!e.repeat) flatFlap(); }
   if (e.code === 'KeyR') resetCourse();
+  if (e.code === 'KeyT' && game.role === 'fly' && state !== 'menu'){ raceCancel('restart here'); race.cue = 'Trial restarted'; race.cueUntil = raceNow() + 2; }   // v0.0.16
   if (!e.repeat && e.code === 'KeyQ') flatBurst(-7, 0, 0);
   if (!e.repeat && e.code === 'KeyE') flatBurst(7, 0, 0);
   if (!e.repeat && e.code === 'KeyC') flatBurst(0, -7, 0);
@@ -6239,8 +6252,7 @@ function integrate(dt, now, xr){
 
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
-  if (cur < rings.length && head.distanceTo(rings[cur].mesh.position) < rings[cur].rad + 0.5 * tune.flyScale) passRing(now);
-  if (resetAt && now > resetAt){ cur = 0; startT = 0; finishT = 0; resetAt = 0; }
+  raceUpdate();   // v0.0.16: swept, oriented ring crossings for this fly's own trial
 
   boost = Math.min(boost, boostVec.length());           // a wall or the ground also stops the boost
   vel.copy(vMove).add(vDash).add(boostVec);
@@ -6249,14 +6261,12 @@ function integrate(dt, now, xr){
   vig.material.opacity = now < game.deadUntil ? 0.95 : (xr && tune.vignette && !game.crawl) ? Math.max(0, Math.min(0.8, Math.max((speed - 3) / 9, (turnRate - 0.6) / 1.5))) : 0;
   vig2.visible = game.levVig > 0.002; vig2.material.opacity = game.levVig; vig2.scale.setScalar(1.25 - 0.6 * game.levVig);
 
-  let a, b;
-  if (cur >= rings.length){ a = 'Course done ' + fmt(finishT); b = 'Best ' + fmt(best); }
-  else { a = 'Ring ' + (cur + 1) + '/' + rings.length + (startT ? ' ' + fmt(now - startT) : ''); b = rings[cur].name; }
+  const raceLine = raceHudLine();
   if (game.stuck && !game.crawl) flightState = 'landed' + (game.stuck.kind === 'human' ? ' on the human' : game.stuck.kind === 'web' ? ' in the web' : game.stuck.food >= 0 ? ' on the ' + foods[game.stuck.food].name : '');
   game.flyHud = [
     game.hudTop || 'FLY',
-    game.hudCarry || (a + ' · ' + b),
-    flightState + ' · ' + speed.toFixed(1) + ' m/s',
+    game.hudCarry ? game.hudCarry + ' · ' + raceLine : raceLine,
+    raceCrownLine() + ' · ' + flightState + ' · ' + speed.toFixed(1) + ' m/s',
     (net.remotes.size ? (net.remotes.size + 1) + ' playing · ' : '') + inputMode + ' · Food left ' + foodLeft() + '/' + totalFood() + ' · Flies ate ' + game.eaten
   ];
 }
@@ -6268,13 +6278,267 @@ function idle(t){
   setBuzz(0, 0);
 }
 
+/* =====================================================================
+   v0.0.16: ALWAYS-OPEN ASYNCHRONOUS RACING (see V16-ASYNC-RACING-DESIGN.md).
+   Every fly runs its own time trial: the START ring nearest to it is green; flying through it is 1/N;
+   then the next ring in the fixed course order (wrapping) until N distinct rings are collected.
+   Ring colors, timer, arrow and sounds are personal. 60 s without the next correct ring resets the
+   circuit where the fly is. Finishes go to the room's race host, which keeps the room board, the crown
+   and record points (one per first/strictly faster room record).
+   ===================================================================== */
+const RACE_RULES = 'lf-race-1', RACE_TIMEOUT = 60, RACE_RESULT_SECS = 7, RACE_TUBE = 0.42;
+const raceClock = {off:0};                                   // test-only: advances simulated time for timeout checks
+const raceNow = () => performance.now() / 1000 + raceClock.off;   // monotonic; menus and tab focus do not pause a run
+const RN = () => rings.length;
+const ringNormal = (i, out) => (out || new V3()).set(0, 0, 1).applyQuaternion(rings[i].mesh.quaternion).normalize();
+const fmtCs = cs => { cs = Math.max(0, Math.round(cs)); const m = Math.floor(cs / 6000), sec = Math.floor(cs / 100) % 60, c = cs % 100; return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec + '.' + (c < 10 ? '0' : '') + c; };
+function fnv(str){ let h = 0x811c9dc5; for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return ('0000000' + h.toString(16)).slice(-8); }
+function courseKey(){ return JSON.stringify([RACE_RULES, rings.map((r, i) => { const n = ringNormal(i); return [r.mesh.position.toArray().map(v => +v.toFixed(2)), n.toArray().map(v => +v.toFixed(3)), r.rad]; })]); }
+const tuneValues = src => JSON.stringify(SHARED_TUNE.map(t => +Number(src[t.k]).toFixed(4)));
+function roomTuning(){ if (shareState.rev > 0 && shareState.v) return shareState.v; const d = {}; for (const t of SHARED_TUNE) d[t.k] = t.def; return d; }
+const compSig = () => 'C' + fnv(courseKey() + '|' + tuneValues(roomTuning()));      // the room competition: course + published (or default) tuning
+const localSig = () => 'C' + fnv(courseKey() + '|' + tuneValues(tune));             // what this fly is actually flying with
+let racePid = store.get('likeflies.pid', null);
+if (!racePid || typeof racePid !== 'string'){ racePid = 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36); store.set('likeflies.pid', racePid); }
+const race = {phase:'armed', start:-1, next:-1, done:0, visited:[], trace:[], times:[], t0:0, lastProg:0, runId:'', room:'', sigStart:'', compStart:'',
+  snd:{}, result:null, resultUntil:0, cue:'', cueUntil:0, sides:[], outPos:[], prevHead:new V3(), prevOk:false, pending:null, pendingT:0, events:[], pbs:store.get('likeflies.pb16', {}) || {}, mine:(store.get('likeflies.mine16', []) || []).slice(-20), resubT:0};
+function raceLog(e){ race.events.push(Object.assign({at:+raceNow().toFixed(3)}, e)); if (race.events.length > 200) race.events.shift(); }
+const raceHead = out => { rig.updateMatrixWorld(true); return camera.getWorldPosition(out || new V3()); };
+function nearestRing(p){ let bi = 0, bd = Infinity; for (let i = 0; i < RN(); i++){ const d = p.distanceTo(rings[i].mesh.position); if (d < bd - 1e-9){ bd = d; bi = i; } } return bi; }
+function raceSampleReset(){ race.prevOk = false; race.sides.length = 0; race.outPos.length = 0; }
+/* arm the nearest ring as this fly's START (no timer cost, no ring counted) */
+function raceArm(why){
+  const keepCue = race.cueUntil > raceNow();
+  Object.assign(race, {phase:'armed', done:0, visited:[], trace:[], times:[], t0:0, lastProg:0, runId:'', sigStart:'', compStart:'', room:''});
+  race.start = race.next = nearestRing(raceHead());
+  if (!keepCue) race.cue = '';
+  raceLog({k:'arm', start:race.start, why:why || ''});
+}
+function raceCancel(why){ if (race.phase === 'running') raceLog({k:'cancel', why, runId:race.runId}); raceArm(why); }
+function raceOff(why){ if (race.phase === 'running') raceLog({k:'cancel', why, runId:race.runId}); race.phase = 'off'; race.done = 0; race.runId = ''; race.visited = []; }
+function bloop(kind){
+  race.snd[kind] = (race.snd[kind] || 0) + 1;
+  if (!audio || !tune.sound) return;
+  race.snd.played = (race.snd.played || 0) + 1;
+  try{ const ac = audio.ac, t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    if (kind === 'reset'){ o.type = 'sine'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(220, t + 0.25); g.gain.setValueAtTime(0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3); }
+    else { o.type = 'sine'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(1040, t + 0.08); g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16); }
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.35); }catch(e){}
+}
+/* genuine crossings: a ring's plane must be crossed from outside a small latch band, with the
+   crossing point inside the opening (ring radius minus its tube). Fast flight is a segment test, so it can't tunnel. */
+const _rc = new V3(), _rn = new V3(), _rx = new V3(), _rh = new V3();
+function raceUpdate(){
+  if (game.role !== 'fly' || race.phase === 'off') { race.prevOk = false; return; }
+  const p = raceHead(_rh), N = RN(), band = Math.max(0.12, 0.3 * tune.flyScale);
+  if (race.prevOk && p.distanceTo(race.prevHead) > 60) raceSampleReset();         // a teleport is never a crossing
+  if (!race.prevOk){ for (let i = 0; i < N; i++){ ringNormal(i, _rn); const sd = _rn.dot(_rc.subVectors(p, rings[i].mesh.position)); race.sides[i] = Math.abs(sd) > band ? Math.sign(sd) : 0; race.outPos[i] = p.clone(); }
+    race.prevHead.copy(p); race.prevOk = true; return; }
+  const hits = [];
+  for (let i = 0; i < N; i++){
+    const c = rings[i].mesh.position; ringNormal(i, _rn);
+    const s1 = _rn.dot(_rc.subVectors(p, c)); if (Math.abs(s1) <= band) continue;
+    const side = Math.sign(s1), was = race.sides[i];
+    if (was && side !== was){
+      const a = race.outPos[i], s0 = _rn.dot(_rc.subVectors(a, c)), f = s0 / (s0 - s1);
+      _rx.copy(a).lerp(p, f); _rx.sub(c); _rx.addScaledVector(_rn, -_rn.dot(_rx));
+      if (_rx.length() <= rings[i].rad - RACE_TUBE){
+        const sp = _rn.dot(_rc.subVectors(race.prevHead, c)); hits.push({i, f:Math.abs(sp - s1) > 1e-9 ? Math.min(1, Math.max(0, sp / (sp - s1))) : 1, dir:side});
+      }
+    }
+    race.sides[i] = side; race.outPos[i] = race.outPos[i] ? race.outPos[i].copy(p) : p.clone();
+  }
+  hits.sort((x, y) => x.f - y.f);
+  for (const h of hits) raceGate(h.i, h.dir);
+  race.prevHead.copy(p);
+}
+function raceGate(i, dir){
+  const now = raceNow(), N = RN();
+  raceLog({k:'cross', ring:i, dir, phase:race.phase, expected:race.next});
+  if (race.phase === 'armed'){
+    if (i !== race.start) return;
+    Object.assign(race, {phase:'running', t0:now, lastProg:now, done:1, visited:[i], trace:[i], times:[0], next:(i + 1) % N, room:net.room || '',
+      runId:racePid + '.' + Date.now().toString(36) + '.' + Math.floor(Math.random() * 1e6).toString(36), sigStart:localSig(), compStart:compSig()});
+    raceLog({k:'start', ring:i, runId:race.runId});
+    if (N === 1){ raceFinish(now); return; }
+    bloop('gate'); return;
+  }
+  if (race.phase !== 'running' || i !== race.next) return;              // red (not yet due) and gold (done) rings earn nothing
+  race.done++; race.visited.push(i); race.trace.push(i); race.times.push(now - race.t0); race.lastProg = now;
+  raceLog({k:'gate', ring:i, done:race.done});
+  if (race.done >= N){ raceFinish(now); return; }
+  race.next = (race.next + 1) % N; bloop('gate');
+}
+function raceFinish(now){
+  const cs = Math.round((now - race.t0) * 100);
+  const inRoom = !!(net.peer && net.room && race.room === net.room);
+  let why = '';
+  if (!inRoom) why = net.room ? 'started outside this room' : 'solo (not in a room)';
+  else if (race.sigStart !== race.compStart) why = 'your sliders differ from the room tuning';
+  else if (localSig() !== race.sigStart) why = 'tuning changed during the run';
+  else if (compSig() !== race.compStart) why = 'room tuning changed during the run';
+  const ranked = !why;
+  const key = ranked ? race.compStart : 'practice:' + race.sigStart;
+  const prevPb = race.pbs[key], isPb = prevPb == null || cs < prevPb;
+  if (isPb){ race.pbs[key] = cs; store.set('likeflies.pb16', race.pbs); }
+  race.result = {cs, start:race.start, startName:rings[race.start].name, ranked, practice:why, pb:isPb ? cs : prevPb, isPb, runId:race.runId, comp:race.compStart, status:ranked ? 'pending' : (inRoom ? 'practice' : 'solo')};
+  race.phase = 'finished'; race.resultUntil = now + RACE_RESULT_SECS; race.snd.finish = (race.snd.finish || 0) + 1; ding(true);
+  raceLog({k:'finish', cs, runId:race.runId, ranked, why});
+  if (ranked){ race.pending = {t:'rs', runId:race.runId, pid:racePid, name:(net.name || ('Fly ' + mySlot())).slice(0, 24), sig:race.compStart, start:race.start, cs, trace:race.trace.slice(), tcs:race.times.map(x => Math.round(x * 100))}; race.pendingT = 0; raceSubmitPending();
+    race.mine.push({room:net.room, at:Date.now(), sub:race.pending}); race.mine = race.mine.slice(-20); store.set('likeflies.mine16', race.mine); }
+  updateRaceBoard();
+}
+function raceTick(){
+  const now = raceNow();
+  if (game.role !== 'fly' || state === 'menu' || game.out){ if (race.phase !== 'off' && (game.role !== 'fly' || game.out)) raceOff(game.out ? 'out of lives' : 'not a fly'); }
+  else if (race.phase === 'off') raceArm('back in the race');
+  if (race.phase === 'running' && now - race.lastProg >= RACE_TIMEOUT){
+    raceLog({k:'timeout', runId:race.runId, since:+(now - race.lastProg).toFixed(2)});
+    race.cue = 'Circuit reset'; race.cueUntil = now + 3; bloop('reset'); raceArm('timeout');
+  }
+  if (race.phase === 'finished' && now >= race.resultUntil) raceArm('after finish');
+  if (race.pending && now - race.pendingT > 3) raceSubmitPending();
+  if (now - race.resubT > 5){ race.resubT = now; raceResubmitMissing(); }
+  if (race.pending && ledger.accepted[race.pending.runId]){ const a = ledger.accepted[race.pending.runId]; if (race.result && race.result.runId === race.pending.runId){ race.result.status = a.status; race.result.pts = a.pts; } race.pending = null; updateRaceBoard(); }
+}
+/* ---------- the room ledger (host-authoritative, replicated to every peer) ---------- */
+const ledger = {room:'', rev:0, hs:0, boards:{}, points:{}, names:{}, accepted:{}, order:0};
+/* v0.0.16: the race host is the lowest slot among peers that are both connected and still sending state. A peer whose
+   browser closed can keep a WebRTC connection marked open for a long time; its avatar is dropped after 6 s of silence,
+   so the race ledger moves to the next peer then instead of waiting for the connection to time out. */
+const raceHost = () => { let h = mySlot(); for (const [j, c] of net.conns) if (c.open && net.remotes.has(j) && j < h) h = j; return h; };
+function ledgerReset(){ Object.assign(ledger, {room:'', rev:0, hs:0, boards:{}, points:{}, names:{}, accepted:{}, order:0}); updateRaceBoard(); }
+/* v0.0.16: if this browser finished ranked runs that the room ledger it now holds does not know about (for example it
+   was briefly cut off, acted as a one-player host, then rejoined and adopted the room's newer ledger), send those exact
+   submissions to the race host again (only for 20 minutes, so a later room that reuses the name is not seeded with old runs). The host validates and awards them through the normal path; adopting a snapshot
+   never awards anything by itself. A run id the ledger already has, with any status, is never resent. */
+function raceResubmitMissing(){
+  if (!net.peer || !net.room) return;
+  for (const m of race.mine){
+    if (m.room !== net.room || !m.sub || !(Date.now() - m.at < 20 * 60 * 1000) || ledger.accepted[m.sub.runId] || (race.pending && race.pending.runId === m.sub.runId)) continue;
+    const h = raceHost();
+    if (h === mySlot()) raceHostAccept(m.sub);
+    else { const hc = net.conns.get(h); if (hc && hc.open){ try{ hc.send(m.sub); }catch(e){} } }
+  }
+}
+function raceSubmitPending(){
+  const sub = race.pending; if (!sub) return; race.pendingT = raceNow();
+  if (!net.peer || !net.room){ return; }
+  const h = raceHost();
+  if (h === mySlot()){ raceHostAccept(sub); return; }
+  const hc = net.conns.get(h);
+  if (hc && hc.open){ try{ hc.send(sub); }catch(e){} } else for (const c of net.conns.values()) if (c.open){ try{ c.send(sub); }catch(e){} }
+}
+function raceValidate(sub){
+  const N = RN();
+  if (!sub || typeof sub.runId !== 'string' || sub.runId.length > 80 || typeof sub.pid !== 'string' || sub.pid.length > 64 || !sub.pid) return 'bad identity';
+  if (sub.sig !== compSig()) return 'not the current room competition';
+  if (!Number.isInteger(sub.cs) || sub.cs < 100 || sub.cs > 360000) return 'implausible time';
+  if (!Number.isInteger(sub.start) || sub.start < 0 || sub.start >= N) return 'bad start';
+  if (!Array.isArray(sub.trace) || sub.trace.length !== N) return 'incomplete checkpoint trace';
+  for (let k = 0; k < N; k++) if (sub.trace[k] !== (sub.start + k) % N) return 'checkpoints out of order';
+  if (!Array.isArray(sub.tcs) || sub.tcs.length !== N || sub.tcs[0] !== 0 || Math.abs(sub.tcs[N - 1] - sub.cs) > 1) return 'bad checkpoint times';
+  for (let k = 1; k < N; k++){
+    const a = sub.tcs[k - 1], b = sub.tcs[k]; if (!Number.isInteger(b) || b < a) return 'bad checkpoint times';
+    const leg = rings[sub.trace[k - 1]].mesh.position.distanceTo(rings[sub.trace[k]].mesh.position);
+    if ((b - a) / 100 < leg / 600 - 0.01) return 'leg faster than plausible';   // generous: 600 world units per second
+  }
+  return '';
+}
+function raceHostAccept(sub){
+  if (!sub || typeof sub.runId !== 'string') return null;
+  if (ledger.accepted[sub.runId]){ raceBroadcast(); return ledger.accepted[sub.runId]; }   // retries and duplicates: no new award
+  const why = raceValidate(sub);
+  ledger.rev++; ledger.hs = mySlot(); ledger.room = net.room || '';
+  if (why){ ledger.accepted[sub.runId] = {pid:sub.pid, status:'rejected', why, pts:0}; raceLog({k:'host-reject', runId:sub.runId, why}); raceBroadcast(); updateRaceBoard(); return ledger.accepted[sub.runId]; }
+  const sig = sub.sig, b = ledger.boards[sig] || (ledger.boards[sig] = {rows:{}, crown:null});
+  ledger.names[sub.pid] = String(sub.name || 'a fly').slice(0, 24);
+  const row = b.rows[sub.pid], isPb = !row || sub.cs < row.cs;
+  if (isPb) b.rows[sub.pid] = {cs:sub.cs, start:sub.start, runId:sub.runId, order:++ledger.order};
+  let status = isPb ? 'pb' : 'slower', pts = 0;
+  if (!b.crown || sub.cs < b.crown.cs){ b.crown = {pid:sub.pid, cs:sub.cs, start:sub.start, runId:sub.runId}; ledger.points[sub.pid] = (ledger.points[sub.pid] || 0) + 1; status = 'record'; pts = 1; }
+  else if (sub.cs === b.crown.cs) status = 'tie';
+  ledger.accepted[sub.runId] = {pid:sub.pid, status, pts, cs:sub.cs, sig};
+  raceLog({k:'host-accept', runId:sub.runId, status, pts, cs:sub.cs});
+  raceBroadcast(); updateRaceBoard(); return ledger.accepted[sub.runId];
+}
+const ledgerSnap = () => ({t:'rl', room:ledger.room, rev:ledger.rev, hs:ledger.hs, boards:ledger.boards, points:ledger.points, names:ledger.names, accepted:ledger.accepted, order:ledger.order});
+function raceBroadcast(){ const m = ledgerSnap(); for (const c of net.conns.values()) if (c.open){ try{ c.send(m); }catch(e){} } }
+function sendLedger(conn){ if (ledger.rev > 0 && conn && conn.open){ try{ conn.send(ledgerSnap()); }catch(e){} } }
+function onRaceSubmit(j, d){
+  if (raceHost() === mySlot()){ raceHostAccept(d); return; }
+  if (d.fw) return;                                      // pass a submission on at most once
+  const h = raceHost(), hc = net.conns.get(h);
+  if (h !== j && hc && hc.open){ try{ hc.send(Object.assign({}, d, {fw:1})); }catch(e){} }
+}
+function onLedger(j, d){
+  if (!d || !Number.isInteger(d.rev) || d.rev < 1 || !Number.isInteger(d.hs) || typeof d.boards !== 'object' || typeof d.points !== 'object' || typeof d.accepted !== 'object') return false;
+  if ((d.room || '') !== (net.room || '')) return false;                       // another room's board never bleeds in
+  if (!(d.rev > ledger.rev || (d.rev === ledger.rev && d.hs < ledger.hs))) return false;
+  Object.assign(ledger, {room:d.room, rev:d.rev, hs:d.hs, boards:d.boards, points:d.points, names:d.names || {}, accepted:d.accepted, order:d.order | 0});   // adopt; never re-run award logic
+  updateRaceBoard(); return true;
+}
+function boardRows(){
+  const sig = compSig(), b = ledger.boards[sig] || {rows:{}, crown:null}, pids = new Set([...Object.keys(b.rows), ...Object.keys(ledger.points)]);
+  const rows = [...pids].map(pid => { const r = b.rows[pid]; return {pid, name:ledger.names[pid] || (pid === racePid ? (net.name || 'you') : 'a fly'), cs:r ? r.cs : null, start:r ? r.start : null, order:r ? r.order : 1e12, pts:ledger.points[pid] || 0, crown:!!(b.crown && b.crown.pid === pid), me:pid === racePid}; });
+  rows.sort((x, y) => (x.cs == null) - (y.cs == null) || (x.cs - y.cs) || (x.order - y.order));
+  return {sig, crown:b.crown, rows};
+}
+function updateRaceBoard(){
+  try{
+    const B = boardRows(), el = $('#raceBoard'); if (!el) return;
+    const crownTxt = B.crown ? 'Crown: ' + (ledger.names[B.crown.pid] || 'a fly') + ' ' + fmtCs(B.crown.cs) + ' (from ' + rings[B.crown.start].name + ')' : 'No room record yet in this competition.';
+    el.innerHTML = '<p class="note">' + crownTxt + ' · competition ' + B.sig + '</p>' + (B.rows.length ? '<table><tr><th>#</th><th>Fly</th><th>Best</th><th>Start gate</th><th>Race pts</th></tr>' +
+      B.rows.map((r, k) => '<tr' + (r.me ? ' class="me"' : '') + '><td>' + (r.cs != null ? k + 1 : '–') + '</td><td>' + (r.crown ? '♛ ' : '') + String(r.name).replace(/[<&>]/g, '') + '</td><td class="t">' + (r.cs != null ? fmtCs(r.cs) : '–') + '</td><td>' + (r.start != null ? (r.start + 1) + ' ' + rings[r.start].name : '–') + '</td><td>' + r.pts + '</td></tr>').join('') + '</table>' : '');
+    $('#raceNote').textContent = net.room ? 'Room "' + net.room + '" · board kept while anyone is in the room. Times are first to tenth distinct ring from your start, so different starts skip a different closing leg.' : 'Join a room to race for the crown. Solo times stay on this device.';
+    const pb = race.pbs[compSig()]; $('#bestTime').textContent = pb != null ? fmtCs(pb) : 'none yet';
+    if (typeof menuOpen !== 'undefined' && menuOpen && panelPage === 'Race') drawPanel();
+  }catch(e){}
+}
+/* ---------- what this fly sees: its own ring colors, START/NEXT tag, POV arrow, HUD line ---------- */
+const ringMatGo = new THREE.MeshBasicMaterial({color:0x37ff5a}), ringMatGold = new THREE.MeshBasicMaterial({color:0xffc31f}), ringMatRed = new THREE.MeshBasicMaterial({color:0xe2352b});
+const ringGlowGo = glowMat(0x37ff5a), ringGlowGold = glowMat(0xffc31f);
+let raceTag = null, raceTagNext = null;
+function raceInitVisuals(){   // labels are made on first use (the label kit is defined further down)
+  if (raceTag) return;
+  raceTag = makeLabel('START', 0x37ff5a); raceTag.material.depthTest = false; raceTag.renderOrder = 997; labelSize(raceTag, 1.0, 0.25); scene.add(raceTag);
+  raceTagNext = makeLabel('NEXT', 0x37ff5a); raceTagNext.material.depthTest = false; raceTagNext.renderOrder = 997; labelSize(raceTagNext, 1.0, 0.25); scene.add(raceTagNext);
+  rings.forEach((r, i) => { const l = makeLabel((i + 1) + ' · ' + r.name, 0xeef5ea); labelSize(l, 1.2, 0.3); scene.add(l); r.label = l; });
+}
+const raceArrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({color:0xffd23f, depthTest:false})); raceArrow.scale.setScalar(1.6);
+raceArrow.renderOrder = 999; raceArrow.visible = false; camera.add(raceArrow); raceArrow.position.set(0, -0.085, -0.38);
+const raceTarget = () => (game.role === 'fly' && (race.phase === 'armed' || race.phase === 'running') && race.next >= 0) ? race.next : -1;
 function animateRings(t){
+  raceInitVisuals();
+  const tgt = state !== 'menu' ? raceTarget() : -1, running = race.phase === 'running' || race.phase === 'finished';
   rings.forEach((r, i) => {
-    r.glow.visible = i >= cur; r.glow.material = i === cur ? ringGlowT : i % 2 ? ringGlowN2 : ringGlowN;
-    if (i < cur){ r.mesh.material = ringMatDone; r.mesh.scale.setScalar(0.85); }
-    else if (i === cur){ r.mesh.material = ringMatTarget; r.mesh.scale.setScalar(1 + Math.sin(t*5)*0.06); }
-    else { r.mesh.material = i % 2 ? ringMatNext2 : ringMatNext; r.mesh.scale.setScalar(1); }
+    const done = running && game.role === 'fly' && race.visited.includes(i);
+    r.glow.visible = i === tgt || done; r.glow.material = done ? ringGlowGold : ringGlowGo;
+    if (i === tgt){ r.mesh.material = ringMatGo; r.mesh.scale.setScalar(1 + Math.sin(t * 2.4) * 0.05); }   // gentle pulse, only the next ring
+    else if (done){ r.mesh.material = ringMatGold; r.mesh.scale.setScalar(1); }
+    else { r.mesh.material = ringMatRed; r.mesh.scale.setScalar(1); }
+    r.label.position.copy(r.mesh.position).add(wTmp.set(0, r.rad + 1.6, 0));
   });
+  const tag = race.phase === 'armed' ? raceTag : raceTagNext;
+  raceTag.visible = raceTagNext.visible = false;
+  if (tgt >= 0){ tag.visible = true; tag.position.copy(rings[tgt].mesh.position).add(wTmp.set(0, rings[tgt].rad + 3.2, 0)); }
+  raceArrow.visible = tgt >= 0 && state !== 'menu';
+  if (raceArrow.visible){ raceArrow.updateWorldMatrix(true, false); raceArrow.lookAt(rings[tgt].mesh.position); }
+}
+function raceHudLine(){
+  const now = raceNow(), N = RN(), r = race;
+  if (r.phase === 'off') return game.out ? 'Out of lives · no race' : '';
+  if (r.cue && now < r.cueUntil && r.phase === 'armed') return r.cue + ' · Ready 0/' + N + ' · Start: ' + (r.start + 1) + ' ' + rings[r.start].name;
+  if (r.phase === 'armed') return 'Ready 0/' + N + ' · Start: ' + (r.start + 1) + ' ' + rings[r.start].name;
+  if (r.phase === 'running'){ const left = RACE_TIMEOUT - (now - r.lastProg);
+    return 'Trial ' + r.done + '/' + N + ' · ' + fmtCs((now - r.t0) * 100) + ' · Next: ' + (r.next + 1) + ' ' + rings[r.next].name + (left <= 10 ? ' · reset in ' + Math.max(0, left).toFixed(0) + ' s' : ''); }
+  const R = r.result || {};
+  const st = R.status === 'record' ? 'NEW ROOM RECORD +1 race point' : R.status === 'pb' ? 'room: personal best, record stands' : R.status === 'tie' ? 'room: tied the record (no point)' : R.status === 'slower' ? 'room: slower than your best' : R.status === 'rejected' ? 'room rejected it' : R.status === 'pending' ? 'sending to room…' : R.status === 'practice' ? 'Practice: ' + R.practice : (R.practice ? 'Practice: ' + R.practice : 'not a room record');
+  return 'Finished ' + N + '/' + N + ' · ' + fmtCs(R.cs) + ' · PB ' + fmtCs(R.pb) + (R.isPb ? ' (new)' : '') + ' · ' + st;
+}
+function raceCrownLine(){
+  const B = boardRows(), pts = ledger.points[racePid] || 0;
+  return (B.crown ? 'Crown ' + (ledger.names[B.crown.pid] || 'a fly') + ' ' + fmtCs(B.crown.cs) : 'No room record') + ' · your race pts ' + pts;
 }
 
 const clock = new THREE.Clock();
@@ -6296,7 +6560,7 @@ renderer.setAnimationLoop((time, frame) => {
     if (game.win) lines = [game.win === 'flies' ? 'FLIES WIN! New round soon' : 'HUMAN WINS! New round soon', ...lines.slice(1)];
     if (xr) placeHud(dt, lines); else { hudMesh.visible = false; $('#hudText').textContent = lines.filter(Boolean).join(' · '); }
   }
-  animateRings(t);
+  raceTick(); animateRings(t);
   fitLabels(); updateSky();
   renderer.render(scene, camera);
 });
@@ -6396,16 +6660,18 @@ function setupConn(conn){
     net.pending.delete(j);
     const old = net.conns.get(j); if (old && old !== conn){ try{ old.close(); }catch(e){} }
     net.conns.set(j, conn);
-    sendState(true); sendTuneSnapshot(conn);   // v0.0.15: late joiners and reconnects get the current shared tuning
+    sendState(true); sendTuneSnapshot(conn); sendLedger(conn);   // v0.0.16: late joiners get the room board too   // v0.0.15: late joiners and reconnects get the current shared tuning
   });
   conn.on('data', d => { if (gen !== net.gen || !d) return; if (d.t === 's') onState(j, d); else if (d.t === 'e') onEvent(d); else if (d.t === 'f') onFood(d);
-    else if (d.t === 'tp') onTunePub(j, d); else if (d.t === 'ts') onTuneSet(j, d); });   // v0.0.15: shared tuning
+    else if (d.t === 'tp') onTunePub(j, d); else if (d.t === 'ts') onTuneSet(j, d);   // v0.0.15: shared tuning
+    else if (d.t === 'rs') onRaceSubmit(j, d); else if (d.t === 'rl') onLedger(j, d); });   // v0.0.16: race finishes and the room board
   const gone = () => { if (net.conns.get(j) === conn){ net.conns.delete(j); dropRemote(j); } if (net.pending.get(j) === conn) net.pending.delete(j); };
   conn.on('close', gone); conn.on('error', gone);
 }
 function leaveRoom(quiet){
   net.gen++;
   // v0.0.15: a shared snapshot belongs to its room: forget it (and its revision) when leaving or switching rooms, keep the slider values
+  if (typeof ledgerReset === 'function'){ ledgerReset(); if (race.phase === 'running') raceCancel('left the room'); race.pending = null; }
   if (typeof shareState !== 'undefined'){ Object.assign(shareState, {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'}); try{ syncDom(); }catch(e){} }
   clearInterval(net.dialTimer); net.dialTimer = null;
   for (const c of net.conns.values()){ try{ c.close(); }catch(e){} }
@@ -6430,7 +6696,7 @@ function sendState(force){
   const hand = h => { if (!renderer.xr.isPresenting || !h.has) return 0; sHand.copy(h.pos).applyMatrix4(rig.matrixWorld).sub(sHead); return [r3(sHand.x), r3(sHand.y), r3(sHand.z)]; };
   const msg = {t:'s', n:net.name || ('Fly ' + net.slot), c:net.slot, on:state !== 'menu' ? 1 : 0,
     p:[r3(sHead.x), r3(sHead.y), r3(sHead.z)], v:[r3(vel.x), r3(vel.y), r3(vel.z)], q:[r3(sQ.x), r3(sQ.y), r3(sQ.z), r3(sQ.w)],
-    l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:cur, ro:game.role};
+    l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:race.done, ro:game.role};
   if (game.role === 'human' && game.local){
     const pk = h => h.has ? [r3(h.pos.x), r3(h.pos.y), r3(h.pos.z), r3(h.q.x), r3(h.q.y), r3(h.q.z), r3(h.q.w)] : 0;
     Object.assign(msg, {ch:game.ci, si:game.spotIdx | 0, rp:[r3(rig.position.x), r3(rig.position.y), r3(rig.position.z)], ry:r3(rig.rotation.y), hs:tune.humanSize, ms:r3(game.local.ms),
@@ -7167,6 +7433,7 @@ function applyRole(){
     rig.position.copy(game.spot); rig.rotation.set(0, HUMAN_YAW, 0); yaw = HUMAN_YAW; pitch = 0;
     stopAll(); game.centerSet = false;
     game.alignPending = true; game.eyeH = 0; game.eyeLockT = clock.elapsedTime + 1.2;
+    raceOff('became the human'); raceSampleReset();
   } else { rig.scale.setScalar(tune.flyScale); resetCourse(); }
   HANDS.forEach(h => h.obj.visible = false);
 }
@@ -8062,7 +8329,7 @@ function newRound(){
   broadcastFood(); sendEvent({k:'round', to:0, rd:game.round});
 }
 function roundReset(){
-  if (game.role === 'fly'){ game.lives = tune.lives; game.out = false; game.carry = -1; game.hp = tune.hitsToKill; game.points = 0; resetCourse(); }
+  if (game.role === 'fly'){ game.lives = tune.lives; game.out = false; game.carry = -1; game.hp = tune.hitsToKill; game.points = 0; resetCourse(true); }
   game.kills = 0; game.style = 0;
 }
 function dropCarry(){ if (game.carry >= 0){ requestFood('drop', game.carry); game.carry = -1; } }
@@ -8073,6 +8340,7 @@ function flyDie(now, cause){
   game.lives = Math.max(0, game.lives - 1); game.out = game.lives <= 0; game.hp = tune.hitsToKill;
   game.deadUntil = now + 1.4; game.stuck = null; game.crawl = null; game.level = null; game.stunUntil = 0; game.tumbleUntil = 0; stopAll();
   game.lastDeath = cause || 'unknown';
+  raceCancel('splat');                                       // v0.0.16: dying ends this fly's trial (only this fly's)
   try{ console.info('[Like Flies] fly eliminated:', game.lastDeath, 'lives left', game.lives); }catch(e){}
   popup((game.out ? 'OUT OF LIVES' : 'SPLAT! Lives ' + game.lives) + ' · ' + game.lastDeath, 2.5);
   setTimeout(() => resetCourse(), 1200);
@@ -8318,6 +8586,7 @@ function applyTuneSnapshot(sn){
   saveTune();
   setShareNote('Shared tuning #' + sn.rev + ' from ' + sn.by + ' is on for everyone (fly lives and hits count from the next round). Sliders change only you until you Apply again.');
   if (state !== 'menu') popup('Tuning from ' + sn.by + ' applied to everyone', 2);
+  updateRaceBoard();   // v0.0.16: new room tuning = a fresh competition board (race points carry over)
 }
 function sendTuneSnapshot(conn){ if (shareState.rev > 0 && conn && conn.open){ try{ conn.send({t:'ts', rev:shareState.rev, hs:shareState.hs, id:shareState.id, by:shareState.by, v:shareState.v}); }catch(e){} } }
 function onEvent(e){
@@ -8361,7 +8630,7 @@ function gameTick(dt, now){
   if (now - (game.remoteBotsT || 0) > 1.5 && game.botViews.length) showRemoteBots([]);
 }
 
-window.__likeflies = {dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => cur, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+window.__likeflies = {dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -8432,7 +8701,7 @@ $('#tCopy').addEventListener('click', () => {
   try{ navigator.clipboard.writeText(text).then(() => { note.textContent = 'Copied. Paste it into your test notes.'; }, show); }catch(e){ show(); }
 });
 syncDom();
-if (best != null) $('#bestTime').textContent = fmt(best);
+updateRaceBoard();   // v0.0.16: race personal bests are per competition (the old global best is not carried over)
 
 const nameEl = $('#mpName'), roomEl = $('#mpRoom');
 net.name = String(store.get('likeflies.name', '') || '').slice(0, 12); nameEl.value = net.name;
