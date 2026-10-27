@@ -105,7 +105,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.16 · Async Racing</div>
+      <div class="eyebrow">Test v0.0.17 · Retro filter lab</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -199,7 +199,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 
     <div class="foot">
       <span>My best in this room competition: <b id="bestTime">none yet</b></span>
-      <span>Screen as fly: T restart my race trial here · Space flap or take off · W glide · W/S crawl and A/D turn when landed · Q/E dash · drag to look. As human: click swat right · F swat left · Space clap · G and H swatters · W/S walk</span>
+      <span>Screen as fly: T restart my race trial here · V retro filter on/off · Space flap or take off · W glide · W/S crawl and A/D turn when landed · Q/E dash · drag to look. As human: click swat right · F swat left · Space clap · G and H swatters · W/S walk</span>
     </div>
   </div>
 </div>
@@ -3925,12 +3925,41 @@ const TUNE = [
   {g:'Crawl', k:'takeoffFlap', label:'Takeoff flap',       min:0.2, max:3,   step:0.05, def:0.6, hint:'How hard a flap must be to take off from a surface. Higher means fewer accidental takeoffs.'},
   {g:'Crawl', k:'pushOff',     label:'Push-off speed',     min:0,   max:10,  step:0.5,  def:3,   unit:' m/s', hint:'Extra speed away from the surface when you take off.'},
   {g:'Crawl', k:'handReach',   label:'Hand steer reach',   min:0.15,max:0.6, step:0.01, def:0.3, unit:' m', hint:'Bare hands: how far in front of you (along the surface) a hand must be before it walks you. Lower is easier, higher avoids drifting.'},
-  {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'}
+  {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'},
+  // v0.0.17 retro look lab: personal (never shared with the room, never part of race rankings)
+  {g:'Retro', k:'rtOn',       label:'Retro filter (1 = on)', min:0, max:1,   step:1,    def:0,    hint:'Turns the whole retro look on or off. Screen: V key. The first time it turns on the game may hitch for a moment.'},
+  {g:'Retro', k:'rtColors',   label:'Color steps',        min:2,   max:64,  step:1,    def:16,   hint:'Shades per color channel. Low is chunky old-console color; 64 is off.'},
+  {g:'Retro', k:'rtDither',   label:'Dither',             min:0,   max:2,   step:0.05, def:0.8,  hint:'Checker-pattern blending between color steps.'},
+  {g:'Retro', k:'rtPixel',    label:'Dither pixel size',  min:1,   max:8,   step:1,    def:2,    unit:' px', hint:'Bigger makes the dither and grain chunkier.'},
+  {g:'Retro', k:'rtSat',      label:'Saturation',         min:0,   max:2,   step:0.05, def:0.85, hint:'0 is black and white, 1 is normal.'},
+  {g:'Retro', k:'rtCon',      label:'Contrast',           min:0.5, max:1.6, step:0.02, def:1.08},
+  {g:'Retro', k:'rtBri',      label:'Brightness',         min:-0.3,max:0.3, step:0.01, def:0},
+  {g:'Retro', k:'rtWarm',     label:'Warm / cool',        min:-1,  max:1,   step:0.05, def:0.35, hint:'Positive is warm old film, negative is cold blue tape.'},
+  {g:'Retro', k:'rtFade',     label:'Washed-out blacks',  min:0,   max:0.3, step:0.01, def:0.05, hint:'Lifts the blacks like a worn tape.'},
+  {g:'Retro', k:'rtScan',     label:'Scanlines',          min:0,   max:1,   step:0.05, def:0.18, hint:'Darkness of the TV lines. They stay steady.'},
+  {g:'Retro', k:'rtScanSize', label:'Scanline spacing',   min:1.5, max:10,  step:0.5,  def:3,    unit:' px'},
+  {g:'Retro', k:'rtGrain',    label:'Grain',              min:0,   max:0.4, step:0.01, def:0.05, hint:'Fizzy tape noise.'},
+  {g:'Retro', k:'rtSnap',     label:'Wobbly vertices',    min:0,   max:1,   step:0.05, def:0,    hint:'Old-console shaky polygons. Can feel wobbly in a headset; 0 is off.'},
+  {g:'Retro', k:'rtFog',      label:'Fog distance',       min:0.15,max:2,   step:0.05, def:1,    unit:'x', hint:'Lower brings the haze in closer.'},
+  {g:'Retro', k:'rtVRRes',    label:'Headset sharpness',  min:0.3, max:1,   step:0.05, def:1,    unit:'x', hint:'Lower is softer and faster. Takes effect the next time you tap Enter VR.'},
+  {g:'Retro', k:'rtScreenPix',label:'Screen pixel size',  min:1,   max:8,   step:1,    def:2,    unit:' px', hint:'Screen only: chunky low-resolution pixels.'},
+  {g:'VHS',   k:'vhVig',      label:'Dark edges',         min:0,   max:1,   step:0.05, def:0.45, hint:'An old TV vignette around your view.'},
+  {g:'VHS',   k:'vhTint',     label:'Tape tint',          min:0,   max:1,   step:0.05, def:0.15, hint:'A blue-green VHS cast over everything.'},
+  {g:'VHS',   k:'vhOSD',      label:'PLAY label (1 = on)',min:0,   max:1,   step:1,    def:1,    hint:'A VCR style PLAY and tape counter in the corner of your view.'},
+  {g:'VHS',   k:'vhEvents',   label:'Glitch on events',   min:0,   max:1,   step:0.05, def:0.8,  hint:'Static and a tracking roll when you die, respawn, start or finish a race. 0 is off.'},
+  {g:'VHS',   k:'vhEventLen', label:'Glitch length',      min:0.1, max:2,   step:0.05, def:0.6,  unit:'s'},
+  {g:'VHS',   k:'vhRoll',     label:'Rolling tracking bar', min:0, max:1,   step:0.05, def:0,    hint:'A band that keeps rolling up the picture. Try it carefully in the headset; 0 is off.'},
+  {g:'VHS',   k:'vhCRT',      label:'Screen CRT (1 = on)', min:0,  max:1,   step:1,    def:1,    hint:'Screen only (not in the headset): curved glass, color fringes and tape wobble.'},
+  {g:'VHS',   k:'vhCurve',    label:'Screen curve',       min:0,   max:1,   step:0.05, def:0.6,  hint:'Screen only.'},
+  {g:'VHS',   k:'vhChroma',   label:'Color fringing',     min:0,   max:6,   step:0.25, def:1.5,  unit:' px', hint:'Screen only: red and blue edges slip apart.'},
+  {g:'VHS',   k:'vhBleed',    label:'Color bleed',        min:0,   max:1,   step:0.05, def:0.5,  hint:'Screen only: soft smeared color, like tape.'},
+  {g:'VHS',   k:'vhWobble',   label:'Line wobble',        min:0,   max:1,   step:0.05, def:0.3,  hint:'Screen only: tiny sideways jitter of each line.'},
+  {g:'VHS',   k:'vhTrack',    label:'Tracking band',      min:0,   max:1,   step:0.05, def:0.35, hint:'Screen only: a faint band of tracking noise drifting down the picture.'},
 ];
 const groupOf = t => t.g || 'Flight';
-const PAGES = ['Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race'];
+const PAGES = ['Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS'];
 const TAB_LABEL = {'Powered glide':'Glide'};   // 'Race' shows the room board
-const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort'};
+const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort', 'Retro':'Retro look (only you)', 'VHS':'VHS and CRT (only you)'};
 const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
 const TUNE_KEY = 'likeflies.tune.v0.0.06';
@@ -3941,7 +3970,7 @@ if (store.get('likeflies.migrated', 0) < 10){ tune.handReach = DEFAULTS.handReac
 /* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
    so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
    flight data panel), the room and player number, and headset tracking are never sent. */
-const PERSONAL_KEYS = new Set();
+const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS').map(t => t.k));   // v0.0.17: the retro look is yours alone
 const SHARED_TUNE = TUNE.filter(t => !PERSONAL_KEYS.has(t.k));
 const shareState = {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'};
 /* a snapshot is accepted only when every shared slider is there as a finite number; values are clamped to the slider range, unknown keys dropped */
@@ -5622,6 +5651,153 @@ const vig2 = (() => {
   m.position.z = -0.16; m.renderOrder = 1002; m.visible = false; m.frustumCulled = false; camera.add(m); return m;
 })();
 
+/* ---------- v0.0.17: retro / VHS / CRT look ----------
+   1. Every world material gets a tiny color pass at the end of its shader (grade, warm/cool, washed blacks, color steps
+      with ordered dither) and optional old-console vertex snapping. It runs inside normal rendering, so it works in the
+      headset at no extra full-screen cost. Materials are only touched once the filter is first switched on.
+   2. A see-through layer fixed to your view adds steady scanlines, grain, dark edges, tape tint, a PLAY label, and short
+      static/tracking glitches on game events (die, respawn, race start and finish).
+   3. On a screen only (never in the headset) an extra pass adds curved glass, color fringing, bleed and tape wobble. */
+const RU = {rOn:{value:0}, rLevels:{value:16}, rDither:{value:0.8}, rPix:{value:2}, rSat:{value:1}, rCon:{value:1}, rBri:{value:0}, rWarm:{value:0}, rFade:{value:0}, rSnap:{value:0}};
+const RETRO_DECL_F = 'uniform float rOn, rLevels, rDither, rPix, rSat, rCon, rBri, rWarm, rFade;\n' +
+  'float rB2(vec2 a){ a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }\n' +
+  'float rB4(vec2 a){ return rB2(0.5 * a) * 0.25 + rB2(a); }\n';
+const RETRO_CODE_F = `
+  if (rOn > 0.5){
+    vec3 rc = gl_FragColor.rgb;
+    rc = (rc - 0.5) * rCon + 0.5 + rBri;
+    float rl = dot(rc, vec3(0.299, 0.587, 0.114));
+    rc = mix(vec3(rl), rc, rSat);
+    rc *= vec3(1.0 + 0.12 * rWarm, 1.0 + 0.02 * rWarm, 1.0 - 0.14 * rWarm);
+    rc = rFade + clamp(rc, 0.0, 1.0) * (1.0 - rFade);
+    if (rLevels < 63.5){ float rq = rLevels - 1.0; float rd = (rB4(gl_FragCoord.xy / rPix) - 0.5) * rDither; rc = floor(rc * rq + 0.5 + rd) / rq; }
+    gl_FragColor.rgb = clamp(rc, 0.0, 1.0);
+  }`;
+const RETRO_DECL_V = 'uniform float rSnap;\n';
+const RETRO_CODE_V = `
+  if (rSnap > 0.5){ vec2 rg = vec2(rSnap, rSnap * 0.75); gl_Position.xy = floor(gl_Position.xy / gl_Position.w * rg + 0.5) / rg * gl_Position.w; }`;
+const retroSeen = new WeakSet();
+const strHash = str => { let h = 2166136261; for (let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+function retroWrap(m){
+  if (!m || retroSeen.has(m)) return;
+  retroSeen.add(m);
+  if (m.userData.noRetro || m.depthTest === false || m.isRawShaderMaterial) return;   // HUD, menus, labels and overlays stay crisp
+  const prev = m.onBeforeCompile, pk = m.customProgramCacheKey, tag = strHash(String(prev));
+  m.onBeforeCompile = function(sh, r){
+    prev.call(this, sh, r);
+    if (sh.fragmentShader.indexOf('#include <fog_fragment>') >= 0){
+      for (const k of ['rOn', 'rLevels', 'rDither', 'rPix', 'rSat', 'rCon', 'rBri', 'rWarm', 'rFade']) sh.uniforms[k] = RU[k];
+      sh.fragmentShader = RETRO_DECL_F + sh.fragmentShader.replace('#include <fog_fragment>', '#include <fog_fragment>' + RETRO_CODE_F);
+    }
+    if (sh.vertexShader.indexOf('#include <project_vertex>') >= 0){
+      sh.uniforms.rSnap = RU.rSnap;
+      sh.vertexShader = RETRO_DECL_V + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>' + RETRO_CODE_V);
+    }
+  };
+  m.customProgramCacheKey = function(){ return pk.call(this) + '|retro17|' + tag; };
+  m.needsUpdate = true;
+}
+function retroScan(){ scene.traverse(o => { if (o.userData && o.userData.noRetro) return; const mm = o.material; if (Array.isArray(mm)) mm.forEach(retroWrap); else if (mm) retroWrap(mm); }); }
+const retroOverlay = (() => {
+  const m = new THREE.ShaderMaterial({transparent:true, depthTest:false, depthWrite:false,
+    blending:THREE.CustomBlending, blendSrc:THREE.OneFactor, blendDst:THREE.OneMinusSrcAlphaFactor,
+    uniforms:{uTime:{value:0}, uVig:{value:0}, uScan:{value:0}, uScanPx:{value:3}, uGrain:{value:0}, uPix:{value:2}, uTint:{value:0}, uBurst:{value:0}, uRoll:{value:0}},
+    vertexShader:'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader:`varying vec2 vUv; uniform float uTime, uVig, uScan, uScanPx, uGrain, uPix, uTint, uBurst, uRoll;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main(){
+        vec3 C = vec3(0.0); float A = 0.0;                       // result = C + dst * (1 - A)
+        vec2 q = vUv * 2.0 - 1.0;
+        float b = uTint * 0.35; C = C * (1.0 - b) + vec3(0.12, 0.2, 0.32) * b; A = 1.0 - (1.0 - A) * (1.0 - b);
+        float k = smoothstep(0.35, 1.0, length(q)) * uVig; C *= 1.0 - k; A = 1.0 - (1.0 - A) * (1.0 - k);
+        k = uScan * (0.5 + 0.5 * cos(6.2831853 * gl_FragCoord.y / uScanPx)); C *= 1.0 - k; A = 1.0 - (1.0 - A) * (1.0 - k);
+        float n = h(floor(gl_FragCoord.xy / uPix) + fract(uTime * 7.3) * vec2(91.7, 37.3));
+        b = uGrain; C = C * (1.0 - b) + vec3(n) * b; A = 1.0 - (1.0 - A) * (1.0 - b);
+        float bc = 1.0 - fract(uTime * 0.11), d = min(abs(vUv.y - bc), 1.0 - abs(vUv.y - bc));
+        float ln = h(vec2(floor(gl_FragCoord.y / 2.0), floor(uTime * 24.0)));
+        b = smoothstep(0.06, 0.0, d) * (uRoll * 0.45 + uBurst * 0.8) * ln; C = C * (1.0 - b) + vec3(0.85) * b; A = 1.0 - (1.0 - A) * (1.0 - b);
+        b = uBurst * 0.55 * (0.5 + 0.5 * h(vec2(floor(uTime * 30.0), floor(gl_FragCoord.y / 3.0)))); C = C * (1.0 - b) + vec3(n) * b; A = 1.0 - (1.0 - A) * (1.0 - b);
+        gl_FragColor = vec4(C, A);
+      }`});
+  m.userData.noRetro = true;
+  const o = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.1), m);
+  o.position.z = -0.15; o.renderOrder = 998; o.frustumCulled = false; o.visible = false; o.userData.noRetro = true; camera.add(o); return o;
+})();
+const retroOSD = (() => {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 96;
+  const tex = new THREE.CanvasTexture(cv);
+  const m = new THREE.MeshBasicMaterial({map:tex, transparent:true, depthTest:false, depthWrite:false});
+  const o = new THREE.Mesh(new THREE.PlaneGeometry(0.048, 0.018), m);
+  o.position.set(-0.062, 0.047, -0.15); o.renderOrder = 999; o.frustumCulled = false; o.visible = false; o.userData.noRetro = true; camera.add(o);
+  o.userData.draw = (txt, sub) => { const g = cv.getContext('2d'); g.clearRect(0, 0, 256, 96); g.font = 'bold 40px ui-monospace, monospace'; g.textBaseline = 'top';
+    g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillText(txt, 4, 6); g.fillText(sub, 4, 52); g.fillStyle = '#f2f2f2'; g.fillText(txt, 2, 4); g.fillText(sub, 2, 50); tex.needsUpdate = true; };
+  return o;
+})();
+const crt = {rt:null, px:0, scene:new THREE.Scene(), cam:new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), v2:new THREE.Vector2()};
+crt.mat = new THREE.ShaderMaterial({depthTest:false, depthWrite:false,
+  uniforms:{tD:{value:null}, uRes:{value:new THREE.Vector2(1, 1)}, uCurve:{value:0}, uChroma:{value:0}, uBleed:{value:0}, uWobble:{value:0}, uTrack:{value:0}, uTime:{value:0}, uBurst:{value:0}},
+  vertexShader:'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader:`varying vec2 vUv; uniform sampler2D tD; uniform vec2 uRes; uniform float uCurve, uChroma, uBleed, uWobble, uTrack, uTime, uBurst;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main(){
+      vec2 q = vUv * 2.0 - 1.0;
+      q *= 1.0 + uCurve * 0.12 * (q.yx * q.yx);
+      vec2 uv = q * 0.5 + 0.5;
+      if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){ gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+      float line = floor(uv.y * uRes.y);
+      uv.x += (h(vec2(line, floor(uTime * 30.0))) - 0.5) * uWobble * 3.0 / uRes.x;
+      float bc = 1.0 - fract(uTime * 0.07), d = abs(uv.y - bc);
+      float tb = smoothstep(0.05, 0.0, d) * (uTrack + uBurst);
+      uv.x += tb * (h(vec2(line, uTime)) - 0.5) * 12.0 / uRes.x;
+      float ca = (uChroma + uBurst * 3.0) / uRes.x;
+      vec3 c = vec3(texture2D(tD, uv + vec2(ca, 0.0)).r, texture2D(tD, uv).g, texture2D(tD, uv - vec2(ca, 0.0)).b);
+      vec2 o1 = vec2(1.5 / uRes.x, 0.0), o2 = vec2(3.5 / uRes.x, 0.0);
+      vec3 bl = (texture2D(tD, uv + o1).rgb + texture2D(tD, uv - o1).rgb + texture2D(tD, uv + o2).rgb + texture2D(tD, uv - o2).rgb) * 0.25;
+      c = mix(c, bl, uBleed * 0.65);
+      c += tb * 0.35 * h(vec2(uv.y * 400.0, floor(uTime * 24.0)));
+      vec2 e = abs(q); float corner = smoothstep(0.86, 1.0, max(e.x, e.y)) * uCurve;
+      c *= 1.0 - corner * 0.85;
+      gl_FragColor = vec4(c, 1.0);
+    }`});
+crt.mat.userData.noRetro = true;
+crt.scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), crt.mat));
+let retroWasOn = false, retroScanT = 0, retroBurstUntil = 0, retroBurstPow = 0, retroBurstLen = 1, retroOsdT = 0;
+function retroBurst(p){ if (!tune.rtOn || !(tune.vhEvents > 0)) return; const now = performance.now() / 1000; retroBurstPow = Math.min(1, p * tune.vhEvents); retroBurstLen = Math.max(0.1, tune.vhEventLen); retroBurstUntil = now + retroBurstLen; }
+function retroUpdate(t){
+  const on = !!tune.rtOn, now = performance.now() / 1000;
+  if (on && (!retroWasOn || now - retroScanT > 1.5)){ retroScanT = now; retroScan(); }
+  retroWasOn = retroWasOn || on;
+  RU.rOn.value = on ? 1 : 0;
+  RU.rLevels.value = tune.rtColors; RU.rDither.value = tune.rtDither; RU.rPix.value = tune.rtPixel; RU.rSat.value = tune.rtSat; RU.rCon.value = tune.rtCon;
+  RU.rBri.value = tune.rtBri; RU.rWarm.value = tune.rtWarm; RU.rFade.value = tune.rtFade;
+  RU.rSnap.value = on && tune.rtSnap > 0 ? 320 - 280 * tune.rtSnap : 0;
+  if (scene.fog){ const f = on ? tune.rtFog : 1; scene.fog.near = 270 * f; scene.fog.far = 560 * f; }
+  const burst = now < retroBurstUntil ? retroBurstPow * (retroBurstUntil - now) / retroBurstLen : 0;
+  const U = retroOverlay.material.uniforms;
+  U.uTime.value = t; U.uVig.value = tune.vhVig; U.uScan.value = tune.rtScan; U.uScanPx.value = tune.rtScanSize; U.uGrain.value = tune.rtGrain;
+  U.uPix.value = tune.rtPixel; U.uTint.value = tune.vhTint; U.uBurst.value = burst; U.uRoll.value = tune.vhRoll;
+  retroOverlay.visible = on;
+  retroOSD.visible = on && tune.vhOSD > 0 && state !== 'menu';
+  if (retroOSD.visible && now - retroOsdT > 0.5){ retroOsdT = now; const s = Math.floor(t), hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60, ss = s % 60;
+    retroOSD.userData.draw(burst > 0.05 && Math.floor(now * 6) % 2 ? '' : 'PLAY ▶', 'SP ' + hh + ':' + String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0')); }
+  crt.burst = burst;
+}
+/* the screen-only CRT pass; in the headset the picture goes straight to the eyes */
+function retroRender(t){
+  if (!tune.rtOn || !tune.vhCRT || renderer.xr.isPresenting){ renderer.render(scene, camera); return; }
+  const sz = renderer.getDrawingBufferSize(crt.v2), px = Math.max(1, Math.round(tune.rtScreenPix));
+  const w = Math.max(64, Math.round(sz.x / px)), h = Math.max(48, Math.round(sz.y / px));
+  if (!crt.rt || crt.rt.width !== w || crt.rt.height !== h || crt.px !== px){
+    if (crt.rt) crt.rt.dispose();
+    const f = px > 1 ? THREE.NearestFilter : THREE.LinearFilter;
+    crt.rt = new THREE.WebGLRenderTarget(w, h, {minFilter:THREE.LinearFilter, magFilter:f}); crt.px = px;
+  }
+  renderer.setRenderTarget(crt.rt); renderer.render(scene, camera); renderer.setRenderTarget(null);
+  const U = crt.mat.uniforms; U.tD.value = crt.rt.texture; U.uRes.value.set(w, h); U.uCurve.value = tune.vhCurve; U.uChroma.value = tune.vhChroma;
+  U.uBleed.value = tune.vhBleed; U.uWobble.value = tune.vhWobble; U.uTrack.value = tune.vhTrack; U.uTime.value = t; U.uBurst.value = crt.burst || 0;
+  renderer.render(crt.scene, crt.cam);
+}
+
 /* ---------- in-headset settings panel ---------- */
 const PW = 800, ROW = 52, ROW0 = 156, TAB_Y = 86;
 const ROWS_MAX = Math.max(...PAGES.map(pg => TUNE.filter(t => groupOf(t) === pg).length));
@@ -5633,7 +5809,7 @@ const PLANE_H = 0.8 * PH / PW;
 const pCanvas = document.createElement('canvas'); pCanvas.width = PW; pCanvas.height = PH;
 const pctx = pCanvas.getContext('2d');
 const pTex = new THREE.CanvasTexture(pCanvas);
-const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.8, PLANE_H), new THREE.MeshBasicMaterial({map:pTex}));
+const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.8, PLANE_H), new THREE.MeshBasicMaterial({map:pTex})); panel.material.userData.noRetro = true;
 panel.visible = false; scene.add(panel);
 const laserGeo = new THREE.BufferGeometry().setFromPoints([new V3(), new V3(0,0,-1)]);
 const laser = new THREE.Line(laserGeo, new THREE.LineBasicMaterial({color:0x7fe3d6}));
@@ -5649,11 +5825,11 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.16 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.17 · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
     const n = PAGES.length, tw = (PW - 60 - (n - 1)*8) / n, x = 30 + i*(tw + 8), on = pg === panelPage;
     c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
-    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold 23px system-ui, sans-serif'; c.fillText(TAB_LABEL[pg] || pg, x + tw/2, TAB_Y + 35);
+    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; c.font = 'bold ' + (PAGES.length > 8 ? 18 : 23) + 'px system-ui, sans-serif'; c.fillText(TAB_LABEL[pg] || pg, x + tw/2, TAB_Y + 35);
   });
   const off = panelPage === 'Game' ? 1 : 0;
   if (off){
@@ -5831,6 +6007,7 @@ const fmt = s => { const m = Math.floor(s / 60), r = s - m*60; return m + ':' + 
 function resetCourse(keepRun){
   if (game.role === 'human'){ applyRole(); return; }
   rig.scale.setScalar(tune.flyScale); game.stuck = null; game.crawl = null; game.level = null; game.levVig = 0;
+  retroBurst(0.6);   // v0.0.17
   placeAtSpawn(); stopAll(); game.stunUntil = 0; game.webUntil = 0;
   HANDS.forEach(h => h.prevOk = false); headPrevOk = false;
   raceSampleReset();                                         // v0.0.16: a respawn jump is never a ring crossing
@@ -6165,6 +6342,7 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'Space'){ e.preventDefault(); if (!e.repeat) flatFlap(); }
   if (e.code === 'KeyR') resetCourse();
+  if (e.code === 'KeyV'){ tune.rtOn = tune.rtOn ? 0 : 1; saveTune(); syncDom(); popup('Retro filter ' + (tune.rtOn ? 'on' : 'off'), 1.2); }
   if (e.code === 'KeyT' && game.role === 'fly' && state !== 'menu'){ raceCancel('restart here'); race.cue = 'Trial restarted'; race.cueUntil = raceNow() + 2; }   // v0.0.16
   if (!e.repeat && e.code === 'KeyQ') flatBurst(-7, 0, 0);
   if (!e.repeat && e.code === 'KeyE') flatBurst(7, 0, 0);
@@ -6359,7 +6537,7 @@ function raceGate(i, dir){
     if (i !== race.start) return;
     Object.assign(race, {phase:'running', t0:now, lastProg:now, done:1, visited:[i], trace:[i], times:[0], next:(i + 1) % N, room:net.room || '',
       runId:racePid + '.' + Date.now().toString(36) + '.' + Math.floor(Math.random() * 1e6).toString(36), sigStart:localSig(), compStart:compSig()});
-    raceLog({k:'start', ring:i, runId:race.runId});
+    raceLog({k:'start', ring:i, runId:race.runId}); retroBurst(0.35);
     if (N === 1){ raceFinish(now); return; }
     bloop('gate'); return;
   }
@@ -6370,6 +6548,7 @@ function raceGate(i, dir){
   race.next = (race.next + 1) % N; bloop('gate');
 }
 function raceFinish(now){
+  retroBurst(0.45);   // v0.0.17
   const cs = Math.round((now - race.t0) * 100);
   const inRoom = !!(net.peer && net.room && race.room === net.room);
   let why = '';
@@ -6562,7 +6741,8 @@ renderer.setAnimationLoop((time, frame) => {
   }
   raceTick(); animateRings(t);
   fitLabels(); updateSky();
-  renderer.render(scene, camera);
+  retroUpdate(t);   // v0.0.17
+  retroRender(t);
 });
 
 function resize(){
@@ -8334,6 +8514,7 @@ function roundReset(){
 }
 function dropCarry(){ if (game.carry >= 0){ requestFood('drop', game.carry); game.carry = -1; } }
 function flyDie(now, cause){
+  retroBurst(1);   // v0.0.17: tape glitch
   if (game.role !== 'fly' || now < game.deadUntil) return;
   dropCarry();
   camera.getWorldPosition(head); splat(head); thwack(1);
@@ -8630,7 +8811,7 @@ function gameTick(dt, now){
   if (now - (game.remoteBotsT || 0) > 1.5 && game.botViews.length) showRemoteBots([]);
 }
 
-window.__likeflies = {dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+window.__likeflies = {retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -8651,6 +8832,7 @@ async function enterVR(){
     const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor', 'bounded-floor', 'hand-tracking']});
     startAudio(); closeMenu();
     camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
+    try{ renderer.xr.setFramebufferScaleFactor(tune.rtOn ? tune.rtVRRes : 1); }catch(e){}   // v0.0.17: headset sharpness
     await renderer.xr.setSession(session);
     state = 'xr'; lastHud = ''; hudInit = false; resetCourse();
     try{ const ref = renderer.xr.getReferenceSpace(); if (ref && ref.addEventListener) ref.addEventListener('reset', () => { if (game.role === 'human') game.alignPending = true; }); }catch(e){}
@@ -8694,7 +8876,7 @@ $('#tHud').addEventListener('change', e => { tune.hud = e.target.checked; saveTu
 $('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });   // local only: press Apply to share the defaults
 $('#tShare').addEventListener('click', () => publishTune());
 $('#tCopy').addEventListener('click', () => {
-  const lines = ['Like Flies v0.0.08 settings'].concat(TUNE.map(t => (GROUP_TITLE[groupOf(t)] || groupOf(t)) + ' / ' + t.label + ': ' + fmtVal(t) + (tune[t.k] !== t.def ? '  (default ' + t.def + (t.unit || '') + ')' : '')));
+  const lines = ['Like Flies v0.0.17 settings'].concat(TUNE.map(t => (GROUP_TITLE[groupOf(t)] || groupOf(t)) + ' / ' + t.label + ': ' + fmtVal(t) + (tune[t.k] !== t.def ? '  (default ' + t.def + (t.unit || '') + ')' : '')));
   const text = lines.join('\n');
   const note = $('#tCopyNote');
   const show = () => { note.textContent = text; note.style.whiteSpace = 'pre-wrap'; };
