@@ -105,7 +105,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.17 · Retro filter lab</div>
+      <div class="eyebrow">Test v0.0.18b · Fly feet</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -3863,7 +3863,7 @@ const TUNE = [
   {g:'Play', k:'botVar',    label:'Bot speed spread',  min:0,   max:50,  step:5,    def:15,  unit:'%', hint:'How different each practice fly is, so they spread out.'},
   {k:'hoverLift', label:'Flap lift',          min:0,   max:400, step:5,    def:200, unit:'%', hint:'How far up each strong flap bursts you.'},
   {k:'push',      label:'Dash push',          min:0,   max:800, step:5,    def:400, unit:'%', hint:'Strength of dashes forward, back, sideways and down.'},
-  {k:'dashDist',  label:'Dash distance',      min:1,   max:40,  step:0.5,  def:20,  unit:' ft', hint:'How far a big two-arm throw carries you, before the push multiplier.'},
+  {k:'dashDist',  label:'Dash distance',      min:1,   max:40,  step:0.5,  def:30.5,  unit:' ft', hint:'How far a big two-arm throw carries you, before the push multiplier.'},
   {k:'dashSnap',  label:'Dash snap',          min:3,   max:15,  step:0.5,  def:8,   hint:'Higher is a shorter, sharper dash. Distance stays the same.'},
   {k:'curve',     label:'Burst scaling',      min:0.5, max:9,   step:0.1,  def:4.5, hint:'Higher makes small flaps gentler and big throws stronger.'},
   {k:'carry',     label:'Momentum',           min:0,   max:100, step:5,    def:100,  unit:'%', hint:'Share of each burst that keeps drifting after the dash. 100% is the most possible.'},
@@ -3874,7 +3874,7 @@ const TUNE = [
   {k:'airDrag',   label:'Air drag',           min:0,   max:1,   step:0.05, def:0,   hint:'How fast speed above the cruise speed bleeds off. 0 is the least possible.'},
   {k:'brake',     label:'Brake (arms down)',  min:0,   max:5,   step:0.1,  def:0.5, hint:'How fast arms at your sides bring you to a hover.'},
   {k:'gravity',   label:'Gravity',            min:0,   max:4,   step:0.1,  def:1.0, hint:'0 means you hover in place when you stop flapping.'},
-  {k:'maxSpeed',  label:'Max speed',          min:5,   max:120, step:0.5,  def:60,  unit:' m/s'},
+  {k:'maxSpeed',  label:'Max speed',          min:5,   max:120, step:0.5,  def:120,  unit:' m/s'},
   {k:'turn',      label:'Wing turn rate',     min:0,   max:6,   step:0.1,  def:3,   hint:'Turning speed when you dip one wing.'},
   {k:'palm',      label:'Palm influence',     min:0,   max:1,   step:0.05, def:0.2, hint:'Weakens strokes led by the back of your hand, so return strokes push you less.'},
 
@@ -3927,12 +3927,12 @@ const TUNE = [
   {g:'Crawl', k:'handReach',   label:'Hand steer reach',   min:0.15,max:0.6, step:0.01, def:0.3, unit:' m', hint:'Bare hands: how far in front of you (along the surface) a hand must be before it walks you. Lower is easier, higher avoids drifting.'},
   {g:'Powered glide', k:'dashSep',  label:'Dash separation',       min:1.5, max:6, step:0.1, def:3.0, unit:' m/s', hint:'While gliding, a stroke faster than this is a dash or lift; slower ones power your glide. Once you are flapping in rhythm it doubles, so fast steady flapping is not read as dashes.'},
   // v0.0.17 retro look lab: personal (never shared with the room, never part of race rankings)
-  {g:'Retro', k:'rtOn',       label:'Retro filter (1 = on)', min:0, max:1,   step:1,    def:0,    hint:'Turns the whole retro look on or off. Screen: V key. The first time it turns on the game may hitch for a moment.'},
+  {g:'Retro', k:'rtOn',       label:'Retro filter (1 = on)', min:0, max:1,   step:1,    def:1,    hint:'Turns the whole retro look on or off. Screen: V key. The first time it turns on the game may hitch for a moment.'},
   {g:'Retro', k:'rtColors',   label:'Color steps',        min:2,   max:64,  step:1,    def:16,   hint:'Shades per color channel. Low is chunky old-console color; 64 is off.'},
   {g:'Retro', k:'rtDither',   label:'Dither',             min:0,   max:2,   step:0.05, def:0.8,  hint:'Checker-pattern blending between color steps.'},
   {g:'Retro', k:'rtPixel',    label:'Dither pixel size',  min:1,   max:8,   step:1,    def:2,    unit:' px', hint:'Bigger makes the dither and grain chunkier.'},
   {g:'Retro', k:'rtSat',      label:'Saturation',         min:0,   max:2,   step:0.05, def:0.85, hint:'0 is black and white, 1 is normal.'},
-  {g:'Retro', k:'rtCon',      label:'Contrast',           min:0.5, max:1.6, step:0.02, def:1.08},
+  {g:'Retro', k:'rtCon',      label:'Contrast',           min:0.5, max:1.6, step:0.02, def:1.06},
   {g:'Retro', k:'rtBri',      label:'Brightness',         min:-0.3,max:0.3, step:0.01, def:0},
   {g:'Retro', k:'rtWarm',     label:'Warm / cool',        min:-1,  max:1,   step:0.05, def:0.35, hint:'Positive is warm old film, negative is cold blue tape.'},
   {g:'Retro', k:'rtFade',     label:'Washed-out blacks',  min:0,   max:0.3, step:0.01, def:0.05, hint:'Lifts the blacks like a worn tape.'},
@@ -3940,7 +3940,7 @@ const TUNE = [
   {g:'Retro', k:'rtScanSize', label:'Scanline spacing',   min:1.5, max:10,  step:0.5,  def:3,    unit:' px'},
   {g:'Retro', k:'rtGrain',    label:'Grain',              min:0,   max:0.4, step:0.01, def:0.05, hint:'Fizzy tape noise.'},
   {g:'Retro', k:'rtSnap',     label:'Wobbly vertices',    min:0,   max:1,   step:0.05, def:0,    hint:'Old-console shaky polygons. Can feel wobbly in a headset; 0 is off.'},
-  {g:'Retro', k:'rtFog',      label:'Fog distance',       min:0.15,max:2,   step:0.05, def:1,    unit:'x', hint:'Lower brings the haze in closer.'},
+  {g:'Retro', k:'rtFog',      label:'Fog distance',       min:0.15,max:2,   step:0.05, def:2,    unit:'x', hint:'Lower brings the haze in closer.'},
   {g:'Retro', k:'rtVRRes',    label:'Headset sharpness',  min:0.3, max:1,   step:0.05, def:1,    unit:'x', hint:'Lower is softer and faster. Takes effect the next time you tap Enter VR.'},
   {g:'Retro', k:'rtScreenPix',label:'Screen pixel size',  min:1,   max:8,   step:1,    def:2,    unit:' px', hint:'Screen only: chunky low-resolution pixels.'},
   {g:'VHS',   k:'vhVig',      label:'Dark edges',         min:0,   max:1,   step:0.05, def:0.45, hint:'An old TV vignette around your view.'},
@@ -3956,6 +3956,9 @@ const TUNE = [
   {g:'VHS',   k:'vhWobble',   label:'Line wobble',        min:0,   max:1,   step:0.05, def:0.3,  hint:'Screen only: tiny sideways jitter of each line.'},
   {g:'VHS',   k:'vhTrack',    label:'Tracking band',      min:0,   max:1,   step:0.05, def:0.35, hint:'Screen only: a faint band of tracking noise drifting down the picture.'},
 ];
+/* v0.0.18: defaults read from the menus in the v17 playtest video (V18-DEFAULTS-FROM-VIDEO.json). Every other setting keeps its v0.0.17 default. */
+const V18_DEFAULTS = {"hoverLift":205,"push":400,"dashDist":30.5,"dashSnap":8,"curve":4,"carry":100,"drift":1,"glideSpeed":12,"steer":6.1,"lean":3,"airDrag":0.25,"brake":0.2,"gravity":2,"maxSpeed":120,"turn":3.5,"palm":0.2,"armSens":65,"flutSens":65,"rhythm":0.85,"freqInf":2,"intInf":2,"boostAccel":20,"boostCap":30,"coastHold":0.7,"boostDecay":1,"dashSep":3,"rtOn":1,"rtColors":62,"rtDither":1,"rtPixel":2,"rtSat":1,"rtCon":1.06,"rtBri":0.07,"rtWarm":1,"rtFade":0.07,"rtScan":0.3,"rtScanSize":3,"rtGrain":0.04,"rtSnap":0,"rtFog":2,"rtVRRes":1,"rtScreenPix":8,"vhVig":1,"vhTint":0.15,"vhOSD":0,"vhEvents":1,"vhEventLen":0.5,"vhRoll":0,"vhCRT":1,"vhCurve":1,"vhChroma":2.5,"vhBleed":0.3,"vhWobble":0.3,"vhTrack":0.3};
+for (const t of TUNE) if (Object.prototype.hasOwnProperty.call(V18_DEFAULTS, t.k)) t.def = V18_DEFAULTS[t.k];
 const groupOf = t => t.g || 'Flight';
 const PAGES = ['Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS'];
 const TAB_LABEL = {'Powered glide':'Glide'};   // 'Race' shows the room board
@@ -3967,6 +3970,10 @@ let tune = Object.assign({}, DEFAULTS, store.get(TUNE_KEY, {}));
 const saveTune = () => store.set(TUNE_KEY, tune);
 // v0.0.10 one-time update: saved settings would keep the old hand reach (the hand-crawl fix needs the new one) and the old bot count
 if (store.get('likeflies.migrated', 0) < 10){ tune.handReach = DEFAULTS.handReach; tune.bots = DEFAULTS.bots; store.set('likeflies.migrated', 10); saveTune(); }
+/* v0.0.18 one-time update: the settings Job read out in the v17 playtest become your values once. Later changes are kept. */
+const V18_PRESET = Object.keys(V18_DEFAULTS);
+let v18Migrated = false;
+if (store.get('likeflies.migrated', 0) < 18){ for (const k of V18_PRESET) tune[k] = DEFAULTS[k]; store.set('likeflies.migrated', 18); saveTune(); v18Migrated = true; }
 /* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
    so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
    flight data panel), the room and player number, and headset tracking are never sent. */
@@ -5825,7 +5832,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.17 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.18b · ' + inputMode, PW - 30, 60);
   PAGES.forEach((pg, i) => {
     const n = PAGES.length, tw = (PW - 60 - (n - 1)*8) / n, x = 30 + i*(tw + 8), on = pg === panelPage;
     c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
@@ -6877,6 +6884,8 @@ function sendState(force){
   const msg = {t:'s', n:net.name || ('Fly ' + net.slot), c:net.slot, on:state !== 'menu' ? 1 : 0,
     p:[r3(sHead.x), r3(sHead.y), r3(sHead.z)], v:[r3(vel.x), r3(vel.y), r3(vel.z)], q:[r3(sQ.x), r3(sQ.y), r3(sQ.z), r3(sQ.w)],
     l:hand(HAND.left), r:hand(HAND.right), st:flightState, f:r3(flapLevel), rg:race.done, ro:game.role};
+  if (crS){ camera.getWorldQuaternion(sQ2); sQ3.copy(sQ).invert().multiply(sQ2); sEul.setFromQuaternion(sQ3, 'YXZ');   // v0.0.18: where the head looks, relative to the planted body
+    msg.lk = [r3(Math.max(-1.4, Math.min(1.4, sEul.y))), r3(Math.max(-1, Math.min(1, sEul.x)))]; msg.mv = [r3(crS.cv.x), r3(crS.cv.y), r3(crS.cv.z)]; }
   if (game.role === 'human' && game.local){
     const pk = h => h.has ? [r3(h.pos.x), r3(h.pos.y), r3(h.pos.z), r3(h.q.x), r3(h.q.y), r3(h.q.z), r3(h.q.w)] : 0;
     Object.assign(msg, {ch:game.ci, si:game.spotIdx | 0, rp:[r3(rig.position.x), r3(rig.position.y), r3(rig.position.z)], ry:r3(rig.rotation.y), hs:tune.humanSize, ms:r3(game.local.ms),
@@ -6889,6 +6898,7 @@ function sendState(force){
 }
 
 /* remote flies */
+const sQ2 = new THREE.Quaternion(), sQ3 = new THREE.Quaternion(), sEul = new THREE.Euler();
 const flyBodyGeo = new THREE.SphereGeometry(0.16, 16, 12), flyEyeGeo = new THREE.SphereGeometry(0.085, 14, 10);
 const flyBodyMat = new THREE.MeshLambertMaterial({color:0x2a2e35});
 const labels = [];
@@ -6923,6 +6933,7 @@ function flyArtFail(e){
 }
 function prepFlyArt(root){
   const mats = new Map(), seenGeo = new Set(), lin = new THREE.Color();
+  { const b0 = root.getObjectByName('LF_Body'); if (b0 && b0.geometry.attributes.color){ FLY_ART.linCol = b0.geometry.attributes.color.array.slice(); FLY_ART.linStride = b0.geometry.attributes.color.itemSize; } }
   const toLambert = m => { let o = mats.get(m.uuid); if (o) return o;
     const t = m.transparent || m.opacity < 1;
     o = new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide, transparent:t, opacity:t ? m.opacity : 1, depthWrite:!t});
@@ -6948,9 +6959,67 @@ function prepFlyArt(root){
   { // seat the player-color dot on the back of the thorax: cast a ray down onto the body mesh
     const F = FLY_ART.fit, mz = (F.z - 0.06) / F.s, rc = new THREE.Raycaster(new V3(0, 3, mz), new V3(0, -1, 0)), hit = rc.intersectObject(body, true)[0];
     F.dotY = hit ? F.y + hit.point.y * F.s : 0.04; }
-  FLY_ART.body = body; FLY_ART.wingL = wl; FLY_ART.wingR = wr; FLY_ART.ready = true;
+  FLY_ART.bodyFull = body;
+  try { splitFlyBody(body); } catch(e){ FLY_ART.legRig = null; FLY_ART.head = null; console.warn('[Like Flies] fly leg split failed, keeping the baked legs', e); }
+  FLY_ART.body = FLY_ART.bodyNoLegs || body; FLY_ART.wingL = wl; FLY_ART.wingR = wr; FLY_ART.ready = true;
   console.info('[Like Flies] imported fly ready', JSON.stringify({fit:FLY_ART.fit, tris:FLY_ART.tris}));
   FLY_ART.avatars.forEach(upgradeAvatar);
+}
+
+/* v0.0.18: the approved fly's legs are baked into LF_Body as separate little parts. Find them (dark leg colors, out to the
+   side, below the body), remove them from the drawn body, and keep each leg's hip, knee and foot so the game can draw
+   matching jointed legs that plant and step. The head (eyes and face, forward of the thorax) goes on its own pivot so it
+   can look around while the body stays planted. Same geometry, materials and colors; nothing is remodelled. */
+function splitFlyBody(body){
+  const g = body.geometry, P = g.attributes.position, I = g.index, CL = FLY_ART.linCol;
+  if (!CL) throw new Error('no vertex colors');
+  const n = P.count, triN = I ? I.count / 3 : n / 3, idx = i => I ? I.getX(i) : i;
+  const key = new Map(), wid = new Int32Array(n);
+  for (let i = 0; i < n; i++){ const k = Math.round(P.getX(i) * 1e4) + ',' + Math.round(P.getY(i) * 1e4) + ',' + Math.round(P.getZ(i) * 1e4); let w = key.get(k); if (w === undefined){ w = key.size; key.set(k, w); } wid[i] = w; }
+  const par = new Int32Array(key.size); for (let i = 0; i < par.length; i++) par[i] = i;
+  const f = x => { while (par[x] !== x){ par[x] = par[par[x]]; x = par[x]; } return x; };
+  for (let t = 0; t < triN; t++){ const a = f(wid[idx(3*t)]), b = f(wid[idx(3*t + 1)]), c = f(wid[idx(3*t + 2)]); par[b] = a; par[f(c)] = a; }
+  const comps = new Map(), tv = new V3();
+  for (let t = 0; t < triN; t++){
+    const r = f(wid[idx(3*t)]); let o = comps.get(r);
+    if (!o){ o = {tris:[], mn:new V3(1e9, 1e9, 1e9), mx:new V3(-1e9, -1e9, -1e9), c:[0, 0, 0], k:0, verts:[]}; comps.set(r, o); }
+    o.tris.push(t);
+    for (let j = 0; j < 3; j++){ const v = idx(3*t + j); tv.set(P.getX(v), P.getY(v), P.getZ(v)); o.mn.min(tv); o.mx.max(tv); o.verts.push(tv.clone()); const st = FLY_ART.linStride || 3; o.c[0] += CL[v*st]; o.c[1] += CL[v*st + 1]; o.c[2] += CL[v*st + 2]; o.k++; }
+  }
+  const legParts = [], headTris = [], bodyTris = [];
+  for (const o of comps.values()){
+    const cx = (o.mn.x + o.mx.x) / 2, cy = (o.mn.y + o.mx.y) / 2, cz = (o.mn.z + o.mx.z) / 2, r = o.c[0] / o.k, gg = o.c[1] / o.k, b = o.c[2] / o.k;
+    o.cx = cx; o.cy = cy; o.cz = cz; o.ball = r > 0.08;
+    if (r < 0.15 && gg < 0.085 && b < 0.06 && Math.abs(cx) > 0.3 && cy < -0.1) legParts.push(o);
+    else if (cz > 0.3 && Math.abs(cx) < 0.45) headTris.push(...o.tris);
+    else bodyTris.push(...o.tris);
+  }
+  const balls = legParts.filter(o => o.ball);
+  if (balls.length !== 6) throw new Error('expected 6 leg joints, found ' + balls.length);
+  const F = FLY_ART.fit, toLocal = v => new V3(-v.x * F.s + F.x, v.y * F.s + F.y, -v.z * F.s + F.z);   // model frame to the avatar frame (turned around, scaled)
+  const legs = balls.map(ball => ({ball, parts:[]}));
+  for (const o of legParts){ let best = null, bd = 1e9; for (const L of legs){ if (Math.sign(L.ball.cx) !== Math.sign(o.cx)) continue; const d = Math.abs(L.ball.cz - o.cz); if (d < bd){ bd = d; best = L; } } best.parts.push(o); }
+  const rig = legs.map(L => {
+    const vs = [].concat(...L.parts.map(o => o.verts));
+    let minAx = 1e9, minY = 1e9; for (const v of vs){ minAx = Math.min(minAx, Math.abs(v.x)); minY = Math.min(minY, v.y); }
+    const hip = new V3(), foot = new V3(); let nh = 0, nf = 0;
+    for (const v of vs){ if (Math.abs(v.x) < minAx + 0.03){ hip.add(v); nh++; } if (v.y < minY + 0.03){ foot.add(v); nf++; } }
+    hip.divideScalar(nh); foot.divideScalar(nf);
+    const knee = new V3((L.ball.mn.x + L.ball.mx.x) / 2, (L.ball.mn.y + L.ball.mx.y) / 2, (L.ball.mn.z + L.ball.mx.z) / 2);
+    const h = toLocal(hip), k = toLocal(knee), ft = toLocal(foot);
+    return {hip:h, knee:k, foot:ft, la:h.distanceTo(k), lb:k.distanceTo(ft), side:Math.sign(h.x), knob:0.022};
+  });
+  rig.sort((a, b) => a.hip.z - b.hip.z || a.side - b.side);                  // front (-Z) first
+  rig.forEach((L, i) => { L.row = Math.floor(i / 2); L.grp = (L.row + (L.side > 0 ? 1 : 0)) % 2; });   // alternating tripods
+  const mk = tris => { const gi = g.clone(); const arr = []; for (const t of tris) arr.push(idx(3*t), idx(3*t + 1), idx(3*t + 2)); gi.setIndex(arr); return gi; };
+  const bodyM = body.clone(); bodyM.geometry = mk(bodyTris); bodyM.name = 'LF_Body_noLegs';
+  FLY_ART.bodyNoLegs = bodyM;
+  if (headTris.length > 50){
+    const headM = body.clone(); headM.geometry = mk(headTris); headM.name = 'LF_Head';
+    FLY_ART.head = headM; FLY_ART.neck = new V3(0, -0.03, 0.2);                 // model frame: eyes toward +Z
+  } else { bodyM.geometry = mk(bodyTris.concat(headTris)); FLY_ART.head = null; }
+  FLY_ART.legRig = rig;
+  FLY_ART.legInfo = {legParts:legParts.length, legTris:legParts.reduce((a, o) => a + o.tris.length, 0), headTris:headTris.length, bodyTris:bodyTris.length};
 }
 function loadFlyArt(){
   try {
@@ -6970,6 +7039,8 @@ function upgradeAvatar(av){
   if (av.art || !FLY_ART.ready) return;
   const F = FLY_ART.fit, a = new THREE.Group(); a.scale.setScalar(F.s); a.position.set(F.x, F.y, F.z); a.rotation.y = F.ry;
   a.add(FLY_ART.body.clone());
+  if (FLY_ART.head){ const hp = new THREE.Group(); hp.position.copy(FLY_ART.neck); const hm = FLY_ART.head.clone(); hm.position.copy(FLY_ART.neck).negate(); hp.add(hm); a.add(hp); av.head = hp; }   // v0.0.18: the head can look around
+  av.legs = !!FLY_ART.legRig;
   const pivot = node => { const p = new THREE.Group(); p.position.copy(node.position); const inner = node.clone(); inner.position.set(0, 0, 0); p.add(inner); a.add(p); return p; };   // the flap rotates the pivot, the wing keeps its rest pose inside
   av.wl = pivot(FLY_ART.wingL); av.wr = pivot(FLY_ART.wingR);
   if (av.accent != null){ const m = new THREE.Mesh(ICO0, HK.M(av.accent)); m.position.set(0, F.dotY + 0.004, 0.06); m.scale.set(0.034, 0.012, 0.05); av.g.add(m); }   // player color dot on the back
@@ -7034,7 +7105,7 @@ function dropRemote(j){
 }
 function setRemoteKind(r, kind, ci){
   if (r.cont){ scene.remove(r.cont); r.cont = null; r.model = null; }
-  r.kind = kind; r.ci = ci;
+  r.kind = kind; r.ci = ci; r.feet = null; r.legBlend = 0;   // v0.0.18: a role change clears planted feet
   const fly = kind === 'fly';
   r.g.visible = fly; r.wings.forEach(w => w.visible = fly);
   if (!fly){
@@ -7059,6 +7130,15 @@ function onState(j, d){
     r.tr = Array.isArray(d.r) ? new V3().fromArray(d.r) : null;
     r.f = +d.f || 0; r.st = d.st || ''; r.rg = d.rg | 0;
     r.at = Array.isArray(d.at) ? d.at : null; r.cw = d.cw | 0; r.gs = +d.gs || 0; r.fs = +d.fs || 1;
+    // v0.0.18: optional fields from new peers; old peers simply leave them out
+    const fin3 = a => Array.isArray(a) && a.length === 3 && a.every(Number.isFinite);
+    if (!Number.isFinite(r.gs) || r.gs < 0) r.gs = 0; r.gs = Math.min(r.gs, 50); if (!Number.isFinite(r.fs) || r.fs <= 0) r.fs = 1;
+    if (!r.mvW) r.mvW = new V3();
+    if (fin3(d.mv)) r.mvW.fromArray(d.mv).clampLength(0, 50);
+    else if (r.cw && r.prevT && clock.elapsedTime - r.prevRecv > 0.01) r.mvW.subVectors(r.tgt, r.prevT).divideScalar(clock.elapsedTime - r.prevRecv).clampLength(0, 50);
+    else if (!r.cw) r.mvW.set(0, 0, 0);
+    if (!r.prevT) r.prevT = new V3(); r.prevT.copy(r.tgt); r.prevRecv = clock.elapsedTime;
+    r.lkT = Array.isArray(d.lk) && d.lk.length === 2 && d.lk.every(Number.isFinite) ? [Math.max(-1.4, Math.min(1.4, d.lk[0])), Math.max(-1, Math.min(1, d.lk[1]))] : null;
     r.lv = d.lv != null ? d.lv | 0 : tune.lives; r.sk = d.sk | 0; r.out = !!d.out; r.cr = d.cr != null ? d.cr : -1; r.stn = d.stn | 0; r.hpt = d.hpt | 0; r.sc = d.sc | 0;
     if (r.dead && clock.elapsedTime - r.deadAt > 1.5) r.dead = false;
     if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
@@ -7098,7 +7178,8 @@ function updateRemotes(dt, now){
     }
     r.g.visible = vis; r.wings.forEach(w => w.visible = vis); if (r.label) r.label.visible = vis;
     if (!vis) continue;
-    wTmp.copy(r.tgt).addScaledVector(r.v, Math.min(0.25, now - r.recv));      // predict a little ahead
+    if (r.cw && r.mvW) wTmp.copy(r.tgt).addScaledVector(r.mvW, Math.min(0.12, now - r.recv));   // v0.0.18: landed: follow the surface motion, never coast far
+    else wTmp.copy(r.tgt).addScaledVector(r.v, Math.min(0.15, now - r.recv));      // predict a little ahead (shorter than v0.0.17 so late packets bounce less)
     const k = 1 - Math.exp(-14 * dt);
     const atPart = flyAttachPart(r);
     if (atPart){ atPart.updateWorldMatrix(true, false); r.pos.set(r.at[2], r.at[3], r.at[4]).applyMatrix4(atPart.matrixWorld); }   // landed on a human: draw it on our copy of that body part, no lag
@@ -7110,7 +7191,10 @@ function updateRemotes(dt, now){
     if (r.cw && !r.wasCw) r.landT = now; r.wasCw = r.cw;
     const sq = r.landT ? Math.exp(-(now - r.landT) * 9) * Math.cos((now - r.landT) * 26) : 0;
     const fsz = r.fs || 1; r.g.scale.set((1 + 0.14*sq) * fsz, (1 - 0.2*sq) * fsz, (1 + 0.14*sq) * fsz);
-    if (r.cw && r.gs > 0.05){ r.g.translateY(0.014 * fsz * Math.abs(Math.sin((r.legPh || 0) * 2))); r.g.rotateZ(0.07 * Math.sin(r.legPh || 0)); }
+    if (r.cw && r.gs > 0.05 && !(r.av && r.av.legs)){ r.g.translateY(0.014 * fsz * Math.abs(Math.sin((r.legPh || 0) * 2))); r.g.rotateZ(0.07 * Math.sin(r.legPh || 0)); }
+    if (r.av && r.av.head){ const tl = r.cw && r.lkT ? r.lkT : [0, 0]; r.lk = r.lk || [0, 0]; const kh = 1 - Math.exp(-8 * dt);
+      r.lk[0] += (Math.max(-0.75, Math.min(0.75, tl[0])) - r.lk[0]) * kh; r.lk[1] += (Math.max(-0.5, Math.min(0.5, tl[1])) - r.lk[1]) * kh;
+      r.av.head.rotation.set(-r.lk[1], r.lk[0], 0, 'YXZ'); }   // v0.0.18: the head turns within a comfortable range; past that the body's own turning takes over
     if (r.stn){ r.g.rotateX(now * 9 % (Math.PI*2)); r.g.rotateZ(now * 7 % (Math.PI*2)); }
     if (!r.piece){ r.piece = makePiece(0.4); r.piece.position.set(0, -0.38, 0.1); r.g.add(r.piece); }
     showPiece(r.piece, r.cr);
@@ -7133,7 +7217,8 @@ function updateRemotes(dt, now){
       if (r.av.art){                                                   // imported fly: the arm direction becomes the wing angle
         artV.copy(wDir).applyQuaternion(artQ.copy(r.g.quaternion).invert());
         const ax = Math.abs(artV.x) + 1e-4, el = Math.atan2(artV.y, ax), sw = Math.atan2(artV.z, ax);
-        const m = -side, p = m > 0 ? r.av.wr : r.av.wl, z = Math.max(-1.45, Math.min(0.2, el - 0.97)), y = Math.max(-0.3, Math.min(1.1, sw)) * 0.8;   // the model is turned around, so game +X is the model's -X wing
+        const buzz = r.cw ? 0 : Math.sin(now * 46 + r.j * 1.7) * 0.5 * Math.min(1, Math.max(0, r.f));   // v0.0.18: other players see the wing beat when you flap
+        const m = -side, p = m > 0 ? r.av.wr : r.av.wl, z = Math.max(-1.45, Math.min(0.35, el - 0.97 + buzz)), y = Math.max(-0.3, Math.min(1.1, sw)) * 0.8;   // the model is turned around, so game +X is the model's -X wing
         p.rotation.set(0, m * y, m * z);
       }
     });
@@ -8363,7 +8448,7 @@ function landTick(){
 }
 
 /* ---------- six legs for every fly, drawn as one instanced mesh (one draw call for all of them) ---------- */
-const LEG_MAX = 24 * 18;
+const LEG_MAX = 40 * 26;
 const legGeo = new THREE.CylinderGeometry(1, 0.75, 1, 5, 1); legGeo.translate(0, 0.5, 0);
 const legMesh = new THREE.InstancedMesh(legGeo, new THREE.MeshLambertMaterial({color:0x2a211b}), LEG_MAX);
 legMesh.frustumCulled = false; legMesh.count = 0; scene.add(legMesh);
@@ -8408,6 +8493,115 @@ function drawLegs(obj, s, mode, o){
     legSeg(lgHip, lgKnee, 0.026*s*wk); legSeg(lgKnee, lgA, 0.019*s*wk); legSeg(lgA, lgFoot, 0.011*s*wk);   // thigh, shin, thin foot
   }
 }
+
+/* ---------- v0.0.18: articulated legs for the imported fly ----------
+   Each leg is hip -> knee -> foot with the lengths measured from the approved model, solved as a two-bone leg with the
+   knee bending up and out. For other players the feet are planted in the world (or on the human body part the fly sits
+   on) and step in two alternating tripods driven by how far the body actually moved, not by a clock. */
+const AL = {hip:new V3(), knee:new V3(), foot:new V3(), d:new V3(), pole:new V3(), tmp:new V3(), up:new V3(), q:new THREE.Quaternion(), mv:new V3(), sc:new V3(), mid:new V3()};
+function artLeg(M, L, footW, s){
+  if (legN + 4 > LEG_MAX) return;
+  AL.hip.copy(L.hip).applyMatrix4(M);
+  const a = L.la * s, b = L.lb * s;
+  AL.d.subVectors(footW, AL.hip); let len = AL.d.length();
+  if (len < 1e-5){ AL.d.set(0, -1, 0); len = 1e-5; } else AL.d.divideScalar(len);
+  const reach = (a + b) * 0.995; if (len > reach){ len = reach; }
+  AL.foot.copy(AL.hip).addScaledVector(AL.d, len);
+  const x = (a*a - b*b + len*len) / (2*len), h = Math.sqrt(Math.max(0, a*a - x*x));
+  AL.pole.set(L.side * 0.8, 1, 0).transformDirection(M); AL.pole.addScaledVector(AL.d, -AL.pole.dot(AL.d)); if (AL.pole.lengthSq() < 1e-8) AL.pole.set(0, 1, 0); AL.pole.normalize();
+  AL.knee.copy(AL.hip).addScaledVector(AL.d, x).addScaledVector(AL.pole, h);
+  AL.mid.lerpVectors(AL.knee, AL.foot, 0.68);
+  legSeg(AL.hip, AL.knee, 0.019 * s);
+  AL.tmp.subVectors(AL.foot, AL.knee).normalize().multiplyScalar(L.knob * s); AL.sc.copy(AL.knee).sub(AL.tmp); AL.tmp.add(AL.knee);
+  legSeg(AL.sc, AL.tmp, 0.026 * s);                                             // the knee joint ball
+  legSeg(AL.knee, AL.mid, 0.015 * s); legSeg(AL.mid, AL.foot, 0.009 * s);
+}
+const worldScaleOf = M => AL.sc.setFromMatrixColumn(M, 0).length();
+/* a foot in the body frame for poses that are not planted: tucked in flight, flailing when swatted, sitting still */
+function artFootLocal(L, mode, t, footY, out){
+  if (mode === 'flail') return out.set(L.hip.x + L.side * 0.14 * Math.cos(t*21 + L.row*2), L.hip.y - 0.08 + 0.12 * Math.sin(t*17 + L.row), L.hip.z + 0.12 * Math.sin(t*25 + L.row*3 + L.side));
+  if (mode === 'plant') return out.set(L.foot.x, -footY, L.foot.z);
+  return out.set(L.foot.x * 0.78, L.foot.y * 0.78 + 0.02 * Math.sin(t*9 + L.row + L.side), L.foot.z + 0.06 + L.row * 0.012);   // hang: legs tucked a little under and back
+}
+function artLegsSimple(obj, mode, t, footY){
+  const R = FLY_ART.legRig; if (!R) return;
+  obj.updateMatrixWorld(true); const M = obj.matrixWorld, s = worldScaleOf(M);
+  for (const L of R){ artFootLocal(L, mode, t, footY, AL.foot); AL.foot.applyMatrix4(M); AL.tmp.copy(AL.foot); artLeg(M, L, AL.tmp, s); }
+}
+/* nudge a foot target onto the crawl surface the game already uses (bounded: two short probes, max shift clamped) */
+const probeV = new V3();
+function settleFoot(p, up, s){
+  if (typeof field !== 'function') return p;
+  let moved = 0;
+  for (let k = 0; k < 2; k++){ const d = field(p, gather(p, 0.6 * s + 0.3)); const step = Math.max(-0.08 * s, Math.min(0.08 * s, d)); p.addScaledVector(up, -step); moved += step; if (Math.abs(d) < 0.004 * s) break; }
+  return p;
+}
+function remoteFeet(r, dt, now){
+  const R = FLY_ART.legRig, av = r.av, obj = av.g; obj.updateMatrixWorld(true);
+  const M = obj.matrixWorld, s = worldScaleOf(M), footY = tune.crawlH;
+  const mode = r.stn ? 'flail' : (r.cw || r.sk) ? 'plant' : 'hang';
+  if (mode !== 'plant'){
+    r.feet = null; r.legBlend = Math.max(0, (r.legBlend || 0) - dt / 0.18);
+    for (const L of R){ artFootLocal(L, mode, now + r.j, footY, AL.foot); AL.foot.applyMatrix4(M); AL.tmp.copy(AL.foot); artLeg(M, L, AL.tmp, s); }
+    return;
+  }
+  const host = r.cw ? flyAttachPart(r) : null;
+  if (host) host.updateWorldMatrix(true, false);
+  AL.up.set(0, 1, 0).applyQuaternion(obj.getWorldQuaternion(AL.q));
+  const stale = now - r.recv > 0.4;
+  // motion along the surface, in the body frame (for where the next steps should land)
+  AL.mv.copy(r.mvW || AL.mv.set(0, 0, 0)).applyQuaternion(AL.q.invert()); AL.mv.y = 0;
+  const spd = Math.min(3, AL.mv.length() / Math.max(1e-3, s)); if (AL.mv.lengthSq() > 1e-8) AL.mv.normalize();
+  const moving = (r.gs || 0) > 0.05 && !stale;
+  r.idleT = moving ? 0 : (r.idleT || 0) + dt;
+  const home = (L, lead, out) => { out.set(L.foot.x, -footY, L.foot.z); if (lead) out.addScaledVector(AL.mv, lead); return out.applyMatrix4(M); };
+  const posJump = r.lastFeetPos ? r.lastFeetPos.distanceTo(r.pos) : 0;
+  if (!r.feet || r.feetHost !== host || posJump > 0.8 * s){                  // landing, new host or a teleport: plant fresh
+    r.feet = R.map(L => { const p = settleFoot(home(L, 0, new V3()), AL.up, s); return {p, lp:host ? host.worldToLocal(p.clone()) : null, sw:-1, from:new V3(), to:new V3(), toL:null, groom:false}; });
+    r.feetHost = host; if (posJump > 0.8 * s) r.legBlend = 1;
+  }
+  r.lastFeetPos = (r.lastFeetPos || new V3()).copy(r.pos);
+  r.legBlend = Math.min(1, (r.legBlend || 0) + dt / 0.25);
+  const lead = Math.min(0.09, 0.05 + 0.02 * spd);
+  const swinging = [0, 0];
+  r.feet.forEach((F, i) => { if (F.sw >= 0) swinging[R[i].grp]++; });
+  const dur = Math.max(0.09, 0.16 - 0.025 * spd);
+  // v0.0.18b: the two tripods take turns. Work out which tripod needs a step, and give the turn to the one that did not
+  // step last, so one set can never hog the stepping while the other gets dragged.
+  const needs = [false, false];
+  for (let i = 0; i < R.length; i++){ const F = r.feet[i]; if (F.sw >= 0 || F.groom) continue; const an = host && F.lp ? AL.sc.copy(F.lp).applyMatrix4(host.matrixWorld) : F.p; if (an.distanceTo(home(R[i], 0, AL.foot)) > 0.085 * s) needs[R[i].grp] = true; }
+  const turn = r.lastGrp == null ? (needs[0] ? 0 : 1) : (needs[1 - r.lastGrp] ? 1 - r.lastGrp : r.lastGrp);
+  for (let i = 0; i < R.length; i++){
+    const L = R[i], F = r.feet[i];
+    const anchor = host && F.lp ? AL.tmp.copy(F.lp).applyMatrix4(host.matrixWorld) : AL.tmp.copy(F.p);
+    if (!host) F.p.copy(anchor);
+    // idle grooming: the front pair lifts and rubs while the other four hold the body
+    const wantGroom = L.row === 0 && r.idleT > 2.2 && !stale;
+    if (wantGroom){ F.groom = true; F.sw = -1;
+      AL.foot.set(L.side * (0.022 + 0.014 * Math.sin(now * 15 + r.j)), L.hip.y - 0.05, L.hip.z - 0.11).applyMatrix4(M);
+      F.p.copy(AL.foot); if (host) F.lp = host.worldToLocal(F.p.clone()); artLeg(M, L, AL.foot, s); continue; }
+    if (F.groom){ F.groom = false; F.sw = 0; F.from.copy(anchor); settleFoot(home(L, lead, F.to), AL.up, s); swinging[L.grp]++; }
+    const homeW = home(L, 0, AL.mid);
+    const dev = anchor.distanceTo(homeW);
+    if (F.sw < 0){
+      if (dev > 0.34 * s){ F.p.copy(settleFoot(homeW.clone(), AL.up, s)); if (host) F.lp = host.worldToLocal(F.p.clone()); }   // way out of reach: re-seat rather than stretch
+      else if (!stale && swinging[1 - L.grp] === 0 && (L.grp === turn || swinging[L.grp] > 0) && (dev > 0.085 * s || (!moving && dev > 0.03 * s && r.idleT > 0.25 && r.idleT < 1.5))){
+        if (swinging[L.grp] === 0) r.lastGrp = L.grp;
+        F.sw = 0; F.from.copy(anchor); settleFoot(home(L, moving ? lead : 0, F.to), AL.up, s); swinging[L.grp]++;
+        if (host) F.toL = host.worldToLocal(F.to.clone());
+      }
+    }
+    if (F.sw >= 0){
+      F.sw = Math.min(1, F.sw + dt / dur);
+      const u = F.sw, e = u * u * (3 - 2 * u);
+      const to = host && F.toL ? AL.sc.copy(F.toL).applyMatrix4(host.matrixWorld) : F.to;
+      AL.foot.lerpVectors(F.from, to, e).addScaledVector(AL.up, 0.07 * s * Math.sin(Math.PI * u));
+      if (F.sw >= 1){ F.sw = -1; F.p.copy(to); F.lp = host ? host.worldToLocal(F.p.clone()) : null; }
+    } else AL.foot.copy(host && F.lp ? AL.sc.copy(F.lp).applyMatrix4(host.matrixWorld) : F.p);
+    if (r.legBlend < 1){ artFootLocal(L, 'hang', now + r.j, footY, AL.sc); AL.sc.applyMatrix4(M); AL.foot.lerpVectors(AL.sc, AL.foot.clone(), smoothstep(0, 1, r.legBlend)); }
+    artLeg(M, L, AL.foot.clone(), s);
+  }
+}
 const myLegs = new THREE.Object3D(); scene.add(myLegs);
 const lgInv = new THREE.Quaternion();
 function updateLegs(dt, now){
@@ -8421,15 +8615,17 @@ function updateLegs(dt, now){
     drawLegs(myLegs, 1, 'plant', {t:now, ph:cr.ph, speed:cr.speed, mv:lgMv, idle:cr.idleT, blend:smoothstep(0, 1, cr.blend), footY, wk:0.4 * tune.flyScale, drop:0.07});   // thin, and attached lower, so they never crowd your view
   }
   for (const r of net.remotes.values()){
-    if (r.kind !== 'fly' || !r.g.visible || (r.av && r.av.art)) continue;
+    if (r.kind !== 'fly' || !r.g.visible) continue;
+    if (r.av && r.av.art){ if (r.av.legs) remoteFeet(r, dt, now); continue; }   // v0.0.18: other players' imported flies get real legs
     const mode = r.stn ? 'flail' : (r.cw || r.sk) ? 'plant' : 'hang';
     if (r.cw){ r.legPh = (r.legPh || 0) + (r.gs || 0) / (0.14 * (r.fs || 1)) * Math.PI * dt; r.idleT = (r.gs || 0) < 0.05 ? (r.idleT || 0) + dt : 0; }
     lgMv.copy(r.v).applyQuaternion(lgInv.copy(r.g.quaternion).invert()); lgMv.y = 0; if (lgMv.lengthSq() > 1e-6) lgMv.normalize();
     r.legBlend = Math.min(1, Math.max(0, (r.legBlend || 0) + (mode === 'plant' ? dt : -dt) / 0.25));
     drawLegs(r.g, 1, r.legBlend > 0 && mode !== 'flail' ? 'plant' : mode, {t:now + r.j, ph:r.legPh || 0, speed:r.gs || 0, mv:lgMv, idle:r.idleT || 0, blend:smoothstep(0, 1, r.legBlend), footY, wk:r.fs || 1});
   }
-  for (const b of game.bots){ if (!b.view.visible || b.view.av.art) continue; const land = b.state === 'land' || b.state === 'onHuman' || b.state === 'web'; drawLegs(b.view.body, 1, b.state === 'stun' ? 'flail' : land ? 'plant' : 'hang', {t:now + b.id, footY:tune.crawlH, wk:tune.flyScale}); }
-  game.botViews.forEach((v, i) => { if (v.visible && !v.av.art) drawLegs(v.body, 1, v.bs === 3 ? 'flail' : v.bs === 4 ? 'plant' : 'hang', {t:now + i, footY:tune.crawlH, wk:game.botFs || 1}); });
+  for (const b of game.bots){ if (b.view.visible && b.view.av.art && b.view.av.legs){ const land = b.state === 'land' || b.state === 'onHuman' || b.state === 'web'; artLegsSimple(b.view.av.g, b.state === 'stun' ? 'flail' : land ? 'plant' : 'hang', now + b.id, tune.crawlH); continue; }
+    if (!b.view.visible || b.view.av.art) continue; const land = b.state === 'land' || b.state === 'onHuman' || b.state === 'web'; drawLegs(b.view.body, 1, b.state === 'stun' ? 'flail' : land ? 'plant' : 'hang', {t:now + b.id, footY:tune.crawlH, wk:tune.flyScale}); }
+  game.botViews.forEach((v, i) => { if (v.visible && v.av.art && v.av.legs){ artLegsSimple(v.av.g, v.bs === 3 ? 'flail' : v.bs === 4 ? 'plant' : 'hang', now + i, tune.crawlH); return; } if (v.visible && !v.av.art) drawLegs(v.body, 1, v.bs === 3 ? 'flail' : v.bs === 4 ? 'plant' : 'hang', {t:now + i, footY:tune.crawlH, wk:game.botFs || 1}); });
   legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true;
 }
 
@@ -8811,7 +9007,7 @@ function gameTick(dt, now){
   if (now - (game.remoteBotsT || 0) > 1.5 && game.botViews.length) showRemoteBots([]);
 }
 
-window.__likeflies = {retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+window.__likeflies = {fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -8876,7 +9072,7 @@ $('#tHud').addEventListener('change', e => { tune.hud = e.target.checked; saveTu
 $('#tReset').addEventListener('click', () => { tune = Object.assign({}, DEFAULTS); saveTune(); syncDom(); });   // local only: press Apply to share the defaults
 $('#tShare').addEventListener('click', () => publishTune());
 $('#tCopy').addEventListener('click', () => {
-  const lines = ['Like Flies v0.0.17 settings'].concat(TUNE.map(t => (GROUP_TITLE[groupOf(t)] || groupOf(t)) + ' / ' + t.label + ': ' + fmtVal(t) + (tune[t.k] !== t.def ? '  (default ' + t.def + (t.unit || '') + ')' : '')));
+  const lines = ['Like Flies v0.0.18 settings'].concat(TUNE.map(t => (GROUP_TITLE[groupOf(t)] || groupOf(t)) + ' / ' + t.label + ': ' + fmtVal(t) + (tune[t.k] !== t.def ? '  (default ' + t.def + (t.unit || '') + ')' : '')));
   const text = lines.join('\n');
   const note = $('#tCopyNote');
   const show = () => { note.textContent = text; note.style.whiteSpace = 'pre-wrap'; };
