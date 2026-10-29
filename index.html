@@ -101,12 +101,13 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="pad" id="pad" hidden>
   <button id="fwdBtn" type="button">Buzz<br>forward</button>
   <button id="flapBtn" class="flap" type="button">FLAP</button>
+  <button id="grabBtn" type="button">Grab<br>food</button>
 </div>
 
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.21B · Physical playground</div>
+      <div class="eyebrow">Test v0.0.22 · Contact and embodiment polish</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -5845,7 +5846,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.21B · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.22 · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
     const {x, w:tw} = TAB_RECTS[i], on = pg === panelPage;
@@ -6138,7 +6139,8 @@ function updateHandVisuals(headL){
   if (!game.crawl) crawlCue.visible = false;
   for (const h of HANDS){
     h.obj.visible = h.has; if (!h.has) continue;
-    h.obj.position.copy(h.pos);
+    if (game.role === 'fly' && V22.wingRoot){ v22WingPose(h, headL); continue; }   // v0.0.22: your wings live at your shoulders; the controllers aim them
+    h.obj.scale.setScalar(1); h.obj.position.copy(h.pos);
     bx.subVectors(h.pos, headL); bx.addScaledVector(h.palm, -bx.dot(h.palm));
     if (bx.lengthSq() < 1e-6) bx.set(h.side === 'left' ? -1 : 1, 0, 0);
     bx.normalize(); by.copy(h.palm).normalize(); bz.crossVectors(bx, by).normalize();
@@ -6160,7 +6162,7 @@ function updateHandVisuals(headL){
 const headPrev = new V3(), headVelL = new V3(), hv = new V3(), td = new V3(), burst = new V3(), sDir = new V3();
 let headPrevOk = false;
 function simulateXR(dt, now, frame){
-  readInputs(frame);
+  readInputs(frame); readGrab(frame);   // v0.0.22: the fly's grip (squeeze button 1 in the xr-standard mapping, or a fist)
   const L = HAND.left, R = HAND.right;
 
   for (const h of HANDS){
@@ -6446,7 +6448,8 @@ function integrate(dt, now, xr){
 
   rig.updateMatrixWorld(true);
   camera.getWorldPosition(head);
-  collide(head, hr); collideHumans(head, hr);
+  { const rp0 = game.depenUntil > now ? _dp0.copy(rig.position) : null; collide(head, hr); collideHumans(head, hr);
+    if (rp0){ _dp1.subVectors(rig.position, rp0); const mx = (game.depenRate || 6) * dt; if (_dp1.length() > mx){ _dp1.setLength(mx); rig.position.copy(rp0).add(_dp1); rig.updateMatrixWorld(true); camera.getWorldPosition(head); V22.depen = (V22.depen || 0) + 1; } } }   // v0.0.22: leaving a padded collider after a visible-contact perch eases out instead of popping
   if (now >= game.deadUntil) flyStick(now);
   if (game.stuck) grounded = true;
   if (grounded){ const f = Math.exp(-6*dt); for (const v of [vel, vDash, vMove]){ v.x *= f; v.z *= f; } }
@@ -6871,7 +6874,7 @@ function setupConn(conn){
   conn.on('data', d => { if (gen !== net.gen || !d) return; if (d.t === 's') onState(j, d); else if (d.t === 'e') onEvent(d); else if (d.t === 'f') onFood(d);
     else if (d.t === 'tp') onTunePub(j, d); else if (d.t === 'ts') onTuneSet(j, d);   // v0.0.15: shared tuning
     else if (d.t === 'rs') onRaceSubmit(j, d); else if (d.t === 'rl') onLedger(j, d);
-    else if (d.t === 'ps' || d.t === 'pq') pgOnMessage(j, d);   // v0.0.21B: playground
+    else if (d.t === 'ps' || d.t === 'pq' || d.t === 'pn') pgOnMessage(j, d);   // v0.0.21B: playground
     else if (d.t === 'ah' || d.t === 'as' || d.t === 'aq' || d.t === 'gq' || d.t === 'gc' || d.t === 'gn' || d.t === 'ap' || d.t === 'aP') actOnMessage(j, d); });   // v0.0.19: activities   // v0.0.16: race finishes and the room board
   const gone = () => { if (net.conns.get(j) === conn){ net.conns.delete(j); dropRemote(j); } if (net.pending.get(j) === conn) net.pending.delete(j); };
   conn.on('close', gone); conn.on('error', gone);
@@ -6901,7 +6904,7 @@ function sendState(force){
   camera.getWorldPosition(sHead); camera.getWorldQuaternion(sQ);
   rig.updateMatrixWorld(true);
   const crS = game.role === 'fly' ? game.crawl : null;
-  if (crS){ sHead.copy(crS.C); bodyQuat(sQ); }             // crawling: the body sits on the surface, feet down
+  if (crS){ sHead.copy(crS.Cv || crS.C); bodyQuat(sQ); }   // v0.0.22: the visible contact point             // crawling: the body sits on the surface, feet down
   const hand = h => { if (!renderer.xr.isPresenting || !h.has) return 0; sHand.copy(h.pos).applyMatrix4(rig.matrixWorld).sub(sHead); return [r3(sHand.x), r3(sHand.y), r3(sHand.z)]; };
   const msg = {t:'s', n:net.name || ('Fly ' + net.slot), c:net.slot, on:state !== 'menu' ? 1 : 0,
     p:[r3(sHead.x), r3(sHead.y), r3(sHead.z)], v:[r3(vel.x), r3(vel.y), r3(vel.z)], q:[r3(sQ.x), r3(sQ.y), r3(sQ.z), r3(sQ.w)],
@@ -6926,12 +6929,17 @@ const flyBodyGeo = new THREE.SphereGeometry(0.16, 16, 12), flyEyeGeo = new THREE
 const flyBodyMat = new THREE.MeshLambertMaterial({color:0x2a2e35});
 const labels = [];
 function labelSize(sp, w, h){ sp.userData.lw = w; sp.userData.lh = h; sp.scale.set(w, h, 1); }
-function fitLabels(){ const k = 1 / rig.scale.x; for (const sp of labels) sp.scale.set(sp.userData.lw * k, sp.userData.lh * k, 1); }
+function fitLabels(){ const k = 1 / rig.scale.x; camera.getWorldPosition(_lbC);
+  for (const sp of labels){ if (sp.userData.auto){ v22LabelFit(sp); continue; }
+    let w = sp.userData.lw * k, h = sp.userData.lh * k; const d = sp.position.distanceTo(_lbC), cap = 0.4 * d; if (w > cap && w > 0){ h *= cap / w; w = cap; } sp.scale.set(w, h, 1); } }   // v0.0.22: no label swallows the view up close
 function makeLabel(text, color){
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
   const c = cv.getContext('2d');
   c.fillStyle = 'rgba(10,20,16,0.78)'; c.beginPath(); if (c.roundRect) c.roundRect(8, 20, 496, 88, 44); else c.rect(8, 20, 496, 88); c.fill();
-  c.fillStyle = '#' + color.toString(16).padStart(6, '0'); c.font = 'bold 54px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(text, 256, 84);
+  c.fillStyle = '#' + color.toString(16).padStart(6, '0'); c.textAlign = 'center'; let fz = 54, tx = String(text); c.font = 'bold 54px system-ui, sans-serif';
+  while (c.measureText(tx).width > 456 && fz > 30){ fz -= 2; c.font = 'bold ' + fz + 'px system-ui, sans-serif'; }   // v0.0.22: a long name shrinks, then shortens; the panel never grows
+  while (c.measureText(tx).width > 456 && tx.length > 4) tx = tx.slice(0, -2) + '\u2026';
+  c.fillText(tx, 256, 64 + fz * 0.37);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), depthTest:true, transparent:true}));
   labelSize(sp, 0.8, 0.2); labels.push(sp); return sp;
 }
@@ -7199,7 +7207,7 @@ function updateRemotes(dt, now){
         if (!r.sw[i] && m.swatters[i]){ m.swatters[i].parent.remove(m.swatters[i]); m.swatters[i] = null; }
       }
       updateColliders(m, now);
-      if (r.label){ r.label.position.copy(m.cHead.a); r.label.position.y += m.cHead.r * 1.8; labelSize(r.label, 0.8 * r.hs * 0.3, 0.2 * r.hs * 0.3); }
+      if (r.label){ const A = r.label.userData.auto || (r.label.userData.auto = {base:new V3()}); A.base.copy(m.cHead.a); A.base.y += m.cHead.r * 1.8; A.human = true; A.hsU = r.hs || 28; A.lift = 0; r.label.position.copy(A.base); }
       continue;
     }
     r.g.visible = vis; r.wings.forEach(w => w.visible = vis); if (r.label) r.label.visible = vis;
@@ -7222,9 +7230,9 @@ function updateRemotes(dt, now){
       r.lk[0] += (Math.max(-0.95, Math.min(0.95, tl[0])) - r.lk[0]) * kh; r.lk[1] += (Math.max(-0.6, Math.min(0.6, tl[1])) - r.lk[1]) * kh; r.lk[2] += (Math.max(-0.5, Math.min(0.5, tl[2] || 0)) - r.lk[2]) * kh;
       r.av.head.rotation.set(-r.lk[1], r.lk[0], -r.lk[2], 'YXZ'); }   // the head model is turned around in the avatar, so pitch and roll flip   // v0.0.18: the head turns within a comfortable range; past that the body's own turning takes over
     if (r.stn){ r.g.rotateX(now * 9 % (Math.PI*2)); r.g.rotateZ(now * 7 % (Math.PI*2)); }
-    if (!r.piece){ r.piece = makePiece(0.4); r.piece.position.set(0, -0.38, 0.1); r.g.add(r.piece); }
+    if (!r.piece){ r.piece = makePiece(0.4); r.piece.position.set(0, -0.33, -0.27); r.g.add(r.piece); }   // v0.0.22: held at the front feet
     showPiece(r.piece, r.cr);
-    if (r.label){ r.label.position.copy(r.pos); r.label.position.y += 0.42 * (r.fs || 1); }
+    if (r.label){ const A = r.label.userData.auto || (r.label.userData.auto = {base:new V3()}); A.base.copy(r.pos); A.fs = r.fs || 1; A.lift = 0.3 * (r.fs || 1); A.human = false; r.label.position.copy(r.pos); }   // v0.0.22: sized per viewer in fitLabels
     eul.setFromQuaternion(r.q, 'YXZ'); yawQ.setFromAxisAngle(V3UP, eul.y);
     const flutter = Math.sin(now * 38 + r.j) * 0.12 * (0.3 + r.f);
     [[r.l, r.tl, -1], [r.r, r.tr, 1]].forEach(([cur, tgt, side], i) => {
@@ -7250,6 +7258,7 @@ function updateRemotes(dt, now){
     });
     remoteBuzz(r);
   }
+  crawlFollowHost();   // v0.0.22: riding a remote human: re-seat on the part after it moved this frame
 }
 const V3UP = new V3(0, 1, 0), artV = new V3(), artQ = new THREE.Quaternion();
 function flyAttachPart(r){
@@ -8039,6 +8048,7 @@ function humanHits(m, now){
     for (const c of parts){
       if (tg.onCi >= 0 && m.cols[tg.onCi] === c) continue;       // the part a fly is riding on carries it, it doesn't squash it
       if (tg.onPart && tg.onPart === c.part) continue;
+      if (tg.remote && tg.remote.at && tg.remote.at[0] < 0 && (c === m.cHand[0] || c === m.cHand[1])){ const hk = c === m.cHand[0] ? 0 : 1, HH = PG.hold[hk]; if (HH && HH.i === -tg.remote.at[0] - 1) continue; }   // v0.0.22: the hand holding a prop does not swat or squash the flies riding that prop (the other hand still can)
       if (segDist(tg.pos, c.a, c.b, hQ) - c.r > fr) continue;
       if (occluded(hQ, tg.pos)) continue;                        // a chair, the grill or the coop is in the way: the fly is safe
       const spd = c.vf.length() / HS;
@@ -8383,7 +8393,7 @@ function crawlStep(dt, now, xr){
   cr.C.addScaledVector(cr.cv, dt);
   // 4. keep the feet on the surface, around edges and underneath
   const cH = tune.crawlH * tune.flyScale;
-  const list = gather(cr.C, cH + 3);
+  const list = v22RideList(cr, gather(cr.C, cH + 3));   // v0.0.22: on a held or flying prop you stay on it (unless you walk off)
   const d0 = projectTo(cr.C, list, cH, crU);
   updateCrawlCue(cr, cH);
   if (d0 > cH + Math.max(0.6, 1.2 * tune.flyScale)){ crawlRelease(now, false, 'surface lost ' + d0.toFixed(2) + ' ' + (cr.pr && cr.pr.label)); return; }      // the surface went away (walked off a thin edge, or the human moved off)
@@ -8398,9 +8408,10 @@ function crawlStep(dt, now, xr){
   // 7. which surface you're on now; on the human, store yourself on that body part
   setCrawlPrim(cr, FR.pr, now);
   storeOnHost(cr);
-  // 8. walking onto food grabs a piece; sitting on a hand bites it
+  vcCrawl(cr, list, cH, dt, now);   // v0.0.22: how far the VISIBLE surface is below the feet
+  // 8. walking onto food with a grip grabs a piece (v0.0.22: never automatic); sitting on a hand bites it
   const f = cr.st.food;
-  if (f >= 0 && game.carry < 0 && !game.out && foods[f] && foods[f].hp > 0 && now > cr.grabT){ cr.grabT = now + 1.2; requestFood('grab', f); }
+  if (f >= 0 && game.carry < 0 && !game.out && foods[f] && foods[f].hp > 0 && now > cr.grabT){ if (flyWantsFood(now)){ cr.grabT = now + 1.2; requestFood('grab', f); } else if (now - FLYG.cueT > 4){ FLYG.cueT = now; popup('Squeeze grip to pick up the ' + foods[f].name + (renderer.xr.isPresenting ? '' : ' (F)'), 1.6); } }
   if (cr.host && cr.host.pkind === 'hand' && now - cr.onHandT > 1.2 && !cr.bit){ cr.bit = true; sendEvent({k:'bite', to:cr.host.owner, side:cr.host.side}); }
   // 9. turn the whole world with the surface (fully at 100%), easing in from the landing pose
   frameQuat(cr.N, cr.F, crQ);
@@ -8410,10 +8421,7 @@ function crawlStep(dt, now, xr){
   cr.blend = Math.min(1, cr.blend + dt / Math.max(0.01, tune.landTime));
   const e = smoothstep(0, 1, cr.blend);
   rig.quaternion.copy(cr.q0).slerp(cr.Qs, e);
-  crT.copy(cr.H0).lerp(cr.C, e);
-  crH.copy(cr.K).multiplyScalar(rig.scale.x).applyQuaternion(rig.quaternion);
-  rig.position.copy(crT).sub(crH);
-  rig.updateMatrixWorld(true);
+  crawlPlace(cr);   // v0.0.22: eyes at the visible contact (physical crawl point minus the measured gap)
   // 10. state for the HUD, legs and other players
   vel.copy(cr.cv); grounded = true; contact.hit = false;
   cr.speed = cr.cv.length(); cr.ph += cr.speed / (0.14 * tune.flyScale) * Math.PI * dt;
@@ -8422,6 +8430,7 @@ function crawlStep(dt, now, xr){
 }
 function crawlRelease(now, push, why){
   const cr = game.crawl; if (!cr) return;
+  if ((cr.gap || 0) > 0.03){ game.depenUntil = now + 0.45; game.depenRate = Math.max(4, cr.gap / 0.25); }   // v0.0.22: ease out of the padded collider
   game.lastRelease = why || (push ? 'takeoff' : 'hit');
   game.crawl = null; game.stuck = null; game.stickCool = now + 0.4;
   stopAll();
@@ -8521,10 +8530,11 @@ function drawLegs(obj, s, mode, o){
     }
     if (row === 0 && o.front && o.front[side]) lgFoot.copy(o.front[side]);   // v0.0.21B: gestures and carrying own the front pair
     // two-bone leg, knee bends up and out
-    lgD.subVectors(lgFoot, lgHip); let L = lgD.length(); const st = Math.max(1, L / (a + b)), aa = a*st, bb = b*st;
+    lgD.subVectors(lgFoot, lgHip); let L = lgD.length(); if (L > 1.2 * (a + b)){ lgFoot.copy(lgHip).addScaledVector(lgD, 1.2 * (a + b) / L); lgD.subVectors(lgFoot, lgHip); L = lgD.length(); }   // v0.0.22: bounded cartoon stretch
+    const st = Math.max(1, L / (a + b)), aa = a*st, bb = b*st;
     if (L < 1e-5){ lgD.set(0, -1, 0); L = 1e-5; } else lgD.divideScalar(L);
     const x = (aa*aa - bb*bb + L*L) / (2*L), h = Math.sqrt(Math.max(0, aa*aa - x*x));
-    lgP.set(side*0.7, 1, 0); lgP.addScaledVector(lgD, -lgP.dot(lgD)).normalize();
+    const fpo = row === 0 && o.front && o.front.fpole && o.front.fpole[side]; if (fpo) lgP.copy(fpo); else lgP.set(side*0.7, 1, 0); lgP.addScaledVector(lgD, -lgP.dot(lgD)).normalize();   // v0.0.22: gesture elbows bend out and down, around the eyes
     lgKnee.copy(lgHip).addScaledVector(lgD, x).addScaledVector(lgP, h);
     lgHip.applyMatrix4(M); lgKnee.applyMatrix4(M); lgFoot.applyMatrix4(M);
     lgA.lerpVectors(lgKnee, lgFoot, 0.72);
@@ -8537,16 +8547,16 @@ function drawLegs(obj, s, mode, o){
    knee bending up and out. For other players the feet are planted in the world (or on the human body part the fly sits
    on) and step in two alternating tripods driven by how far the body actually moved, not by a clock. */
 const AL = {hip:new V3(), knee:new V3(), foot:new V3(), d:new V3(), pole:new V3(), tmp:new V3(), up:new V3(), q:new THREE.Quaternion(), mv:new V3(), sc:new V3(), mid:new V3()};
-function artLeg(M, L, footW, s){
+function artLeg(M, L, footW, s, poleL, stretchMax){
   if (legN + 4 > LEG_MAX) return;
   AL.hip.copy(L.hip).applyMatrix4(M);
-  const a = L.la * s, b = L.lb * s;
   AL.d.subVectors(footW, AL.hip); let len = AL.d.length();
   if (len < 1e-5){ AL.d.set(0, -1, 0); len = 1e-5; } else AL.d.divideScalar(len);
+  const st = stretchMax ? Math.min(stretchMax, Math.max(1, len / ((L.la + L.lb) * s * 0.995))) : 1, a = L.la * s * st, b = L.lb * s * st;   // v0.0.22: gestures may stretch a little, never wildly
   const reach = (a + b) * 0.995; if (len > reach){ len = reach; }
   AL.foot.copy(AL.hip).addScaledVector(AL.d, len);
   const x = (a*a - b*b + len*len) / (2*len), h = Math.sqrt(Math.max(0, a*a - x*x));
-  AL.pole.set(L.side * 0.8, 1, 0).transformDirection(M); AL.pole.addScaledVector(AL.d, -AL.pole.dot(AL.d)); if (AL.pole.lengthSq() < 1e-8) AL.pole.set(0, 1, 0); AL.pole.normalize();
+  if (poleL) AL.pole.copy(poleL).transformDirection(M); else AL.pole.set(L.side * 0.8, 1, 0).transformDirection(M); AL.pole.addScaledVector(AL.d, -AL.pole.dot(AL.d)); if (AL.pole.lengthSq() < 1e-8) AL.pole.set(0, 1, 0); AL.pole.normalize();
   AL.knee.copy(AL.hip).addScaledVector(AL.d, x).addScaledVector(AL.pole, h);
   AL.mid.lerpVectors(AL.knee, AL.foot, 0.68);
   legSeg(AL.hip, AL.knee, 0.019 * s);
@@ -8569,6 +8579,8 @@ function artLegsSimple(obj, mode, t, footY){
 /* nudge a foot target onto the crawl surface the game already uses (bounded: two short probes, max shift clamped) */
 const probeV = new V3();
 function settleFoot(p, up, s){
+  // v0.0.22: feet go onto the VISIBLE surface (a short ray down the body's own axis); the old field nudge lifted them onto padded colliders
+  if (typeof vcFoot === 'function'){ vcFoot(p, up, s); return p; }
   if (typeof field !== 'function') return p;
   let moved = 0;
   for (let k = 0; k < 2; k++){ const d = field(p, gather(p, 0.6 * s + 0.3)); const step = Math.max(-0.08 * s, Math.min(0.08 * s, d)); p.addScaledVector(up, -step); moved += step; if (Math.abs(d) < 0.004 * s) break; }
@@ -8580,11 +8592,12 @@ function remoteFeet(r, dt, now){
   const mode = r.stn ? 'flail' : (r.cw || r.sk) ? 'plant' : 'hang';
   if (mode !== 'plant'){
     r.feet = null; r.legBlend = Math.max(0, (r.legBlend || 0) - dt / 0.18);
-    for (const L of R){ artFootLocal(L, mode, now + r.j, footY, AL.foot); AL.foot.applyMatrix4(M); AL.tmp.copy(AL.foot); artLeg(M, L, AL.tmp, s); }
+    for (const L of R){ if (L.row === 0 && r.cr >= 0 && mode === 'hang') AL.foot.set(L.side * 0.035, -0.31, -0.26); else artFootLocal(L, mode, now + r.j, footY, AL.foot); AL.foot.applyMatrix4(M); AL.tmp.copy(AL.foot); artLeg(M, L, AL.tmp, s); }   // v0.0.22: carrying in flight: the front feet hold the piece
     return;
   }
   const host = r.cw ? flyAttachPart(r) : null;
   if (host) host.updateWorldMatrix(true, false);
+  VC.footHost = host;   // v0.0.22: feet settle on this part's mesh
   AL.up.set(0, 1, 0).applyQuaternion(obj.getWorldQuaternion(AL.q));
   const stale = now - r.recv > 0.4;
   // motion along the surface, in the body frame (for where the next steps should land)
@@ -8616,10 +8629,12 @@ function remoteFeet(r, dt, now){
     const L = R[i], F = r.feet[i];
     const anchor = host && F.lp ? AL.tmp.copy(F.lp).applyMatrix4(host.matrixWorld) : AL.tmp.copy(F.p);
     if (!host) F.p.copy(anchor);
+    if (L.row === 0 && r.cr >= 0){ F.groom = false; F.sw = -1; AL.foot.set(L.side * 0.035, -0.31, -0.26).applyMatrix4(M); artLeg(M, L, AL.foot.clone(), s); continue; }   // v0.0.22: carrying while perched: the front feet hold the piece
     if (L.row === 0){ const k = L.side < 0 ? 0 : 1, g = gst ? (k ? gst.r : gst.l) : null;
       r.gsB[k] = Math.max(0, Math.min(1, r.gsB[k] + (g ? dt : -dt) / 0.2 / 2)); if (g) r.gsm[k].lerp(g, 1 - Math.exp(-14 * dt));
-      if (r.gsB[k] > 0){ const plant = anchor.clone(); socFoot(L.hip, L.la + L.lb, L.side, r.gsm[k], AL.foot); AL.foot.applyMatrix4(M);
-        AL.foot.lerpVectors(plant, AL.foot.clone(), smoothstep(0, 1, r.gsB[k])); F.groom = false; F.sw = -1; artLeg(M, L, AL.foot.clone(), s); continue; } }
+      if (r.gsB[k] > 0){ const plant = anchor.clone(); socFoot(L.hip, L.la + L.lb, L.side, r.gsm[k], AL.foot);
+        const pole = legAvoid(HEADX.art, L.hip, AL.foot, L.la, L.lb, L.side, headQinBody(r.av)); AL.foot.applyMatrix4(M);   // v0.0.22: the tip follows the controller, the leg routes around the head and eyes
+        AL.foot.lerpVectors(plant, AL.foot.clone(), smoothstep(0, 1, r.gsB[k])); F.groom = false; F.sw = -1; artLeg(M, L, AL.foot.clone(), s, r.gsB[k] > 0.5 ? pole : null, 1.15); continue; } }
     // idle grooming: the front pair lifts and rubs while the other four hold the body
     const wantGroom = L.row === 0 && r.idleT > 2.2 && !stale;
     if (wantGroom){ F.groom = true; F.sw = -1;
@@ -8655,11 +8670,11 @@ function updateLegs(dt, now){
   // you see your own legs under you while crawling
   if (game.role === 'fly' && game.crawl && state !== 'menu'){
     const cr = game.crawl;
-    myLegs.position.copy(cr.C); bodyQuat(myLegs.quaternion); myLegs.scale.setScalar(tune.flyScale);
+    myLegs.position.copy(cr.Cv || cr.C); bodyQuat(myLegs.quaternion); myLegs.scale.setScalar(tune.flyScale);
     lgMv.copy(cr.cv).applyQuaternion(lgInv.copy(myLegs.quaternion).invert()); lgMv.y = 0; if (lgMv.lengthSq() > 1e-6) lgMv.normalize();
-    drawLegs(myLegs, 1, 'plant', {t:now, ph:cr.ph, speed:cr.speed, mv:lgMv, idle:cr.idleT, blend:smoothstep(0, 1, cr.blend), footY, wk:0.4 * tune.flyScale, drop:0.07, front:socOwnFront(0.07)});   // thin, and attached lower, so they never crowd your view
+    drawLegs(myLegs, 1, 'plant', {t:now, ph:cr.ph, speed:cr.speed, mv:lgMv, idle:cr.idleT, blend:smoothstep(0, 1, cr.blend), footY, wk:0.4 * tune.flyScale, drop:0.07, front:game.carry >= 0 ? V22_CARRY_FRONT : socOwnFront(0.07)}); v22PieceAtTips();   // thin, and attached lower, so they never crowd your view
   } else if (game.role === 'fly' && state !== 'menu' && !(game.deadUntil > now) && !game.out){   // v0.0.21B: your front legs dangle low in view while flying, and hold what you carry
-    camera.getWorldPosition(myLegs.position); camera.getWorldQuaternion(myLegs.quaternion); myLegs.scale.setScalar(tune.flyScale);
+    myPiece.position.set(0, -0.3, -0.55); camera.getWorldPosition(myLegs.position); camera.getWorldQuaternion(myLegs.quaternion); myLegs.scale.setScalar(tune.flyScale);
     myLegs.position.add(new V3(0, -0.05, -0.28).multiplyScalar(tune.flyScale).applyQuaternion(myLegs.quaternion));
     const sw = Math.sin(now * 3) * 0.015, front = game.carry >= 0 ? {'-1':new V3(-0.03, -0.24, -0.27), '1':new V3(0.03, -0.24, -0.27)} : {'-1':new V3(-0.08, -0.3 + sw, -0.2), '1':new V3(0.08, -0.3 - sw, -0.2)};   // slim, forward and down: never toward your eyes
     drawLegs(myLegs, 1, now < game.stunUntil ? 'flail' : 'hang', {t:now, rows:[0], front, wk:0.4 * tune.flyScale, drop:0.02, footY});
@@ -8683,7 +8698,8 @@ const atQ = new THREE.Quaternion(), atQ2 = new THREE.Quaternion();
 const r4 = x => Math.round(x * 1e4) / 1e4;
 function crawlAt(cr){
   cr.host.part.getWorldQuaternion(atQ).invert(); bodyQuat(atQ2); atQ.multiply(atQ2);
-  return [cr.host.owner, cr.host.ci, r4(cr.lC.x), r4(cr.lC.y), r4(cr.lC.z), r4(atQ.x), r4(atQ.y), r4(atQ.z), r4(atQ.w)];
+  const lv = cr.Cv ? cr.host.part.worldToLocal(_atV.copy(cr.Cv)) : cr.lC;   // v0.0.22: where the body visibly sits on that part
+  return [cr.host.owner, cr.host.ci, r4(lv.x), r4(lv.y), r4(lv.z), r4(atQ.x), r4(atQ.y), r4(atQ.z), r4(atQ.w)];
 }
 function liftLossExtra(now){
   const r = tune.recoverRamp;
@@ -9770,7 +9786,10 @@ const PG_SCHEMA = 1, PG_AI_SLOT = 99, PG_ROOM_CAP = 10;
 const PG_RULES = {
   gM:9.8,            // gravity, m/s2
   throwGain:1.0,     // release velocity = measured hand velocity x gain
-  throwCap:9,        // m/s, arcade cap for thrown props
+  throwCap:14,       // m/s, arcade cap for thrown props (v0.0.22: was 9)
+  swingGain:1.5,     // v0.0.22: a committed swing (above 1.5 m/s) gets up to this much extra, all of it from 4 m/s
+  dropBelow:0.3,     // v0.0.22: m/s; a release slower than this is a plain drop
+  spinCap:18,        // v0.0.22: rad/s, the most spin a throw takes from the wrist
   plateBreak:2.0,    // m/s impact (normal speed) that smashes a released plate
   relGrace:0.15,     // s after release before a plate may smash
   restock:8,         // s until a smashed plate is back on the table
@@ -9785,7 +9804,7 @@ const PG_MODE = {rest:0, held:1, fly:2, broken:3, land:4, float:5};
 const PG_MODE_NAME = ['rest', 'held', 'fly', 'broken', 'land', 'float'];
 const pgU = () => (tune.humanSize || 28);                         // world units per metre
 const PG = {props:[], ep:0, rev:0, sq:0, lastSq:-1, lastEp:-1, wasHost:false, sendT:0, fullT:0, events:[], seenBreak:{}, ops:[], opSet:new Set(),
-  hold:[null, null], gripPrev:[false, false], hist:[[], []], lostT:[-9, -9], holdSendT:0, holdT:{}, pendT:[0, 0],
+  hold:[null, null], gripPrev:[false, false], hist:[[], []], lostT:[-9, -9], holdSendT:0, holdT:{}, pendT:[0, 0], nackT:[-9, -9], gripEdgeT:[-9, -9],
   radio:{on:0, tr:0, t0:0, rev:0, bT:[0, 0], down:[0, 0]}, btnArm:{}, ai:{on:0, s:0, t0:0, tgt:new V3(), side:1, cool:0, swung:false, pid:null},
   stats:{steps:0, stepMs:0, sent:0, sentBytes:0, recv:0, reject:0}, inited:false, resetArm:0, bbox:null, aiM:null, aiC:null};
 function pgLog(e){ PG.events.push(Object.assign({at:+clock.elapsedTime.toFixed(2)}, e)); if (PG.events.length > 200) PG.events.shift(); }
@@ -9908,11 +9927,14 @@ function pgStepProp(p, dt, now){
   if (p.mode === PG_MODE.float) return pgStepFloat(p, dt, now);
   if (p.mode !== PG_MODE.fly) return;
   // free flight: gravity, then contacts at the sample points (impulses with friction), then smash / water / sleep checks
-  p.v.y -= PG_RULES.gM * U * dt;
-  p.x.addScaledVector(p.v, dt);
-  const wl = p.w.length(); if (wl > 1e-6){ _pQ.setFromAxisAngle(_pv.copy(p.w).divideScalar(wl), wl * dt); p.q.premultiply(_pQ).normalize(); }
   const list = pgGather(p, p.x, p.r + p.v.length() * dt + 3);
+  const nSub = Math.max(1, Math.min(8, Math.ceil(p.v.length() * dt / 0.6))), h = dt / nSub;   // v0.0.22: swept sub-steps (at most 0.6 units) so a fast throw hits walls instead of passing through
+  if (nSub > 1) PG.stats.subs = (PG.stats.subs || 0) + nSub;
   let impact = 0, touched = false;
+  for (let sub = 0; sub < nSub; sub++){
+  p.v.y -= PG_RULES.gM * U * h;
+  p.x.addScaledVector(p.v, h);
+  const wl = p.w.length(); if (wl > 1e-6){ _pQ.setFromAxisAngle(_pv.copy(p.w).divideScalar(wl), wl * h); p.q.premultiply(_pQ).normalize(); }
   for (const lp of p.pts){
     _pw.copy(lp).applyQuaternion(p.q); _pt.copy(p.x).add(_pw);
     const d = pgDist(_pt, list) - p.ptR; if (d >= 0) continue;
@@ -9927,6 +9949,7 @@ function pgStepProp(p, dt, now){
       if (vt > 1e-5){ const jt = Math.min(vt / den, p.mu * j); _pv.divideScalar(vt); p.v.addScaledVector(_pv, -jt / p.m); _pgR.crossVectors(_pw, _pv); p.w.addScaledVector(_pgR, -jt / p.I); }
     }
   }
+  }
   p.v.multiplyScalar(Math.exp(-0.15 * dt)); p.w.multiplyScalar(Math.exp((touched ? -3.5 : -0.4) * dt));
   if (!pgFin(p.x) || !pgFin(p.v) || p.x.y < -10 || p.x.x < YARD.x0 - 30 || p.x.x > YARD.x1 + 30 || p.x.z < YARD.z0 - 30 || p.x.z > YARD.z1 + 60){ pgRecover(p, now, 'out of bounds'); return; }
   if (p.kind === 'plate' && p.canBreak && now - p.relAt > PG_RULES.relGrace && impact > PG_RULES.plateBreak * U){ pgBreak(p, now, 'smash', impact / U); return; }
@@ -9939,8 +9962,10 @@ function pgStepProp(p, dt, now){
 function pgStepHeld(p, dt, now){
   const H = PG.holdT[p.i];
   if (!H || now - H.t > 1.5 || !pgHolderPresent(p.holder)){ pgDoRelease(p, now, new V3(), 'holder gone'); return; }
-  _pv.subVectors(H.x, p.x); const maxS = PG_RULES.holdMax * pgU() * dt; if (_pv.length() > maxS) _pv.setLength(maxS);
-  p.v.copy(_pv).divideScalar(dt); p.x.add(_pv);
+  // v0.0.22: a smoothed target (the latest hand sample carried forward by its own velocity, at most 50 ms), approached with a 30 ms time constant
+  _pt.copy(H.x); if (H.v) _pt.addScaledVector(H.v, Math.min(0.05, Math.max(0, now - H.t)));
+  _pv.subVectors(_pt, p.x).multiplyScalar(1 - Math.exp(-dt / 0.03)); const maxS = PG_RULES.holdMax * pgU() * dt; if (_pv.length() > maxS) _pv.setLength(maxS);
+  p.x.add(_pv); p.v.lerp(_pw.copy(_pv).divideScalar(dt), 1 - Math.exp(-dt / 0.05));   // smoothed velocity for snapshots
   p.q.slerp(H.q, 1 - Math.exp(-dt / 0.03)); p.w.set(0, 0, 0);
   const list = pgGather(p, p.x, p.r + 2);
   for (let it = 0; it < 2; it++) for (const lp of p.pts){ _pw.copy(lp).applyQuaternion(p.q); _pt.copy(p.x).add(_pw); const d = pgDist(_pt, list) - p.ptR; if (d < 0){ pgGrad(_pt, list, _pn); p.x.addScaledVector(_pn, -d); } }
@@ -9969,8 +9994,8 @@ function pgRecover(p, now, why){
   if (pgInWater(p.x)){ p.mode = PG_MODE.float; p.floatX.copy(p.x); } else p.mode = PG_MODE.land;
   pgLog({k:'recover', id:p.id, why, gen:p.gen}); pgDirty('recover');
 }
-function pgDoRelease(p, now, v, why){
-  p.holder = ''; p.mode = PG_MODE.fly; p.v.copy(v); p.w.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 2).multiplyScalar(Math.min(1, v.length() / (3 * pgU())));
+function pgDoRelease(p, now, v, why, w){
+  p.holder = ''; p.mode = PG_MODE.fly; p.v.copy(v); if (w && pgFin(w)) p.w.copy(w); else p.w.set((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 2).multiplyScalar(Math.min(1, v.length() / (3 * pgU())));
   p.canBreak = true; p.relAt = now; p.still = 0; delete PG.holdT[p.i];
   pgLog({k:'release', id:p.id, why, v:+(v.length() / pgU()).toFixed(2)}); pgDirty('release');
 }
@@ -10013,7 +10038,7 @@ function pgKnocks(now){
 let pgOpN = 0;
 function pgRequest(o){
   o.id = racePid.slice(-6) + '.' + Date.now().toString(36) + '.' + (pgOpN++);
-  if (pgIsHost()){ pgApply(racePid, o, true); return; }
+  if (pgIsHost()){ PG.lastRej = null; pgApply(racePid, o, true); if (PG.lastRej && o.op === 'grab') pgOnNack(mySlot(), {i:o.i, why:PG.lastRej}); return; }
   const c = net.conns.get(raceHost()); if (c && c.open){ try{ c.send(Object.assign({t:'pq'}, o)); }catch(e){} }
 }
 const pgFinArr = (a, n, lim) => Array.isArray(a) && a.length === n && a.every(v => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= lim);
@@ -10030,7 +10055,7 @@ function pgApply(pid, d, local){
   if (d.op === 'grab'){
     if (p.mode === PG_MODE.broken || p.mode === PG_MODE.held) return pgReject('not free', pid);
     if (!pgHolderPresent(pid)) return pgReject('not a human', pid);
-    if (PG.props.some(o => o.mode === PG_MODE.held && o.holder === pid && o.hand === hand)) return pgReject('hand busy', pid);
+    const stale = PG.props.find(o => o !== p && o.mode === PG_MODE.held && o.holder === pid && o.hand === hand); if (stale) pgDoRelease(stale, now, new V3(), 'superseded');   // v0.0.22: a new grab with that hand ends an old hold (a lost release), it is not a lock
     if (!pgFinArr(d.p, 3, 1e4) || !pgFinArr(d.q, 4, 2)) return pgReject('bad pose', pid);
     const hp = new V3().fromArray(d.p); if (hp.distanceTo(p.x) > p.r + 1.1 * U) return pgReject('too far', pid);   // within reach (1 m covers the desktop fallback reach)
     p.mode = PG_MODE.held; p.holder = pid; p.hand = hand; p.v.set(0, 0, 0); p.w.set(0, 0, 0);
@@ -10038,15 +10063,16 @@ function pgApply(pid, d, local){
   }
   if (p.mode !== PG_MODE.held || p.holder !== pid) return pgReject('not your prop', pid);
   if (d.op === 'hold'){ if (!pgFinArr(d.p, 3, 1e4) || !pgFinArr(d.q, 4, 2)) return pgReject('bad pose', pid); const H = PG.holdT[p.i] || (PG.holdT[p.i] = {x:new V3(), q:new THREE.Quaternion(), t:0});
-    H.x.fromArray(d.p); H.q.fromArray(d.q).normalize(); H.t = now; return; }
+    pgHoldSample(H, _hx.fromArray(d.p), _hq.fromArray(d.q).normalize(), now); return; }
   if (d.op === 'rel'){
     const v = pgFinArr(d.v, 3, 1e5) ? new V3().fromArray(d.v).multiplyScalar(PG_RULES.throwGain) : new V3(); if (v.length() > PG_RULES.throwCap * U) v.setLength(PG_RULES.throwCap * U);
-    if (pgFinArr(d.p, 3, 1e4)){ const H = PG.holdT[p.i]; if (H) H.x.fromArray(d.p); p.x.lerp(new V3().fromArray(d.p), 0.5); }
-    pgDoRelease(p, now, v, 'let go'); return;
+    if (pgFinArr(d.p, 3, 1e4)){ const rp = new V3().fromArray(d.p), H = PG.holdT[p.i]; if (H) H.x.copy(rp); if (rp.distanceTo(p.x) < 1.5 * U) p.x.copy(rp); else p.x.lerp(rp, 0.5); if (pgFinArr(d.q, 4, 2)) p.q.fromArray(d.q).normalize(); }   // v0.0.22: leaves from where the holder's hand let go
+    const w = pgFinArr(d.w, 3, 200) ? new V3().fromArray(d.w) : null; if (w && w.length() > PG_RULES.spinCap) w.setLength(PG_RULES.spinCap);
+    pgDoRelease(p, now, v, 'let go', w); return;
   }
   return pgReject('unknown op', pid);
 }
-function pgReject(why, pid){ PG.stats.reject++; pgLog({k:'reject', why, pid}); }
+function pgReject(why, pid){ PG.stats.reject++; PG.lastRej = why; pgLog({k:'reject', why, pid}); }
 function pgResetAll(now, pid){
   for (const p of PG.props){ p.gen++; p.holder = ''; p.v.set(0, 0, 0); p.w.set(0, 0, 0); p.x.copy(p.home.x); p.q.copy(p.home.q); p.canBreak = false; p.still = 0;
     p.mode = p.kind === 'duck' ? PG_MODE.float : PG_MODE.rest; if (p.kind === 'duck'){ p.floatX.copy(p.home.x); p.safe.x.copy(p.home.x); } delete PG.holdT[p.i]; }
@@ -10099,12 +10125,13 @@ function pgOnSnap(j, d){
     p.tx.set(e[4], e[5], e[6]); p.tq.set(e[7], e[8], e[9], e[10]).normalize(); p.tv.set(e[11], e[12], e[13]); p.recvT = now;
     if (p.mode !== PG_MODE.held && p.mode !== PG_MODE.fly || wasGen !== p.gen || p.x.distanceTo(p.tx) > 30){ p.x.copy(p.tx); p.q.copy(p.tq); }
     p.v.copy(p.tv);
+    PG.hold.forEach((h, k) => { if (h && h.i === p.i && h.gen !== p.gen) PG.hold[k] = null; });   // v0.0.22: a reset or restock clears my hold at once
     if (p.mode === PG_MODE.broken && (wasMode !== PG_MODE.broken || wasGen !== p.gen)) pgSeeBreak(p);
     if (p.kind === 'duck' && p.mode === PG_MODE.float){ p.floatX.set(e[4], LIFE.duck.y0, e[6]); }
     if (p.holder === racePid && !PG.hold.some(h => h && h.i === p.i)) pgLocalHoldLost(p, 'granted elsewhere');
   }
   // my predicted grabs: confirmed, or someone else got it
-  PG.hold.forEach((h, k) => { if (!h) return; const p = PG.props[h.i]; if (now - h.t0 > 0.6 && (p.mode !== PG_MODE.held || p.holder !== racePid)){ PG.hold[k] = null; if (p.mode === PG_MODE.held) popup('Someone else has that one', 1.4); } });
+  PG.hold.forEach((h, k) => { if (!h) return; const p = PG.props[h.i]; if (now - h.t0 > 1.5 && (p.mode !== PG_MODE.held || p.holder !== racePid)){ PG.hold[k] = null; if (p.mode === PG_MODE.held) popup('Someone else has that one', 1.4); } });
   const R = PG.radio, pr = R.press || 0; R.on = d.R[0]; R.tr = d.R[1]; R.t0 = d.R[2]; R.rev = d.R[3]; R.press = d.R[4]; R.lastB = d.R[5]; if (R.press !== pr) R.down[R.lastB] = now;
   const A = PG.ai; const sOld = A.s; A.on = d.G[0]; A.s = d.G[1]; A.t0 = now - d.G[2]; A.tgt.set(d.G[3], d.G[4], d.G[5]); A.side = d.G[6]; if (A.s !== sOld && A.s === 3) A.swung = false;
 }
@@ -10112,7 +10139,9 @@ function pgLocalHoldLost(p){}
 function pgOnConnOpen(conn){ try{ if (pgIsHost()) conn.send(pgSnapMsg(true)); }catch(e){} }
 function pgOnMessage(j, d){
   if (d.t === 'ps') return pgOnSnap(j, d);
-  if (d.t === 'pq'){ const pid = ACT.slotPid.get(j); if (!pid || !pgIsHost()) return; pgApply(pid, d, false); }
+  if (d.t === 'pq'){ const pid = ACT.slotPid.get(j); if (!pid || !pgIsHost()) return; PG.lastRej = null; pgApply(pid, d, false);
+    if (PG.lastRej && d.op === 'grab'){ const c = net.conns.get(j); if (c && c.open){ try{ c.send({t:'pn', i:d.i | 0, why:String(PG.lastRej).slice(0, 40)}); }catch(e){} } } }   // v0.0.22: tell the requester at once
+  if (d.t === 'pn') return pgOnNack(j, d);
 }
 /* ---------- smash, splash and their effects (pooled, short) ---------- */
 const PG_SHARDS = (() => { const g = new THREE.TetrahedronGeometry(1, 0), imPG = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({color:0xf3ead6, flatShading:true}), 36);
@@ -10168,26 +10197,30 @@ const _gh = new V3(), _gq = new THREE.Quaternion(), _gm = new THREE.Matrix4(), _
 function pgHandPose(i, outP, outQ){ const m = game.local; if (!m) return false; const h = m.arms[i].hand; h.updateWorldMatrix(true, false); h.getWorldPosition(outP); h.getWorldQuaternion(outQ); return true; }
 function pgNearestProp(i, maxD){
   const m = game.local; if (!m) return null; const c = m.cHand[i]; if (!c.ok) return null; let best = null, bd = Infinity;
-  for (const p of PG.props){ if (p.mode === PG_MODE.broken || p.mode === PG_MODE.held) continue; const d = c.b.distanceTo(p.obj.position) - p.r; if (d < maxD && d < bd){ bd = d; best = p; } }
+  const raw = renderer.xr.isPresenting && HANDS[i].has ? _gw2.copy(HANDS[i].pos).applyMatrix4(rig.matrixWorld) : null;   // v0.0.22: the tracked hand too (the drawn hand is pushed out of the table)
+  for (const p of PG.props){ if (p.mode === PG_MODE.broken || p.mode === PG_MODE.held) continue; let d = pgPropDist(p, c.b); if (raw) d = Math.min(d, pgPropDist(p, raw)); if (d < maxD && d < bd){ bd = d; best = p; } }
   return best;
 }
 /* returns true when this hand took (or holds) a prop, so the swatter rack ignores this grip */
 function pgHumanHand(i, grip, now, anyReach){
   const m = game.local; if (!m) return false;
   const H = PG.hold[i], U = pgU();
-  if (pgHandPose(i, _gh, _gq)){ const L = PG.hist[i]; L.push({t:now, p:_gh.clone(), ok:!!(HANDS[i].has || !renderer.xr.isPresenting)}); while (L.length > 2 && now - L[0].t > 0.15) L.shift(); if (!HANDS[i].has && renderer.xr.isPresenting) PG.lostT[i] = now; }
-  const edge = grip && !PG.gripPrev[i]; PG.gripPrev[i] = grip;
+  if (pgHandPose(i, _gh, _gq)){ const L = PG.hist[i], q = _gq.clone(); let pt = _gh.clone(); if (H && pgHeldTarget(i, _gw, _gq2)) pt = _gw.clone();   // v0.0.22: the held object's own point
+    if (L.length && L[L.length - 1].p.distanceTo(pt) > 0.5 * U) L.length = 0;   // a recenter or tracking jump is not a swing
+    L.push({t:now, p:pt, q, ok:!!(HANDS[i].has || !renderer.xr.isPresenting)}); while (L.length > 2 && now - L[0].t > 0.2) L.shift(); if (!HANDS[i].has && renderer.xr.isPresenting) PG.lostT[i] = now; }
+  const edge = grip && !PG.gripPrev[i]; PG.gripPrev[i] = grip; if (edge) PG.gripEdgeT[i] = now;
   if (H){
     const p = PG.props[H.i];
-    if (!grip || p.mode === PG_MODE.broken || (now - H.t0 > 0.6 && (p.holder !== racePid))){ pgLetGo(i, now, grip ? 'lost' : 'let go'); return !!grip; }
+    if (!grip || p.mode === PG_MODE.broken || (now - H.t0 > 1.5 && (p.holder !== racePid))){ pgLetGo(i, now, grip ? 'lost' : 'let go'); return !!grip; }
     return true;
   }
-  if (!edge || m.swatters[i]) { if (edge && m.swatters[i] && pgNearestProp(i, 0.1 * U)) popup('That hand is holding a swatter', 1.2); return false; }
-  const p = pgNearestProp(i, anyReach ? 1.0 * U : 0.07 * U); if (!p) return false;
+  const want = grip && (edge || now - PG.gripEdgeT[i] < 0.35) && now - PG.nackT[i] > 0.4;   // v0.0.22: a short grace after squeezing, for a hand that arrives just after the press
+  if (!want || m.swatters[i]) { if (edge && m.swatters[i] && pgNearestProp(i, 0.1 * U)) popup('That hand is holding a swatter', 1.2); return false; }
+  const p = pgNearestProp(i, anyReach ? 1.0 * U : 0.08 * U); if (!p) return false;
   if (PG.hold[1 - i] && PG.hold[1 - i].i === p.i) return false;
   pgHandPose(i, _gh, _gq); _gm.compose(_gh, _gq, new V3(1, 1, 1)); _gi.copy(_gm).invert();
   const off = new THREE.Matrix4().compose(p.obj.position, p.obj.quaternion, new V3(1, 1, 1)).premultiply(_gi);
-  PG.hold[i] = {i:p.i, gen:p.gen, off, t0:now};
+  PG.hold[i] = {i:p.i, gen:p.gen, off, t0:now}; PG.hist[i].length = 0;
   pgRequest({op:'grab', i:p.i, gen:p.gen, hand:i, p:[r2PG(_gh.x), r2PG(_gh.y), r2PG(_gh.z)], q:[r4(_gq.x), r4(_gq.y), r4(_gq.z), r4(_gq.w)]});
   pgLog({k:'grab-req', id:p.id, hand:i}); return true;
 }
@@ -10196,17 +10229,20 @@ const _tp = new V3(), _tq = new THREE.Quaternion();
 function pgLetGo(i, now, why){
   const H = PG.hold[i]; if (!H) return; PG.hold[i] = null; const p = PG.props[H.i];
   // release velocity from the last ~0.12 s of hand motion; a tracking gap or a jump gives a plain drop
-  const L = PG.hist[i], U = pgU(); let v = new V3();
-  if (L.length >= 2 && now - PG.lostT[i] > 0.25){ const a = L[0], b = L[L.length - 1], dt = b.t - a.t; if (dt > 0.02){ v.subVectors(b.p, a.p).divideScalar(dt); if (!pgFin(v) || v.length() > 25 * U) v.set(0, 0, 0); } }
-  if (H.desk) v.copy(H.desk);
+  // v0.0.22: release speed from a least-squares fit of the held object's last 50 ms (at its peak in the last 120 ms), a still hand drops
+  const U = pgU(), T = pgThrowVel(i, now); let v = T.v, w = T.w;
+  if (H.desk){ v = H.desk.clone(); w = new V3(0, 3, 0); }
   if (v.length() > PG_RULES.throwCap * U) v.setLength(PG_RULES.throwCap * U);
-  pgHeldTarget(i, _tp, _tq) || _tp.copy(p.obj.position);
-  if (p.holder === racePid || now - H.t0 < 0.6) pgRequest({op:'rel', i:H.i, gen:H.gen, hand:i, v:[r2PG(v.x), r2PG(v.y), r2PG(v.z)], p:[r2PG(_tp.x), r2PG(_tp.y), r2PG(_tp.z)]});
-  pgLog({k:'let-go', id:p.id, why, v:+(v.length() / U).toFixed(2)});
+  if (!pgHeldTarget(i, _tp, _tq)){ _tp.copy(p.obj.position); _tq.copy(p.obj.quaternion); }
+  if (p.holder === racePid || now - H.t0 < 1.5) pgRequest({op:'rel', i:H.i, gen:H.gen, hand:i, v:[r2PG(v.x), r2PG(v.y), r2PG(v.z)], w:[r2PG(w.x), r2PG(w.y), r2PG(w.z)], p:[r2PG(_tp.x), r2PG(_tp.y), r2PG(_tp.z)], q:[r4(_tq.x), r4(_tq.y), r4(_tq.z), r4(_tq.w)]});
+  PG.lastThrow = {id:p.id, hand:i, raw:+T.raw.toFixed(2), peak:+T.peak.toFixed(2), out:+(v.length() / U).toFixed(2)};
+  pgLog({k:'let-go', id:p.id, why, v:+(v.length() / U).toFixed(2), raw:+T.raw.toFixed(2)}); PG.hist[i].length = 0;
 }
 function pgReleaseAllMine(why){ for (let i = 0; i < 2; i++) if (PG.hold[i]) pgLetGo(i, clock.elapsedTime, why); }
 function pgStreamHolds(now){
-  if (now - PG.holdSendT < 1 / 20) return; PG.holdSendT = now;
+  if (pgIsHost()){ for (let i = 0; i < 2; i++){ const H = PG.hold[i]; if (!H || !pgHeldTarget(i, _tp, _tq)) continue; const p = PG.props[H.i];   // v0.0.22: the authority's own hand feeds its simulation every frame
+      if (!p || p.mode !== PG_MODE.held || p.holder !== racePid || p.gen !== H.gen) continue; pgHoldSample(PG.holdT[p.i] || (PG.holdT[p.i] = {x:new V3(), q:new THREE.Quaternion(), t:0}), _tp, _tq, now); } return; }
+  if (now - PG.holdSendT < 1 / 30) return; PG.holdSendT = now;   // v0.0.22: 30 Hz (was 20)
   for (let i = 0; i < 2; i++){ const H = PG.hold[i]; if (!H || !pgHeldTarget(i, _tp, _tq)) continue;
     pgRequest({op:'hold', i:H.i, gen:H.gen, hand:i, p:[r2PG(_tp.x), r2PG(_tp.y), r2PG(_tp.z)], q:[r4(_tq.x), r4(_tq.y), r4(_tq.z), r4(_tq.w)]}); }
 }
@@ -10214,7 +10250,7 @@ function pgStreamHolds(now){
 addEventListener('keydown', e => {
   if (e.code !== 'KeyF' || e.repeat || state !== 'flat' || game.role !== 'human') return;
   const now = clock.elapsedTime;
-  if (PG.hold[1]){ if (e.shiftKey){ const f = new V3(); camera.getWorldDirection(f); PG.hold[1].desk = f.multiplyScalar(5 * pgU()).add(new V3(0, 2.5 * pgU(), 0)); } PG.deskGrip = false; return; }
+  if (PG.hold[1]){ if (e.shiftKey){ const f = new V3(); camera.getWorldDirection(f); PG.hold[1].desk = f.multiplyScalar(8 * pgU()).add(new V3(0, 3 * pgU(), 0)); } PG.deskGrip = false; return; }
   PG.deskGrip = true; PG.deskEdge = true;
 });
 /* ---------- buttons: a fly landing on one (or a human hand pressing it) presses it once; it re-arms after leaving ---------- */
@@ -10328,13 +10364,14 @@ function pgRender(dt, now){
     if (mine >= 0 && pgHeldTarget(mine, _rp, _rq)){ tx = _rp; tq = _rq; o.position.copy(tx); o.quaternion.copy(tq); }   // my own hand: no lag
     else if (host || p.mode === PG_MODE.rest || p.mode === PG_MODE.land || p.mode === PG_MODE.broken){ o.position.copy(p.x); o.quaternion.copy(p.q); }
     else if (p.mode === PG_MODE.float && p.kind === 'duck'){ pgStepFloat(p, dt, now); o.position.lerp(p.x, k); o.quaternion.slerp(p.q, k); }
+    else if (p.mode === PG_MODE.held){ _rp.copy(p.tx).addScaledVector(p.tv, Math.min(0.1, now - p.recvT)); o.position.addScaledVector(p.tv, Math.min(dt, 0.05)); o.position.lerp(_rp, 1 - Math.exp(-dt / 0.09)); if (o.position.distanceTo(_rp) > 8) o.position.copy(_rp); o.quaternion.slerp(p.tq, 1 - Math.exp(-dt / 0.06)); }   // v0.0.22: someone else's held prop glides (velocity-led, error eased)
     else { _rp.copy(p.tx).addScaledVector(p.tv, Math.min(0.12, now - p.recvT)); o.position.lerp(_rp, k); o.quaternion.slerp(p.tq, k); }
     o.visible = p.mode !== PG_MODE.broken;
     if (p.kind === 'plate') pgSyncPrim(p);
     else if (p.kind === 'duck'){ o.updateMatrixWorld(true); if (PG.duckSolid){ for (const pr of PG.duckSolid.sdf){ pr.pgProp = p; pr.part = o; } } }
   }
   // highlight: a soft ring under the prop my free hand could grab right now
-  if (game.role === 'human' && game.local){ let cand = null; for (let i = 0; i < 2 && !cand; i++) if (!PG.hold[i] && !game.local.swatters[i]) cand = pgNearestProp(i, 0.07 * pgU()); pgHighlight(cand); } else pgHighlight(null);
+  if (game.role === 'human' && game.local){ let cand = null; for (let i = 0; i < 2 && !cand; i++) if (!PG.hold[i] && !game.local.swatters[i]) cand = pgNearestProp(i, 0.08 * pgU()); pgHighlight(cand); } else pgHighlight(null);
 }
 let pgHl = null;
 function pgHighlight(p){
@@ -10344,7 +10381,7 @@ function pgHighlight(p){
 function pgSyncPrim(p){ const o = p.obj, pr = p.prim; o.updateMatrixWorld(true); _pgM4.compose(o.position, o.quaternion, _pv.set(1, 1, 1)); pr.inv.copy(_pgM4).invert(); pr.bc.copy(o.position); pr.br = p.r + 0.5; }
 /* ---------- the per-frame driver ---------- */
 function pgTick(dt, now){
-  pgInit(); if (!PG.inited) return; socUpdate(now);
+  pgInit(); if (!PG.inited) return; socUpdate(now); flyGripTick(now);
   const host = pgIsHost();
   if (host){
     if (!PG.wasHost){ PG.wasHost = true; if (net.peer && net.room && (PG.rev > 0 || PG.lastEp >= 0)){ PG.ep = Math.max(PG.ep, PG.lastEp) + 1; pgDirty('authority-takeover'); }
@@ -10353,13 +10390,13 @@ function pgTick(dt, now){
     const moving = PG.props.some(p => p.mode === PG_MODE.held || p.mode === PG_MODE.fly);
     if (net.peer && net.conns.size){
       if (PG.dirty || now - PG.fullT > 2){ PG.dirty = false; PG.fullT = now; PG.sendT = now; pgBroadcast(true); }
-      else if (moving && now - PG.sendT > 1 / 15){ PG.sendT = now; pgBroadcast(false); }
+      else if (moving && now - PG.sendT > 1 / 20){ PG.sendT = now; pgBroadcast(false); }
     } else PG.dirty = false;
   } else { PG.wasHost = false; pgAiBuild(); }
-  if (game.role !== 'human'){ if (PG.hold[0] || PG.hold[1]) pgReleaseAllMine('not the human'); }
+  if (game.role !== 'human'){ if (PG.hold[0] || PG.hold[1]) pgReleaseAllMine('not the human'); PG.gripPrev[0] = PG.gripPrev[1] = false; PG.deskGrip = false; }   // v0.0.22: no stale grip after a role change
   else pgStreamHolds(now);
   pgRiderCheck(now); pgButtons(now);
-  pgRender(dt, now); pgAiPose(now); pgEffects(dt); pgRadioVisuals(now); pgRadioAudio(now);
+  pgRender(dt, now); pgAiPose(now); crawlFollowHost(); pgEffects(dt); pgRadioVisuals(now); pgRadioAudio(now);
 }
 /* ---------- the Yard menu card (page menu and headset panel) ---------- */
 function pgStatus(){
@@ -10435,7 +10472,7 @@ function socUpdate(now){
 }
 /* a gesture offset (metres, body frame) to a front-foot target for a leg rig (hip, reach) in the leg's own frame */
 function socFoot(hip, reach, side, g, out){
-  out.set(hip.x + side * 0.22 * reach, hip.y - 0.1 * reach, hip.z - 0.6 * reach);   // neutral: front legs raised a little, forward
+  out.set(hip.x + side * 0.45 * reach, hip.y - 0.2 * reach, hip.z - 0.5 * reach);   // v0.0.22 neutral: out to the sides and a little forward, clear of the eyes
   out.x += g.x * reach / 0.3; out.y += g.y * reach / 0.3; out.z += g.z * reach / 0.3;
   const d = out.clone().sub(hip); if (d.length() > reach * 0.97) out.copy(hip).addScaledVector(d.normalize(), reach * 0.97);
   return out;
@@ -10443,10 +10480,258 @@ function socFoot(hip, reach, side, g, out){
 
 function pgLocalHoldLost(p){ if (now2() - (p.lostReq || -9) < 0.5) return; p.lostReq = now2(); pgRequest({op:'rel', i:p.i, gen:p.gen, hand:p.hand, v:[0, 0, 0]}); }
 const now2 = () => clock.elapsedTime;
-function socOwnFront(drop){ if (SOC.mode !== 'social' || (!SOC.l && !SOC.r)) return null; const o = {};
-  if (SOC.l) o[-1] = socFoot(new V3(-0.06, -0.13 - drop, -0.07), 0.39, -1, SOC.l, new V3()); if (SOC.r) o[1] = socFoot(new V3(0.06, -0.13 - drop, -0.07), 0.39, 1, SOC.r, new V3()); return o; }
 
-window.__likeflies = {pg:{PG, PG_RULES, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true)}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+/* =====================================================================================================================
+   v0.0.22: CONTACT AND EMBODIMENT POLISH
+   - Visible contact: a landed fly's feet go on the RENDERED surface. The smooth crawl field (padded colliders, rounded
+     fillets) still decides where you can walk, swat and collide; a short ray down the surface normal against the support's
+     own mesh then measures how far the visible surface really is, and the body is lowered (or raised) by that gap. It is
+     stored per support, so a moving hand, plate or duck carries it; observers get the corrected position too.
+   - Riders follow their support after it has moved this frame (no one-frame lag behind a held plate or a hand).
+   - Held props: the authority follows a smoothed hand target (30 Hz from a remote holder, every frame from its own hand),
+     with a smoothed velocity in snapshots, so a held plate glides instead of stepping. Thrown props keep v21B's path.
+   - Throws: release speed is a least-squares fit of the held object's last 50 ms, taken at its peak in the last 120 ms;
+     a still hand drops; a committed swing gets up to 1.5x; capped at 14 m/s; spin from the hand's rotation; swept
+     sub-steps so fast props hit walls instead of tunnelling.
+   - Grabs: distance to the prop's surface from the tracked hand or the palm; a 0.35 s grace after squeezing; a rejected
+     grab clears at once with a small cue ('pn'); a new grab with the same hand replaces a stale hold.
+   - Fly embodiment: wings rooted at the shoulders (not the controllers); front legs route around the head and eyes with an
+     elbow that bends out and down; food is picked up and held with a deliberate grip (squeeze, fist, F or the Grab pad).
+   - Name tags: sized per viewer by distance and the target's body width, capped by angle and by world size.
+   ===================================================================================================================== */
+const V22 = {gap:true, wingRoot:true, gripFood:true, stats:{q:0, hit:0, miss:0, rej:0, foot:0, footHit:0}};
+/* ---------- visible-surface queries ---------- */
+const VC = {list:null, builtT:-99, nKids:-1, ray:new THREE.Raycaster(), hits:[], d:new V3(), c:new V3(), cand:[], footHost:null, m4:new THREE.Matrix4()};
+const _vcO = new V3();
+const vcVis = o => { for (let a = o; a; a = a.parent) if (!a.visible) return false; return true; };
+function vcSkipSet(){
+  const s = new Set(), mark = o => { if (o && o.traverse) o.traverse(c => s.add(c)); };
+  mark(rig); mark(myLegs); mark(legMesh); mark(crawlCue);
+  for (const r of net.remotes.values()){ mark(r.g); mark(r.cont); if (r.wings) r.wings.forEach(mark); if (r.label) mark(r.label); }
+  for (const b of game.bots) mark(b.view); for (const v of game.botViews) mark(v);
+  for (const p of PG.props) mark(p.obj); mark(PG.aiC); if (typeof pgHl !== 'undefined') mark(pgHl); mark(PG_SHARDS.im);
+  return s;
+}
+function vcBuild(now){
+  const skip = vcSkipSet(), out = [], sp = new THREE.Sphere(), m4 = VC.m4, ctr = new V3(), q = new V3();
+  scene.updateMatrixWorld(true);
+  scene.traverse(o => {
+    if (!o.isMesh || skip.has(o) || !o.geometry || !o.geometry.attributes || !o.geometry.attributes.position) return;
+    for (let a = o; a; a = a.parent) if (a.userData && a.userData.dyn && !(PG.bbox && a === PG.bbox.g)) return;
+    const mt = Array.isArray(o.material) ? o.material[0] : o.material; if (!mt || (mt.transparent && (mt.opacity < 0.5 || mt.depthWrite === false))) return;
+    const g = o.geometry; if (!g.boundingSphere) g.computeBoundingSphere(); if (!g.boundingSphere) return;
+    if (o.isInstancedMesh){
+      if (o.count > 400 || o.count < 1) return; ctr.set(0, 0, 0); const P = [];
+      for (let i = 0; i < o.count; i++){ o.getMatrixAt(i, m4); m4.premultiply(o.matrixWorld); const c = g.boundingSphere.center.clone().applyMatrix4(m4); P.push([c, g.boundingSphere.radius * m4.getMaxScaleOnAxis()]); ctr.add(c); }
+      ctr.divideScalar(P.length); let R = 0; for (const [c, r] of P) R = Math.max(R, c.distanceTo(ctr) + r); sp.set(ctr, R);
+    } else sp.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+    if (!(sp.radius > 0) || sp.radius > 250) return;
+    out.push({o, c:sp.center.clone(), r:sp.radius});
+  });
+  VC.list = out; VC.builtT = now; VC.nKids = scene.children.length;
+}
+function vcEnsure(now){ if (!VC.list || (now - VC.builtT > 10 && (VC.builtT < 40 || VC.nKids !== scene.children.length))) vcBuild(now); }
+function vcStaticNear(p, R){ const out = VC.cand; out.length = 0; if (!VC.list) return out; for (const e of VC.list) if (p.distanceTo(e.c) < e.r + R) out.push(e.o); return out; }
+function vcCast(C, dir, near, far, targets, recursive){
+  if (!targets.length) return null;
+  const R = VC.ray; R.set(C, dir); R.near = near; R.far = far; R.camera = camera; VC.hits.length = 0;
+  try{ R.intersectObjects(targets, recursive, VC.hits); }catch(e){ return null; }
+  for (const h of VC.hits){ const o = h.object; if (!o.isMesh) continue; const mt = Array.isArray(o.material) ? o.material[0] : o.material; if (mt && mt.transparent && mt.opacity < 0.5) continue; if (!vcVis(o)) continue; return h; }
+  return null;
+}
+/* the visible gap under a landed fly: distance along -N from the crawl point to the support's mesh, minus the crawl height */
+function vcCrawl(cr, list, cH, dt, now){
+  if (cr.gap == null){ cr.gap = 0; cr.gapT = 0; cr.gapMiss = 0; cr.vcInit = false; }
+  if (!V22.gap){ cr.gap = cr.gapT = 0; return; }
+  const host = cr.host && cr.host.part && cr.host.part.parent ? cr.host.part : null, human = !!(host && !cr.host.prop), U = pgU();
+  const maxG = human ? 0.13 * U : Math.max(0.6, 3 * cH);
+  // static surfaces do not move: query them every other frame once the gap is known
+  if (!host && cr.vcInit && (frameNo & 1) && cr.vcAt && cr.vcAt.distanceToSquared(cr.C) < cH * cH * 0.25){ cr.gap += (cr.gapT - cr.gap) * (1 - Math.exp(-dt / 0.05)); return; }
+  if (!host) vcEnsure(now);
+  (cr.vcAt || (cr.vcAt = new V3())).copy(cr.C);
+  // the ray starts a little above the eyes (further on a human, whose drawn head or hands can be bigger than their capsules)
+  const up0 = human ? 0.16 * U : cH, maxUp = human ? 0.15 * U : 0.6 * cH;
+  const fd0 = FR.d, fp0 = FR.pr; VC.d.copy(cr.N).negate(); V22.stats.q++; _vcO.copy(cr.C).addScaledVector(cr.N, up0);
+  const h = host ? vcCast(_vcO, VC.d, 0, up0 + cH + maxG, [host], true) : vcCast(_vcO, VC.d, 0, up0 + cH + maxG, vcStaticNear(cr.C, up0 + cH + maxG), false);
+  let target = null;
+  if (h){ const g = h.distance - up0 - cH, fd = field(VC.c.copy(h.point), list);
+    if (g >= -maxUp && g <= maxG && fd < (human ? maxUp : 0.3 * cH) + 0.03 && fd > -maxG - 0.5){ target = g; V22.stats.hit++; } else V22.stats.rej++; }
+  else V22.stats.miss++;
+  FR.d = fd0; FR.pr = fp0;
+  if (target != null){ cr.gapT = target; cr.gapMiss = 0; if (!cr.vcInit){ cr.vcInit = true; cr.gap = target; } }
+  else { cr.gapMiss += dt; if (cr.gapMiss > 0.3) cr.gapT *= Math.exp(-dt / 0.2); }   // a short miss (between fingers, a seam) holds the last value
+  cr.gap += (cr.gapT - cr.gap) * (1 - Math.exp(-dt / 0.05));
+}
+/* place the rig so the eyes sit at the visible contact point (the landing blend still eases in from the air) */
+function crawlPlace(cr){
+  const e = smoothstep(0, 1, cr.blend);
+  cr.Cv = (cr.Cv || new V3()).copy(cr.C).addScaledVector(cr.N, -(cr.gap || 0));
+  crT.copy(cr.H0).lerp(cr.Cv, e);
+  crH.copy(cr.K).multiplyScalar(rig.scale.x).applyQuaternion(rig.quaternion);
+  rig.position.copy(crT).sub(crH);
+  rig.updateMatrixWorld(true);
+}
+/* after a support has been moved this frame (a held or thrown prop, the idle Grover, a remote human), re-seat the rider on it */
+function crawlFollowHost(){
+  const cr = game.role === 'fly' ? game.crawl : null; if (!cr || !cr.host || !cr.host.part || !cr.host.part.parent || cr.Cv == null) return;
+  const part = cr.host.part; part.updateWorldMatrix(true, false);
+  cr.C.copy(cr.lC).applyMatrix4(part.matrixWorld); part.getWorldQuaternion(crQ); cr.N.copy(cr.lN).applyQuaternion(crQ); cr.F.copy(cr.lF).applyQuaternion(crQ);
+  crawlPlace(cr); V22.follows = (V22.follows || 0) + 1;
+}
+/* other players' feet: a short ray along the body's down axis onto the visible surface (the support's mesh, or the yard) */
+function vcFoot(p, up, s){
+  const now = clock.elapsedTime; V22.stats.foot++;
+  const host = VC.footHost && VC.footHost.parent ? VC.footHost : null;
+  if (!host) vcEnsure(now);
+  VC.c.copy(p).addScaledVector(up, 0.25 * s); VC.d.copy(up).negate();
+  const h = host ? vcCast(VC.c, VC.d, 0, 0.6 * s, [host], true) : vcCast(VC.c, VC.d, 0, 0.6 * s, vcStaticNear(VC.c, 0.6 * s), false);
+  if (!h) return false;
+  p.copy(h.point).addScaledVector(up, 0.004 * s); V22.stats.footHit++; return true;
+}
+
+/* a rider on a prop that is in a hand or in the air keeps to that prop: passing near the table or the boombox must not pull
+   the fly across to them (a deliberate walk still can) */
+const _rideL = [];
+function v22RideList(cr, list){
+  const P = cr.host && cr.host.prop; if (!P || (P.mode !== PG_MODE.held && P.mode !== PG_MODE.fly) || crIn.lengthSq() > 0.01) return list;
+  _rideL.length = 0; for (const pr of list) if (pr.pgProp === P) _rideL.push(pr); return _rideL.length ? _rideL : list;
+}
+/* ---------- held props: smoothed samples, smooth authority follow ---------- */
+function pgHoldSample(H, x, q, now){
+  if (H.t > 0 && now > H.t){ const dt = now - H.t; H.v = H.v || new V3();
+    if (dt < 0.25){ const v = _gv.subVectors(x, H.x).divideScalar(Math.max(dt, 1 / 120)); if (pgFin(v) && v.length() < 40 * pgU()) H.v.lerp(v, 1 - Math.exp(-dt / 0.06)); } else H.v.set(0, 0, 0); }
+  H.x.copy(x); H.q.copy(q); H.t = now;
+}
+const _gv = new V3(), _hx = new V3(), _hq = new THREE.Quaternion();
+/* ---------- throws ---------- */
+function pgFitV(L, t1, win){
+  let n = 0, st = 0, stt = 0; const sp = _fv1.set(0, 0, 0), stp = _fv2.set(0, 0, 0);
+  for (const s of L){ if (s.t > t1 + 1e-6 || t1 - s.t > win + 1e-6) continue; const t = s.t - t1; n++; st += t; stt += t * t; sp.add(s.p); stp.addScaledVector(s.p, t); }
+  if (n < 2) return null; const den = n * stt - st * st; if (Math.abs(den) < 1e-10) return null;
+  return stp.multiplyScalar(n).sub(sp.multiplyScalar(st)).divideScalar(den).clone();   // least-squares slope of position over time
+}
+const _fv1 = new V3(), _fv2 = new V3();
+function pgThrowVel(i, now){
+  const L = PG.hist[i], U = pgU(), out = {v:new V3(), w:new V3(), raw:0, peak:0};
+  if (L.length < 2 || now - PG.lostT[i] < 0.25) return out;
+  // the fastest 50 ms stretch in the last 120 ms (people often let go just after the hand starts to slow)
+  let best = null, bs = -1;
+  for (const s of L){ if (now - s.t > 0.12) continue; const v = pgFitV(L, s.t, 0.05); if (v && pgFin(v) && v.length() > bs){ bs = v.length(); best = v; } }
+  const fin = pgFitV(L, L[L.length - 1].t, 0.05) || best;
+  let v = best || new V3(); if (fin && best && fin.length() >= 0.75 * best.length()) v = fin;
+  if (!pgFin(v) || v.length() > 25 * U) v = new V3();
+  const s = v.length() / U; out.raw = s; out.peak = bs / U;
+  let g = 1; if (s < PG_RULES.dropBelow) g = 0; else if (s > 1.5) g = 1 + Math.min(1, (s - 1.5) / 2.5) * (PG_RULES.swingGain - 1);
+  v.multiplyScalar(g); if (v.length() > PG_RULES.throwCap * U) v.setLength(PG_RULES.throwCap * U);
+  out.v.copy(v);
+  // spin: the hand's rotation over the last 100 ms
+  const S = L.filter(q => now - q.t <= 0.1 && q.q);
+  if (S.length >= 2 && g > 0){ const a = S[0], b = S[S.length - 1], dt = b.t - a.t;
+    if (dt > 0.02){ const dq = b.q.clone().multiply(a.q.clone().invert()); if (dq.w < 0){ dq.x = -dq.x; dq.y = -dq.y; dq.z = -dq.z; dq.w = -dq.w; }
+      const sn = Math.sqrt(Math.max(0, 1 - dq.w * dq.w)), ang = 2 * Math.acos(Math.min(1, dq.w)); if (sn > 1e-4) out.w.set(dq.x / sn, dq.y / sn, dq.z / sn).multiplyScalar(Math.min(PG_RULES.spinCap, ang / dt) * 0.7); } }
+  return out;
+}
+/* ---------- grabs ---------- */
+const _gd = new V3(), _gdQ = new THREE.Quaternion(), _gw = new V3();
+function pgPropDist(p, pt){
+  if (p.kind === 'plate'){ const o = p.obj; _gd.copy(pt).sub(o.position).applyQuaternion(_gdQ.copy(o.quaternion).invert());
+    return Math.hypot(Math.max(0, Math.hypot(_gd.x, _gd.z) - p.r), Math.max(0, Math.abs(_gd.y) - 0.012 * pgU())); }
+  return Math.max(0, pt.distanceTo(p.obj.position) - 0.8 * p.r);   // the duck: about its body
+}
+function pgOnNack(j, d){
+  if (!d || !Number.isInteger(d.i)) return; if (j !== mySlot() && j !== raceHost()) return;
+  const now = clock.elapsedTime; let had = false;
+  PG.hold.forEach((h, k) => { if (h && h.i === d.i && now - h.t0 < 3){ PG.hold[k] = null; PG.nackT[k] = now; had = true; } });
+  if (!had) return;
+  const w = String(d.why || ''), msg = w === 'not free' ? 'Someone else has that one' : w === 'too far' ? 'Too far to grab' : w === 'not a human' ? 'Only Grover can grab that' : w === 'stale generation' ? 'That one just changed, try again' : 'Could not grab that';
+  popup(msg, 1.3); pgLog({k:'nack', i:d.i, why:w});
+}
+
+/* ---------- the fly's grip (squeeze or fist in a headset; F or the Grab pad on a page) ---------- */
+const FLYG = {flat:false, on:false, prev:false, edgeT:-9, offT:-9, side:1, cueT:-9};
+function flyGripTick(now){
+  let on = false;
+  if (renderer.xr.isPresenting){ if (!menuOpen) for (let i = 0; i < 2; i++){ const h = HANDS[i]; if (h.has && h.grip){ on = true; FLYG.side = i ? 1 : -1; } } }
+  else on = FLYG.flat;
+  if (on && !FLYG.prev) FLYG.edgeT = now; if (!on && FLYG.prev) FLYG.offT = now;
+  FLYG.prev = FLYG.on = on;
+  // holding needs the grip; letting go drops it the existing way (back to its plate). A 0.3 s grace covers tracking blips.
+  if (V22.gripFood && game.role === 'fly' && game.carry >= 0 && !on && now - FLYG.offT > 0.3 && now - game.carryT > 0.3){ const f = game.carry; dropCarry(); popup('Dropped the ' + (foods[f] ? foods[f].name : 'food'), 1.2); }
+}
+function flyWantsFood(now){ return !V22.gripFood || FLYG.on; }
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyF' || e.repeat || state !== 'flat' || game.role !== 'fly') return;
+  FLYG.flat = !FLYG.flat; popup(FLYG.flat ? 'Gripping (F again to let go)' : 'Let go', 1);
+});
+
+/* ---------- wings rooted at the shoulders (your own view) ---------- */
+const _wS = new V3(), _wD = new V3(), _wY = new THREE.Quaternion(), _wE = new THREE.Euler(), _wB = new V3();
+function v22WingPose(h, headL){
+  const sx = h.side === 'left' ? -1 : 1;
+  _wE.setFromQuaternion(camera.quaternion, 'YXZ'); _wY.setFromAxisAngle(V3UP, _wE.y);
+  _wS.set(sx * 0.12, -0.13, 0.06).applyQuaternion(_wY).add(headL);                         // the shoulder: beside and a little below and behind the eyes
+  if (game.crawl){ _wD.set(sx * 0.42, 0.05, 1).normalize().applyQuaternion(_wY); h.obj.scale.setScalar(0.55); }   // resting: folded back along the body
+  else { _wD.subVectors(h.pos, _wS); _wD.addScaledVector(_wB.set(sx, 0, 0).applyQuaternion(_wY), 0.22); if (_wD.lengthSq() < 1e-6) _wD.set(sx, 0, 0); _wD.normalize(); h.obj.scale.setScalar(0.85); }
+  h.obj.position.copy(_wS);
+  bx.copy(_wD); by.copy(h.palm); by.addScaledVector(bx, -by.dot(bx)); if (by.lengthSq() < 1e-6 || game.crawl) by.set(0, 1, 0).applyQuaternion(_wY).addScaledVector(bx, -bx.y); by.normalize();
+  bz.crossVectors(bx, by).normalize(); m4.makeBasis(bx, by, bz); h.obj.quaternion.setFromRotationMatrix(m4);
+}
+
+/* ---------- front legs around the head ----------
+   The head and compound eyes as an ellipsoid in the body frame (art fly measured from LF_Fly_v13's head vertices: centre (0, -0.12, -0.16),
+   half-sizes 0.18 x 0.13 x 0.10); your own first-person body uses a small ball around the eyes. A front leg is solved as two
+   bones; the elbow tries out-and-down, then out, then down; if every bend still clips the head, the tip slides outward,
+   then retracts toward the shoulder. Nothing here moves the body or the contact point. */
+const HEADX = {art:{c:new V3(0, -0.12, -0.16), r:new V3(0.18, 0.13, 0.1), pivot:new V3(0, -0.11, -0.042)}, own:{c:new V3(0, 0, -0.02), r:new V3(0.13, 0.12, 0.13), pivot:new V3(0, 0, 0)}};
+const _lx = {k:new V3(), d:new V3(), p:new V3(), t:new V3(), q:new THREE.Quaternion(), s:new V3(), poles:[new V3(), new V3(), new V3(), new V3(), new V3()]};
+function headIn(H, pt, qi){ _lx.s.copy(pt).sub(H.pivot); if (qi) _lx.s.applyQuaternion(qi); _lx.s.add(H.pivot).sub(H.c); const x = _lx.s.x / H.r.x, y = _lx.s.y / H.r.y, z = _lx.s.z / H.r.z; return x * x + y * y + z * z; }
+function segClear(H, a, b, qi, root){ let m = 9; for (let k = 1; k <= 8; k++){ _lx.p.lerpVectors(a, b, k / 8); if (root && _lx.p.distanceTo(root) < 0.08) continue; m = Math.min(m, headIn(H, _lx.p, qi)); } return m; }   // the leg's own root (tucked right behind the head) is not a clip
+function kneeOf(hip, tip, a, b, pole, out){
+  _lx.d.subVectors(tip, hip); let L = _lx.d.length(); if (L < 1e-5){ _lx.d.set(0, -1, 0); L = 1e-5; } else _lx.d.divideScalar(L);
+  const st = Math.max(1, L / (a + b)), aa = a * st, bb = b * st, x = (aa * aa - bb * bb + L * L) / (2 * L), h = Math.sqrt(Math.max(0, aa * aa - x * x));
+  _lx.t.copy(pole).addScaledVector(_lx.d, -pole.dot(_lx.d)); if (_lx.t.lengthSq() < 1e-8) _lx.t.set(0, 1, 0); _lx.t.normalize();
+  return out.copy(hip).addScaledVector(_lx.d, x).addScaledVector(_lx.t, h);
+}
+/* returns the chosen pole (body frame) and may move tip; headQ = the head's rotation relative to the body (or null) */
+function legAvoid(H, hip, tip, a, b, side, headQ){
+  if (headQ){   // work in the head's own frame (a nod or a turn moves the eyes), then bring the tip and the elbow back
+    const qi = new THREE.Quaternion().copy(headQ).invert(), hH = hip.clone().sub(H.pivot).applyQuaternion(qi).add(H.pivot), tH = tip.clone().sub(H.pivot).applyQuaternion(qi).add(H.pivot);
+    const pole = legAvoid(H, hH, tH, a, b, side, null); tip.copy(tH.sub(H.pivot).applyQuaternion(headQ).add(H.pivot)); return pole.applyQuaternion(headQ);
+  }
+  const qi = null, P = _lx.poles;
+  P[0].set(side, -0.6, 0.1); P[1].set(side, 0.05, 0); P[2].set(side * 0.3, -1, 0); P[3].set(side, -0.2, 0.7); P[4].set(side * 0.6, 0.3, 0.8);   // out-down, out, down, then out-and-back (when the head has turned toward this side)
+  const ox = H.r.x * 1.9;
+  for (let it = 0; it < 9; it++){
+    for (const pole of P){ kneeOf(hip, tip, a, b, pole, _lx.k); if (segClear(H, hip, _lx.k, qi, hip) >= 1 && segClear(H, _lx.k, tip, qi, hip) >= 1 && headIn(H, tip, qi) >= 1.05){ V22.legOk = (V22.legOk || 0) + 1; return pole.clone(); } }
+    if (it < 6){ if (side * tip.x < ox) tip.x = side * Math.min(ox, side * tip.x + 0.05); else tip.y -= 0.04; }   // slide out past the eyes (then a little lower)
+    else if (it === 6) tip.y = Math.min(tip.y, H.c.y - H.r.y * 1.1);   // or pass under the head
+    else tip.lerp(hip, 0.4);                                             // or pull in
+  }
+  V22.legClip = (V22.legClip || 0) + 1; return P[0].clone();
+}
+
+function socOwnFront(drop){ if (SOC.mode !== 'social' || (!SOC.l && !SOC.r)) return null; const o = {}, fp = {};
+  for (const [side, g] of [[-1, SOC.l], [1, SOC.r]]){ if (!g) continue; const hip = new V3(side * 0.06, -0.13 - drop, -0.07), tip = socFoot(hip, 0.39, side, g, new V3());
+    fp[side] = legAvoid(HEADX.own, hip, tip, 0.17, 0.22, side, null); o[side] = tip; }   // v0.0.22: around your own eyes, elbows out and down
+  o.fpole = fp; return o; }
+const V22_CARRY_FRONT = {'-1':new V3(-0.03, -0.24, -0.3), '1':new V3(0.03, -0.24, -0.3)};
+const _atV = new V3(), _dp0 = new V3(), _dp1 = new V3(), _gq2 = new THREE.Quaternion(), _gw2 = new V3(), _pcW = new V3(), _hqa = new THREE.Quaternion(), _hqb = new THREE.Quaternion(), _hqc = new THREE.Quaternion();
+function v22PieceAtTips(){ if (game.carry < 0) return; _pcW.set(0, -0.25, -0.3); myLegs.localToWorld(_pcW); camera.updateMatrixWorld(true); camera.worldToLocal(_pcW); myPiece.position.copy(_pcW); }
+function headQinBody(av){ if (!av || !av.head || !av.head.parent || !av.g) return null; av.g.getWorldQuaternion(_hqa); av.head.parent.getWorldQuaternion(_hqb); const inner = _hqa.invert().multiply(_hqb); return _hqc.copy(inner).multiply(av.head.quaternion).multiply(inner.clone().invert()); }
+/* ---------- name tags sized for the viewer ---------- */
+const LBL = {minAng:0.05, maxAng:0.22, nearK:2, maxK:18, bodyW:0.45}, _lbC = new V3();
+function v22LabelFit(sp){
+  const A = sp.userData.auto; if (!A || !A.base) return;
+  const d = Math.max(1e-3, A.base.distanceTo(_lbC)), bw = A.human ? 0.16 * (A.hsU || 28) : LBL.bodyW * (A.fs || 1);
+  let W = Math.max(LBL.nearK * bw, LBL.minAng * d); W = Math.min(W, LBL.maxK * bw, LBL.maxAng * d);
+  const H = W * 0.25; sp.scale.set(W, H, 1);
+  sp.position.copy(A.base); sp.position.y += (A.lift || 0) + H * 0.75;
+  sp.material.opacity = A.human ? 1 : Math.max(0, Math.min(1, (d - bw) / (2 * bw)));
+  A.W = W; A.d = d; A.bw = bw;
+}
+document.getElementById('grabBtn') && document.getElementById('grabBtn').addEventListener('pointerdown', e => { e.preventDefault(); if (game.role !== 'fly') return; FLYG.flat = !FLYG.flat; popup(FLYG.flat ? 'Gripping (tap Grab again to let go)' : 'Let go', 1); });
+
+window.__likeflies = {pg:{PG, PG_RULES, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
