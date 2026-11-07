@@ -107,7 +107,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.28 · Grover v28 (matched to the reference sheets)</div>
+      <div class="eyebrow">Test v0.0.29 · The yard is twice as big · Yard editor (PC)</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -115,6 +115,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
+    <p class="note"><a href="?edit" id="lyEditLink">Yard editor</a> (PC, mouse and keyboard): move, turn, resize or hide props and save a layout.</p>
     <p class="note" id="vrNote">Checking for a VR headset…</p>
 
     <div class="roles">
@@ -4047,8 +4048,8 @@ if (typeof renderer.xr.setFoveation === 'function') renderer.xr.setFoveation(1);
 const scene = new THREE.Scene();
 const SKY = 0x6cb8ff;   // v0.0.14: a deeper, saturated horizon blue; a gradient sky dome sits behind everything
 scene.background = new THREE.Color(SKY);
-scene.fog = new THREE.Fog(SKY, 270, 560);   // v0.0.14: the house and fence stay crisp from anywhere in the yard   // light haze only far away, so the yard stays crisp and saturated
-const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 700);
+scene.fog = new THREE.Fog(SKY, 520, 1500);   // v0.0.29: pushed out for the bigger yard (was 270 to 560)   // v0.0.14: the house and fence stay crisp from anywhere in the yard   // light haze only far away, so the yard stays crisp and saturated
+const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 1800);   // v0.0.29: far 700 -> 1800 for the bigger yard
 const rig = new THREE.Group();
 scene.add(rig); rig.add(camera);
 camera.position.set(0, 1.6, 0);
@@ -4142,15 +4143,6 @@ const PIX = (() => {
 })();
 /* v0.0.14: authored materials with their own repeats */
 const texRep = (t, rx, ry) => { const c = t.clone(); c.needsUpdate = true; c.repeat.set(rx, ry); return c; };
-/* which pixel texture a plain color gets */
-const _sc = new THREE.Color(), _sh = {};
-function styleTex(c){
-  _sc.set(c).getHSL(_sh);
-  if (_sh.s < 0.12) return _sh.l > 0.8 ? PIX.cloth : PIX.stone;
-  if (_sh.h > 0.03 && _sh.h < 0.13 && _sh.l < 0.62 && _sh.s < 0.75) return PIX.wood;
-  if (_sh.h > 0.17 && _sh.h < 0.47) return PIX.leaf;
-  return PIX.noise;
-}
 /* a material that shows a colored pattern texture with its own UVs (checkers, stripes, logos) */
 function patMat(t, extra){ const m = new THREE.MeshLambertMaterial(Object.assign({color:0xffffff, map:t}, extra || {})); m.userData.keepUV = true; return m; }
 const SHINGLE_MAT = patMat(texRep(PIX.shingle, 26, 5)), BRICK_MAT = patMat(texRep(PIX.brick, 2, 7)), GLASS_MAT = patMat(PIX.glass);
@@ -4294,7 +4286,6 @@ function bucketFor(mat, g){
 const VC_MATS = new Map();
 function withVertexColors(mat){ if (mat.vertexColors) return mat; let m = VC_MATS.get(mat); if (!m){ m = mat.clone(); m.vertexColors = true; m.userData = Object.assign({}, mat.userData); VC_MATS.set(mat, m); } return m; }
 
-const PAL = {sky:0x1479f5, horizon:0x9fd8ff, grass:0x49b61d, foliage:0x267d26, sun:0xffd31f, red:0xe72f27, flyTeal:0x148e6b, eye:0xec252b, pool:0x24b9ed, pink:0xf44b98, fence:0x966039, cream:0xf3e9d9, navy:0x293c64};
 
 const mats = {};
 const mat = c => mats[c] || (mats[c] = rampMaterial(c, styleOf(c), false));
@@ -4303,7 +4294,9 @@ const solids = [];
    Nothing is scaled: props keep their sizes. Each prop cluster below (v0.0.14 coordinates) moves out as one rigid piece by
    (sqrt 2 - 1) x its anchor, colliders and all; lawn scenery (grass, leaf clumps) spreads evenly to fill the new space.
    The cookout in the middle is laid out directly in new coordinates (walking corridors). */
-const YS = Math.SQRT2, YK = YS - 1;
+/* v0.0.29: THE YARD IS TWICE AS BIG AGAIN. Each side is twice as long as in v0.0.28 (2 x sqrt 2 of v0.0.14), so 4x the ground.
+   Same method as v0.0.15: props keep their sizes, each cluster moves out as one piece, lawn scenery spreads to fill. */
+const YS = 2 * Math.SQRT2, YK = YS - 1, YK15 = Math.SQRT2 - 1;   // YK15: how far v0.0.15 spread things (for coordinates written by hand back then)
 const YARD = {x0:-100 * YS, x1:100 * YS, z0:-95 * YS, z1:104 * YS};   // side fences, back fence (house side), open front edge
 // [x0, z0, x1, z1, anchorX, anchorZ, priority]: inside a box, a thing moves with that cluster (higher priority, then nearest anchor)
 const SPREAD = [
@@ -4312,7 +4305,11 @@ const SPREAD = [
   [-66, 40, -48, 52, -58, 46], [42, 26, 54, 38, 48, 32], [-90, 47, -66, 63, -78, 55],                                         // chime, cup table, garden bed
   [23, 30, 41, 46, 32, 38], [38, -80, 76, -48, 57, -64], [14, -66, 46, -24, 30, -45],                                         // lawn chair, chair pair, doghouse
   [42, -40, 100, 26, 95, -10], [60, 52, 80, 72, 70, 62], [36, 49, 52, 72, 44, 56], [-7, 44, 35, 88, 14, 66],                  // garden, fire pit, tricycle, pool
-  [-100, -46, -46, 30, -74, -16], [-95, -92, -24, -47, -66, -62], [-82, -170, 82, -84, 0, -95]                                // coop corner, tree + hammock, house
+  [-100, -46, -46, 30, -74, -16], [-95, -92, -24, -47, -66, -62], [-82, -170, 82, -84, 0, -95],                               // coop corner, tree + hammock, house
+  // v0.0.29: small clusters so these move out as whole pieces and are their own groups in the yard editor
+  [87, -53, 93, -47, 90, -50, 3], [85, 23, 91, 29, 88, 26, 3], [-91, -43, -85, -37, -88, -40, 3], [-91, 67, -85, 73, -88, 70, 3],   // tiki torches
+  [72, 78, 88, 94, 80, 86, 3], [-90, 80, -74, 96, -82, 88, 3], [76, -48, 92, -32, 84, -40, 3], [-96, 28, -80, 44, -88, 36, 3],     // trash cans
+  [-86, 18, -78, 26, -82, 22, 3]                                                                                                   // the gnome
 ];
 function spreadCluster(x, z){
   let best = null, bp = -1, bd = 1e9;
@@ -4324,8 +4321,18 @@ function spreadCluster(x, z){
   return best;
 }
 const _sD = new V3();
-function spreadOff(x, z){ const c = spreadCluster(x, z); return c ? _sD.set(YK * c[4], 0, YK * c[5]) : _sD.set(YK * x, 0, YK * z); }
+let _sLastG = -1;   // v0.0.29: which cluster the last spread point fell in (the yard editor groups)
+function spreadOff(x, z){ const c = spreadCluster(x, z); _sLastG = c ? SPREAD.indexOf(c) : -1; return c ? _sD.set(YK * c[4], 0, YK * c[5]) : _sD.set(YK * x, 0, YK * z); }
 const spreadPt = (x, z) => { const d = spreadOff(x, z); return [x + d.x, z + d.z]; };
+/* v0.0.29: a point written by hand in v0.0.15 coordinates (fixed rings and route points) moves out with the cluster it sits in */
+function respread15(x, z){
+  let best = null, bp = -1, bd = 1e9;
+  for (const c of SPREAD){ const u = x - YK15 * c[4], w = z - YK15 * c[5];
+    if (u < c[0] || u > c[2] || w < c[1] || w > c[3]) continue;
+    const pr = c[6] || 0, d = Math.hypot(u - c[4], w - c[5]); if (pr > bp || (pr === bp && d < bd)){ best = c; bp = pr; bd = d; } }
+  if (best) return [x + (YK - YK15) * best[4], z + (YK - YK15) * best[5], SPREAD.indexOf(best)];
+  const k = YS / Math.SQRT2; return [x * k, z * k, -1];
+}
 function box(w,h,d,color,x,y,z,solid=true){
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(color));
   m.position.set(x, y + h/2, z); scene.add(m);
@@ -4558,14 +4565,13 @@ function loadProps(){
         d.style.cssText = 'position:fixed;left:8px;bottom:' + (40 + 30 * Object.keys(PROP_ART.status).length) + 'px;z-index:99;background:#5a1d1d;color:#fff;font:13px system-ui;padding:6px 10px;border-radius:6px;max-width:80vw'; document.body.appendChild(d); } catch(_){} };
     try {
       const bin = atob(PROP_GLB[j.key].b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      new THREE.GLTFLoader().parse(buf.buffer, '', gl => { try { PROP_ART.tris[j.key] = prepPropScene(gl.scene, gl.parser && gl.parser.json, gl.parser); const bef = new Set(scene.children), s0 = solids.length; j.build(gl.scene); if (j.key !== 'grover' && j.key !== 'gswat') spreadNew(bef, s0); PROP_ART.status[j.key] = 'imported'; done(); } catch(e){ fail(e); } }, fail);
+      new THREE.GLTFLoader().parse(buf.buffer, '', gl => { try { PROP_ART.tris[j.key] = prepPropScene(gl.scene, gl.parser && gl.parser.json, gl.parser); const bef = new Set(scene.children), s0 = solids.length; j.build(gl.scene); if (j.key !== 'grover' && j.key !== 'gswat'){ spreadNew(bef, s0); lyRefresh(); } PROP_ART.status[j.key] = 'imported'; done(); } catch(e){ fail(e); } }, fail);
     } catch(e){ fail(e); }
   }, 150 + n * 90));
 }
 /* colliders described in the model's own units, placed by a group's transform and a uniform scale */
 const _pm = new THREE.Matrix4(), _pr = new THREE.Matrix4();
 const MP = {
-  box:(g, sc, c, h, rx) => PR.obox(new THREE.Matrix4().copy(g.matrixWorld).multiply(_pm.makeTranslation(c[0]*sc, c[1]*sc, c[2]*sc)).multiply(_pr.makeRotationX(rx || 0)), h[0]*sc, h[1]*sc, h[2]*sc, 0),
   cap:(g, sc, a, b, r) => PR.cap(new V3(...a).multiplyScalar(sc).applyMatrix4(g.matrixWorld), new V3(...b).multiplyScalar(sc).applyMatrix4(g.matrixWorld), r*sc),
   ell:(g, sc, c, rx, ry, rz) => PR.ell(new THREE.Matrix4().copy(g.matrixWorld).multiply(_pm.makeTranslation(c[0]*sc, c[1]*sc, c[2]*sc)), rx*sc, ry*sc, rz*sc)
 };
@@ -4616,7 +4622,7 @@ const BOT_ENTRY = BOT_PATH.findIndex(w => w.ring === RINGS.findIndex(r => r.name
 const NO_GRASS = [[-6, 45, 34, 87], [-86, -34, -46, 22], [17, -57, 43, -33], [46, -33, 95, 14]];   // v0.0.14: pool, coop, doghouse, garden
 
 { // grass blades, kept out of the cookout circle
-  const N = 1800;   // v0.0.15: twice the blades for twice the lawn
+  const N = 3600;   // v0.0.15: twice the blades for twice the lawn (v0.0.29: twice again for 4x the lawn, so half the density, to keep Quest smooth)
   const geo = new THREE.ConeGeometry(0.35, 1, 4); geo.translate(0, 0.5, 0);
   const grass = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:0xffffff, map:PIX.leaf}), N);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new V3(), p = new V3(), col = new THREE.Color();
@@ -4668,9 +4674,9 @@ const fenceMark = markBuilt();
     const src = root.getObjectByName('LF_Fence_Body'); if (!src) throw new Error('missing LF_Fence_Body');
     const P = [];
     // v0.0.15: 9 panels down each side and 2 on each side of the house (panels overlap a little; every other one sits 0.12 proud so they never flicker)
-    const SL = (YARD.z1 - YARD.z0) / 9, BL = (YARD.x1 - 78) / 2;
-    for (let i = 0; i < 9; i++){ const z = YARD.z0 + SL * (i + 0.5), o = i % 2 ? 0.12 : 0; P.push([YARD.x0 + 0.06 * FS + o, z, Math.PI / 2], [YARD.x1 - 0.06 * FS - o, z, -Math.PI / 2]); }
-    for (let i = 0; i < 2; i++){ const x = 78 + BL * (i + 0.5), o = i % 2 ? 0.12 : 0; P.push([-x, YARD.z0 + 0.06 * FS + o, 0], [x, YARD.z0 + 0.06 * FS + o, 0]); }
+    const NS = Math.round((YARD.z1 - YARD.z0) / 31.3), NB = Math.max(2, Math.round((YARD.x1 - 78) / 31.7)), SL = (YARD.z1 - YARD.z0) / NS, BL = (YARD.x1 - 78) / NB;   // v0.0.29: as many panels as the bigger yard needs (18 a side, 7 each side of the house)
+    for (let i = 0; i < NS; i++){ const z = YARD.z0 + SL * (i + 0.5), o = i % 2 ? 0.12 : 0; P.push([YARD.x0 + 0.06 * FS + o, z, Math.PI / 2], [YARD.x1 - 0.06 * FS - o, z, -Math.PI / 2]); }
+    for (let i = 0; i < NB; i++){ const x = 78 + BL * (i + 0.5), o = i % 2 ? 0.12 : 0; P.push([-x, YARD.z0 + 0.06 * FS + o, 0], [x, YARD.z0 + 0.06 * FS + o, 0]); }
     const im = new THREE.InstancedMesh(src.geometry, src.material, P.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new V3(0, 1, 0), sc = new V3(FS, FS, FS);
     P.forEach(([x, z, r], i) => im.setMatrixAt(i, m4.compose(new V3(x, 0, z), q.setFromAxisAngle(up, r), sc)));
     im.userData.ns = true; scene.add(im); scene.remove(proc.g);
@@ -4954,7 +4960,9 @@ shiftBuilt(PICNIC_MARK[0], PICNIC_MARK[1], 10, 6);   // v0.0.15: the fallback pi
 fixBuilt(COOK_FIX);
 { // v0.0.12: stepping stones from the patio to the garden and the pool (scenery; v0.0.15: laid along the new east and south corridors)
   const m = [scene.children.length, solids.length];
-  for (const [x, z] of [[52, -16], [59, -14], [66, -12], [73, -10], [8, 47], [10, 54], [12, 61], [14, 68]]) HK.hex(2.6, 2.9, 0.35, 0x9e9a90, scene, x, 0.02, z, 6);
+  const st = [], lay = (ax, az, bx, bz, step) => { const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(L / step)); for (let i = 0; i <= n; i++) st.push([ax + (bx - ax) * i / n, az + (bz - az) * i / n]); };
+  lay(52, -16, 207, -18, 7.5); lay(8, 47, 34, 161, 7.5);   // v0.0.29: the two paths now run all the way to the garden and the pool in the bigger yard
+  for (const [x, z] of st) HK.hex(2.6, 2.9, 0.35, 0x9e9a90, scene, x, 0.02, z, 6);
   fixBuilt(m);
 }
 /* v0.0.14: the v0.0.12 octahedron ground cover was removed; the broad-leaf clumps below replace it (4.5k fewer triangles) */
@@ -5398,6 +5406,7 @@ function cluck(big){
 
 { // v0.0.11: neighbors past the fence (scenery only, no colliders)
   const house = (x, z, w, d, h, col, roof, ry) => {
+    x *= YS / Math.SQRT2; z *= YS / Math.SQRT2;   // v0.0.29: the neighbours move out with the fences
     const g = HK.group(scene, x, 0, z); g.rotation.y = ry || 0;
     HK.box(w, h, d, col, g, 0, 0, 0);
     const rise = d * 0.35, run = d / 2 + 2, a = Math.atan2(rise, run), L = Math.hypot(rise, run);
@@ -5453,7 +5462,7 @@ const skyDome = (() => {
   scene.add(m); return m;
 })();
 const skyV = new V3();
-function updateSky(){ const tn = performance.now(); for (const m of HUMAN_BLOBS) m.blob.visible = tn - m.blobT < 300; camera.getWorldPosition(skyV); skyDome.position.copy(skyV); skyDome.scale.setScalar(Math.min(450, 590 * rig.scale.x)); const r = skyDome.userData.rays; if (r) r.rotateZ(0.002); }
+function updateSky(){ const tn = performance.now(); for (const m of HUMAN_BLOBS) m.blob.visible = tn - m.blobT < 300; const skyCam = state === 'edit' && LY.cam ? LY.cam : camera; skyCam.getWorldPosition(skyV); skyDome.position.copy(skyV); skyDome.scale.setScalar(skyCam === camera ? Math.min(1000, 1700 * rig.scale.x) : 1500); /* v0.0.29: bigger yard, editor camera */ const r = skyDome.userData.rays; if (r) r.rotateZ(0.002); }
 
 /* v0.0.15: spread the yard (see SPREAD at the top of the yard) */
 const _sM = new THREE.Matrix4(), _sP = new V3();
@@ -5461,6 +5470,7 @@ function spreadSolid(so, fixedOff){
   let x, z;
   if (so.ref){ x = so.ref[0]; z = so.ref[1]; } else if (so.bc){ x = so.bc.x; z = so.bc.z; } else if (so.box){ x = (so.box.min.x + so.box.max.x) / 2; z = (so.box.min.z + so.box.max.z) / 2; } else if (so.c){ x = so.c.x; z = so.c.z; } else return;
   const d = fixedOff || spreadOff(x, z), dx = d.x, dz = d.z, v = new V3(dx, 0, dz), T = new THREE.Matrix4().makeTranslation(-dx, 0, -dz);
+  if (!fixedOff) so.lyG = _sLastG;   // v0.0.29: editor group
   if (so.box) so.box.translate(v); if (so.c) so.c.add(v); if (so.bc) so.bc.add(v);
   if (so.sdf) for (const pr of so.sdf){
     if (pr.bc) pr.bc.add(v);
@@ -5478,20 +5488,25 @@ function spreadObj(o){
     for (let i = 0; i < o.count; i++){
       o.getMatrixAt(i, _sM); _sP.setFromMatrixPosition(_sM);
       const d = all ? _sD.set(YK * _sP.x, 0, YK * _sP.z) : spreadOff(_sP.x, _sP.z);
+      if (!all) (o.userData.lyGI || (o.userData.lyGI = []))[i] = _sLastG;   // v0.0.29: editor group per instance
       _sM.elements[12] += d.x; _sM.elements[14] += d.z; o.setMatrixAt(i, _sM);
     }
     o.instanceMatrix.needsUpdate = true; return o.count;
   }
-  const d = spreadOff(o.position.x, o.position.z); o.position.x += d.x; o.position.z += d.z; o.updateMatrixWorld(true); return 1;
+  const d = spreadOff(o.position.x, o.position.z); o.userData.lyG = _sLastG; o.position.x += d.x; o.position.z += d.z; o.updateMatrixWorld(true); return 1;
 }
+const LY_PTS = [], LY_ARR = [];   // v0.0.29: route points and spots that move with an editor group
 const SPREAD_INFO = (() => {
   let objs = 0, sol = 0;
   for (const o of scene.children.slice(YARD_MARK[0])) objs += spreadObj(o);
   for (let i = YARD_MARK[1]; i < solids.length; i++) if (!solids[i].ns){ spreadSolid(solids[i]); sol++; }
-  const mv = v => { const d = spreadOff(v.x, v.z); v.x += d.x; v.z += d.z; return v; };
-  for (const r of RINGS) if (!r.fix){ const [x, z] = spreadPt(r.p[0], r.p[2]); r.p = [x, r.p[1], z]; }
-  for (const w of BOT_PATH) if (!w.fix) mv(w.p);
-  for (const k of ['art', 'proc']) for (const key of ['pre', 'ring', 'post']){ const a = COOP_ROUTE[k][key], [x, z] = spreadPt(a[0], a[2]); COOP_ROUTE[k][key] = [x, a[1], z]; }
+  const mv = v => { const d = spreadOff(v.x, v.z); v.x += d.x; v.z += d.z; LY_PTS.push({v, g:_sLastG, b:v.clone()}); return v; };
+  // v0.0.29: hand-placed v0.0.15 rings and route points outside the cookout move out with their cluster too
+  for (const r of RINGS){ if (!r.fix){ const [x, z] = spreadPt(r.p[0], r.p[2]); r.p = [x, r.p[1], z]; r.lyG = _sLastG; }
+    else if (Math.hypot(r.p[0], r.p[2]) > 50){ const q = respread15(r.p[0], r.p[2]); r.p = [q[0], r.p[1], q[1]]; r.lyG = q[2]; } }
+  for (const w of BOT_PATH){ if (!w.fix) mv(w.p);
+    else if (Math.hypot(w.p.x, w.p.z) > 50){ const q = respread15(w.p.x, w.p.z); w.p.x = q[0]; w.p.z = q[1]; LY_PTS.push({v:w.p, g:q[2], b:w.p.clone()}); } }
+  for (const k of ['art', 'proc']) for (const key of ['pre', 'ring', 'post']){ const a = COOP_ROUTE[k][key], [x, z] = spreadPt(a[0], a[2]); COOP_ROUTE[k][key] = [x, a[1], z]; LY_ARR.push({o:COOP_ROUTE[k], key, g:_sLastG, b:[x, a[1], z]}); }
   mv(BOT_START); SPAWNS.forEach(mv); mv(LIFE.coop); if (LIFE.duck) mv(LIFE.duck.base);
   for (const p of PROPS) if (!p.fix) mv(p.c);
   // no grass or leaf blades poking into a low ring
@@ -5550,12 +5565,217 @@ function mergeStatic(){
   for (let x = YARD.x0; x < YARD.x1; x += 12){ const w = 13 + rr() * 3, h = H * (0.85 + rr() * 0.3); HK.block(w * 0.8, w, h, D * 0.75, D, cols[(rr() * 3) | 0], scene, x + 6, 0, z + (rr() - 0.5) * 1.5); }
   solids.push({box:new THREE.Box3(new V3(YARD.x0, 0, z - D / 2), new V3(YARD.x1, H, z + D / 2)), label:'the hedge'}); }
 
-const MERGE_INFO = new URLSearchParams(location.search).get('nomerge') ? {merged:0, meshes:0, skipped:true} : mergeStatic();   // ?nomerge is for collider probes only
+/* =====================================================================
+   v0.0.29: YARD LAYOUT (the data side of the yard editor)
+   A prop group is one of the spread clusters above (dandelions, flamingos, the chime, the garden, the pool, the coop corner, the
+   torches, the trash cans, the gnome...). Every mesh, model, collider, ring and route point that moved with a cluster when the yard
+   was spread carries its group number (lyG), so a whole group can be moved, turned, resized or hidden as one piece.
+   A layout lists those changes per group. Where it comes from (first found wins):
+     ?layout=none  -> no changes
+     ?layout=local -> the layout the editor saved in this browser
+     layout.json next to index.html on the website -> everyone who opens the site gets it
+     otherwise the layout baked into this file (LY_BAKED)
+   ?edit opens the yard editor (PC). The editor skips the big static merge so every prop can move live.
+   The cookout in the middle (grill, tables, picnic table, food, plates, boombox) and the house are not editable yet.
+   ===================================================================== */
+const LY_IDS = ['dandelion-1', 'dandelion-2', 'dandelion-3', 'dandelion-4', 'flamingo-1', 'flamingo-2', 'flamingo-3', 'wind-chime', 'cup-table', 'garden-bed',
+  'lawn-chair', 'chair-pair', 'doghouse', 'vegetable-garden', 'fire-pit', 'tricycle', 'kiddie-pool', 'coop-corner', 'tree-hammock', 'house',
+  'torch-1', 'torch-2', 'torch-3', 'torch-4', 'trash-can-1', 'trash-can-2', 'trash-can-3', 'trash-can-4', 'gnome'];
+const LY_NAMES = ['Dandelion 1', 'Dandelion 2', 'Dandelion 3', 'Dandelion 4', 'Flamingo 1', 'Flamingo 2', 'Flamingo 3', 'Wind chime', 'Cup table', 'Garden bed',
+  'Lawn chair', 'Chair pair', 'Doghouse', 'Vegetable garden', 'Fire pit', 'Tricycle', 'Kiddie pool and duck', 'Coop corner', 'Tree and hammock', 'House',
+  'Tiki torch 1', 'Tiki torch 2', 'Tiki torch 3', 'Tiki torch 4', 'Trash can 1', 'Trash can 2', 'Trash can 3', 'Trash can 4', 'Gnome'];
+if (LY_IDS.length !== SPREAD.length || LY_NAMES.length !== SPREAD.length) console.error('[Like Flies] yard layout: group list does not match the clusters');
+const LY_EDIT = new URLSearchParams(location.search).has('edit');
+const LY_BAKED = {};   // a layout baked into this build: {groupId:{dx, dz, turn, scale, hidden}} (none yet)
+const LY_M = 28;       // game units per meter (layout files are in meters and degrees)
+const LY = {groups:SPREAD.map((c, i) => ({i, id:LY_IDS[i], name:LY_NAMES[i], ax:YS * c[4], az:YS * c[5], lock:LY_IDS[i] === 'house'})),
+  lay:{}, src:'default', objs:[], insts:[], sols:[], pg:[], pgObj:new Set(), noHide:new Set(), seen:new Set(), att:new Set(),
+  mats:[], hid:[], rot:[], scl:[], active:false, pgDone:false, duckG:null, grass:null, ver:0, cam:null, err:''};
+let lyEditTick = () => {};   // the editor script fills this in
+
+function lyParse(j){
+  if (!j || typeof j !== 'object') throw new Error('not a layout file');
+  const g = j.groups || {}, out = {};
+  const num = (v, d, lo, hi) => { v = Number(v); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+  for (const id of Object.keys(g)){
+    if (LY_IDS.indexOf(id) < 0 || id === 'house') continue;
+    const e = g[id] || {};
+    out[id] = {dx:num(e.dx, 0, -40, 40), dz:num(e.dz, 0, -40, 40), turn:num(e.turn, 0, -360, 360), scale:num(e.scale, 1, 0.25, 4), hidden:!!e.hidden};
+  }
+  return out;
+}
+function lyToJSON(lay){
+  const groups = {};
+  for (const id of LY_IDS){ const e = lay[id]; if (!e) continue;
+    const r = v => Math.round(v * 1000) / 1000;
+    if (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden) groups[id] = {dx:r(e.dx), dz:r(e.dz), turn:r(e.turn), scale:r(e.scale), hidden:!!e.hidden}; }
+  return {format:'like-flies-layout', version:1, build:'v0.0.29', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
+}
+function lyLoad(){
+  const q = new URLSearchParams(location.search).get('layout');
+  if (q === 'none'){ LY.src = 'none (?layout=none)'; return {}; }
+  if (q === 'local' || LY_EDIT){
+    try { const t = localStorage.getItem('lf-yard-layout'); if (t){ LY.src = 'saved in this browser'; return lyParse(JSON.parse(t)); } } catch(e){}
+  }
+  if (/^https?:$/.test(location.protocol)){
+    try { const x = new XMLHttpRequest(); x.open('GET', 'layout.json?t=' + Date.now(), false); x.send();
+      if (x.status === 200){ const L = lyParse(JSON.parse(x.responseText)); LY.src = 'layout.json from the site'; return L; } }
+    catch(e){ LY.err = 'layout.json was not used: ' + ((e && e.message) || e); console.warn('[Like Flies] ' + LY.err); }
+  }
+  LY.src = Object.keys(LY_BAKED).length ? 'baked into this build' : 'default';
+  return lyParse({groups:LY_BAKED});
+}
+
+/* ---------- registering what belongs to each group (its pose as built is kept, so a layout can always be re-applied) ---------- */
+function lyRegObj(o){
+  if (LY.seen.has(o)) return; LY.seen.add(o);
+  if (o.isInstancedMesh){
+    const gi = o.userData.lyGI; if (!gi) return;
+    const list = [], m = new THREE.Matrix4();
+    for (let i = 0; i < o.count; i++) if (gi[i] != null && gi[i] >= 0){ o.getMatrixAt(i, m); list.push({i, g:gi[i], b:m.clone()}); }
+    if (list.length) LY.insts.push({o, list});
+    return;
+  }
+  const g = o.userData.lyG; if (g == null || g < 0) return;
+  o.updateMatrix(); LY.objs.push({o, g, b:o.matrix.clone(), hidNow:false, vis0:true});
+}
+function lyWalk(o){ if (o.userData.built) for (const c of o.children) lyWalk(c); lyRegObj(o); }
+function lyClonePrim(pr){ const q = Object.assign({}, pr); for (const k of ['c', 'a', 'b', 'bc']) if (pr[k] && pr[k].isVector3) q[k] = pr[k].clone(); if (pr.inv) q.inv = pr.inv.clone(); return q; }
+function lyCloneSolid(so){ return {box:so.box ? so.box.clone() : null, c:so.c ? so.c.clone() : null, r:so.r, bc:so.bc ? so.bc.clone() : null, br:so.br, sdf:so.sdf ? so.sdf.map(lyClonePrim) : null, ref:so.ref ? so.ref.slice() : null}; }
+function lyRestoreSolid(so, b){
+  if (b.box) so.box = b.box.clone(); else delete so.box;
+  if (b.c) so.c = b.c.clone();
+  if (b.r != null) so.r = b.r;
+  if (b.bc) so.bc = b.bc.clone();
+  if (b.br != null) so.br = b.br;
+  if (b.sdf){ so.sdf = b.sdf.map(lyClonePrim); so.sdf.forEach(p => { p.s = so; }); } else delete so.sdf;
+  if (b.ref) so.ref = b.ref.slice();
+}
+function lyRegSolid(so){
+  if (LY.seen.has(so)) return; LY.seen.add(so);
+  const g = so.lyG; if (g == null || g < 0 || so.pgDyn) return;
+  if (so.sdf && so.sdf.some(pr => LY.att.has(pr))) return;   // rides on an animated part (duck, chicken): it follows that part by itself
+  LY.sols.push({so, g, b:lyCloneSolid(so), hidNow:false, off0:false});
+}
+function lyRegPG(){
+  if (LY.pgDone) return; LY.pgDone = true;
+  for (const p of PG.props){
+    if (!p.toy) continue;
+    const it = LY.objs.find(e => e.o === p.obj); if (!it) continue;
+    LY.pgObj.add(p.obj); LY.pg.push({p, g:it.g, b:it.b}); LY.noHide.add(it.g);   // a pick-up toy: hiding it is not supported yet
+  }
+  if (PG.duck){ LY.pgObj.add(PG.duck.obj); LY.duckG = LY_IDS.indexOf('kiddie-pool'); LY.noHide.add(LY.duckG); LY.duckY0 = LIFE.duck ? LIFE.duck.y0 : 0; }
+}
+
+/* ---------- applying a layout ---------- */
+const _lyR = new THREE.Matrix4(), _lyS = new THREE.Matrix4(), _lyT = new THREE.Matrix4(), _lyW = new THREE.Matrix4(), _lyV = new V3(), _lyU = new THREE.Matrix4();
+function lyEntry(gi){ return LY.lay[LY_IDS[gi]]; }
+function lyMat(gi){
+  const e = lyEntry(gi), G = LY.groups[gi];
+  if (!e || G.lock || (!e.dx && !e.dz && !(e.turn % 360) && e.scale === 1)) return null;
+  return new THREE.Matrix4().makeTranslation(G.ax + e.dx * LY_M, 0, G.az + e.dz * LY_M)
+    .multiply(_lyR.makeRotationY(-e.turn * Math.PI / 180)).multiply(_lyS.makeScale(e.scale, e.scale, e.scale)).multiply(_lyT.makeTranslation(-G.ax, 0, -G.az));
+}
+/* move one smooth shape in place: turned or resized axis boxes become oriented boxes; shapes with a frame keep a rigid frame and grow their sizes */
+function lyXPrim(pr, M, s, rot){
+  if (pr.bc) pr.bc.applyMatrix4(M); if (pr.br != null) pr.br *= s;
+  if (pr.clipY != null) pr.clipY *= s; if (pr.clipTop != null) pr.clipTop *= s;   // heights scale about the ground
+  switch (pr.k){
+    case 'sph': pr.c.applyMatrix4(M); pr.r *= s; return;
+    case 'cap': pr.a.applyMatrix4(M); pr.b.applyMatrix4(M); pr.r *= s; return;
+    case 'cyl': case 'tube': case 'cone':
+      _lyV.set(pr.cx, pr.cy, pr.cz).applyMatrix4(M); pr.cx = _lyV.x; pr.cy = _lyV.y; pr.cz = _lyV.z;
+      for (const k of ['r', 't', 'hh', 'r1', 'r2']) if (typeof pr[k] === 'number') pr[k] *= s;
+      return;
+    case 'aabb':
+      if (!rot && s === 1){ _lyV.set(pr.cx, pr.cy, pr.cz).applyMatrix4(M); pr.cx = _lyV.x; pr.cy = _lyV.y; pr.cz = _lyV.z; return; }
+      Object.assign(pr, {k:'obox', inv:new THREE.Matrix4().makeTranslation(pr.cx, pr.cy, pr.cz).invert(), ox:0, oy:0, oz:0, rad:0, ws:1});
+      // falls through: now an oriented box
+    case 'obox': case 'ell': case 'ocyl': case 'lathe':
+      _lyW.copy(pr.inv).invert().premultiply(M).multiply(_lyU.makeScale(1 / s, 1 / s, 1 / s)); pr.inv = _lyW.clone().invert();
+      if (s !== 1) for (const k of ['ox', 'oy', 'oz', 'hx', 'hy', 'hz', 'rad', 'rx', 'ry', 'rz', 'r', 'hh', 'ax', 'ay', 'bx', 'by', 't']) if (typeof pr[k] === 'number') pr[k] *= s;
+      return;
+  }
+}
+function lyXSolid(so, M, s, rot){
+  if (so.box){
+    if (!rot && s === 1){ so.box.applyMatrix4(M); return; }
+    const pr = PR.aabb(so.box.min, so.box.max, {s:so, label:so.label || 'something', food:so.food != null ? so.food : -1});
+    lyXPrim(pr, M, s, true); so.sdf = [pr]; delete so.box; so.bc = pr.bc.clone(); so.br = pr.br; return;
+  }
+  if (so.sdf){ for (const pr of so.sdf) lyXPrim(pr, M, s, rot); if (so.bc) so.bc.applyMatrix4(M); if (so.br != null) so.br *= s; }
+  else if (so.c){ so.c.applyMatrix4(M); so.r *= s; }
+  if (so.ref){ _lyV.set(so.ref[0], 0, so.ref[1]).applyMatrix4(M); so.ref[0] = _lyV.x; so.ref[1] = _lyV.z; }
+}
+function lyApply(){
+  const G = LY.groups.length;
+  for (let gi = 0; gi < G; gi++){ const e = lyEntry(gi); LY.mats[gi] = lyMat(gi); LY.hid[gi] = !!(e && e.hidden && !LY.groups[gi].lock && !LY.noHide.has(gi)); LY.rot[gi] = !!(e && e.turn % 360); LY.scl[gi] = e && LY.mats[gi] ? e.scale : 1; }
+  const m = new THREE.Matrix4(), pp = new V3(), qq = new THREE.Quaternion(), ss = new V3();
+  for (const it of LY.objs){
+    const o = it.o; if (LY.pgObj.has(o)) continue;
+    const M = LY.mats[it.g]; if (M) m.multiplyMatrices(M, it.b); else m.copy(it.b);
+    m.decompose(o.position, o.quaternion, o.scale);
+    if (LY.hid[it.g]){ if (!it.hidNow){ it.vis0 = o.visible; it.hidNow = true; } o.visible = false; } else if (it.hidNow){ o.visible = it.vis0; it.hidNow = false; }
+    o.updateMatrixWorld(true);
+  }
+  for (const I of LY.insts){
+    for (const e of I.list){ const M = LY.mats[e.g]; if (LY.hid[e.g]) m.makeScale(0, 0, 0); else if (M) m.multiplyMatrices(M, e.b); else m.copy(e.b); I.o.setMatrixAt(e.i, m); }
+    I.o.instanceMatrix.needsUpdate = true; if (I.o.boundingSphere) I.o.boundingSphere = null; I.o.frustumCulled = false;
+  }
+  for (const it of LY.sols){
+    const so = it.so; if (so.pgDyn) continue;
+    lyRestoreSolid(so, it.b);
+    const M = LY.mats[it.g]; if (M) lyXSolid(so, M, LY.scl[it.g], LY.rot[it.g]);
+    if (LY.hid[it.g]){ if (!it.hidNow){ it.off0 = !!so.off; it.hidNow = true; } so.off = true; } else if (it.hidNow){ so.off = it.off0; it.hidNow = false; }
+  }
+  for (const P of LY_PTS){ if (P.g < 0) continue; P.v.copy(P.b); const M = LY.mats[P.g]; if (M) P.v.applyMatrix4(M); }
+  for (const A of LY_ARR){ if (A.g < 0) continue; _lyV.fromArray(A.b); const M = LY.mats[A.g]; if (M) _lyV.applyMatrix4(M); A.o[A.key] = _lyV.toArray(); }
+  for (const T of LY.pg){   // pick-up toys: their home moves; a toy resting at home moves with it
+    const p = T.p, M = LY.mats[T.g]; if (M) m.multiplyMatrices(M, T.b); else m.copy(T.b);
+    m.decompose(pp, qq, ss); const wasHome = p.x.distanceTo(p.home.x) < 0.5 && !p.holder;
+    p.home.x.copy(pp); p.home.q.copy(qq); p.obj.scale.copy(ss);
+    if (wasHome){ p.x.copy(pp); p.q.copy(qq); if (p.tx) p.tx.copy(pp); if (p.tq) p.tq.copy(qq); if (p.safe){ p.safe.x.copy(pp); p.safe.q.copy(qq); } v24ToyHome(p); }
+  }
+  if (LY.duckG != null && PG.duck && LIFE.duck){   // the duck floats in the pool wherever the pool is
+    const p = PG.duck, D = LIFE.duck, s = LY.scl[LY.duckG] || 1, wasHome = p.x.distanceTo(p.home.x) < 3 && !p.holder;
+    D.y0 = LY.duckY0 * s; p.home.x.set(D.base.x, D.y0, D.base.z);
+    if (p.floatX) p.floatX.copy(p.home.x); if (p.safe) p.safe.x.copy(p.home.x);
+    if (wasHome){ p.x.copy(p.home.x); if (p.tx) p.tx.copy(p.home.x); }
+  }
+  lyGrass();
+  try { WORLD_PRIMS = null; HUMAN_BLOCK = null; } catch(e){}   // (not built yet at startup)
+  LY.ver++;
+}
+/* grass blades never poke through a prop that was moved onto the lawn */
+function lyGrass(){
+  if (!LY.grass){ const g = scene.children.find(o => o.isInstancedMesh && o.userData.scaleAll && o.userData.ringClear); if (!g) return;
+    const b = [], m = new THREE.Matrix4(); for (let i = 0; i < g.count; i++){ g.getMatrixAt(i, m); b.push(m.clone()); } LY.grass = {g, b}; }
+  const boxes = [];
+  for (let gi = 0; gi < LY.groups.length; gi++){
+    const M = LY.mats[gi]; if (!M) continue;
+    let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
+    for (const it of LY.sols) if (it.g === gi && !it.so.off){ const so = it.so, c = so.bc || so.c || (so.box && so.box.getCenter(new V3())), r = so.br || so.r || (so.box ? so.box.getSize(new V3()).length() / 2 : 0); if (!c) continue; x0 = Math.min(x0, c.x - r); x1 = Math.max(x1, c.x + r); z0 = Math.min(z0, c.z - r); z1 = Math.max(z1, c.z + r); }
+    if (x0 < x1) boxes.push([x0 - 1, z0 - 1, x1 + 1, z1 + 1]);
+  }
+  const {g, b} = LY.grass, p = new V3(), zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (let i = 0; i < b.length; i++){ p.setFromMatrixPosition(b[i]); g.setMatrixAt(i, boxes.some(q => p.x > q[0] && p.x < q[2] && p.z > q[1] && p.z < q[3]) ? zero : b[i]); }
+  g.instanceMatrix.needsUpdate = true;
+}
+function lyRefresh(){
+  for (const a of ATTACHED) LY.att.add(a.pr);
+  for (const o of scene.children) lyWalk(o);
+  for (const so of solids) lyRegSolid(so);
+  if (LY.active) lyApply();
+}
+LY.lay = lyLoad();
+LY.active = LY_EDIT || Object.keys(LY.lay).length > 0;
+lyRefresh();
+const MERGE_INFO = (new URLSearchParams(location.search).get('nomerge') || LY_EDIT) ? {merged:0, meshes:0, skipped:true} : mergeStatic();   // v0.0.29: not in the yard editor   // ?nomerge is for collider probes only
 /* v0.0.14: soft contact blobs under props (one draw call) */
 const BLOB_MAT = new THREE.MeshBasicMaterial({color:0x1c1206, alphaMap:PIX.blob, transparent:true, opacity:0.55, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
 {
   // v0.0.15: cookout and fence blobs in new coordinates; the rest move with their props
-  const B = [[-8, 18, 13, 13], [-25.5, -15, 9, 13], [34, 12, 24, 24], [17, -27.5, 13, 9], [YARD.x0 + 3, 6.4, 4, 141], [YARD.x1 - 3, 6.4, 4, 141],
+  const B = [[-8, 18, 13, 13], [-25.5, -15, 9, 13], [34, 12, 24, 24], [17, -27.5, 13, 9], [YARD.x0 + 3, (YARD.z0 + YARD.z1) / 2, 4, (YARD.z1 - YARD.z0) / 2], [YARD.x1 - 3, (YARD.z0 + YARD.z1) / 2, 4, (YARD.z1 - YARD.z0) / 2],
     ...[[14, 66, 24, 24], [44, 56, 10, 8], [48, -70, 11, 11], [66, -58, 11, 11], [32, 38, 11, 11], [30, -45, 16, 14], [-66, -14, 22, 22], [-48, 12, 8, 6], [70, 62, 12, 12], [-66, -62, 22, 22], [48, 32, 5, 5], [-40, 24, 6, 6], [-28, 36, 6, 6], [-42, 86, 6, 6], [80, 86, 7, 7], [-82, 88, 7, 7], [84, -40, 7, 7], [-88, 36, 7, 7], [-82, 22, 5, 5], [-78, 55, 12, 8], [0, -98, 90, 9], [62, -12, 7, 22], [88, -8, 7, 24], [75.5, -7, 7, 24], [52, -6, 5, 22]].map(([x, z, rx, rz]) => [...spreadPt(x, z), rx, rz])];
   const geo = new THREE.PlaneGeometry(2, 2); geo.rotateX(-Math.PI / 2);
   const im = new THREE.InstancedMesh(geo, BLOB_MAT, B.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new V3(), pp = new V3();
@@ -5570,12 +5790,9 @@ function useCoopRoute(kind){
   for (const w of BOT_PATH){ for (const key of ['pre', 'ring', 'post']) if (w.p.x === A[key][0] && w.p.y === A[key][1] && w.p.z === A[key][2]) w.p.set(...R[key]); }
   RINGS[ri].p = R.ring.slice(); if (typeof rings !== 'undefined' && rings[ri]) rings[ri].mesh.position.set(...R.ring);
 }
-const ringMatTarget = new THREE.MeshBasicMaterial({color:0xff3fb4});
 const ringMatNext = new THREE.MeshBasicMaterial({color:0x6dff4a, transparent:true, opacity:0.6});
-const ringMatNext2 = new THREE.MeshBasicMaterial({color:0xff8ad8, transparent:true, opacity:0.55});
-const ringMatDone = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.22});
 const glowMat = c => new THREE.MeshBasicMaterial({color:c, transparent:true, opacity:0.3, depthWrite:false, blending:THREE.AdditiveBlending});
-const ringGlowT = glowMat(0xff3fb4), ringGlowN = glowMat(0x6dff4a), ringGlowN2 = glowMat(0xff7ad0);
+const ringGlowN = glowMat(0x6dff4a), ringGlowN2 = glowMat(0xff7ad0);
 const rings = RINGS.map((r, i) => {
   const rad = r.r || 3;
   const mesh = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.42, 6, 24), ringMatNext);   // chunkier, low-poly
@@ -5590,8 +5807,10 @@ const rings = RINGS.map((r, i) => {
   }
   mesh.lookAt(look);
   const glow = new THREE.Mesh(new THREE.TorusGeometry(rad, 1.0, 6, 24), ringGlowN); mesh.add(glow);
+  mesh.userData.lyG = r.lyG != null ? r.lyG : -1;   // v0.0.29: the ring moves with its prop group
   return {mesh, rad, name:r.name, glow};
 });
+lyRefresh();   // v0.0.29
 
 /* ---------- wings, wrist HUD, guide arrow ---------- */
 const wingGeo = (() => {
@@ -5803,7 +6022,7 @@ function retroUpdate(t){
   RU.rLevels.value = tune.rtColors; RU.rDither.value = tune.rtDither; RU.rPix.value = tune.rtPixel; RU.rSat.value = tune.rtSat; RU.rCon.value = tune.rtCon;
   RU.rBri.value = tune.rtBri; RU.rWarm.value = tune.rtWarm; RU.rFade.value = tune.rtFade;
   RU.rSnap.value = on && tune.rtSnap > 0 ? 320 - 280 * tune.rtSnap : 0;
-  if (scene.fog){ const f = on ? tune.rtFog : 1; scene.fog.near = 270 * f; scene.fog.far = 560 * f; }
+  if (scene.fog && state !== 'edit'){ const f = on ? tune.rtFog : 1; scene.fog.near = 520 * f; scene.fog.far = 1500 * f; }   // v0.0.29: bigger yard
   const burst = now < retroBurstUntil ? retroBurstPow * (retroBurstUntil - now) / retroBurstLen : 0;
   const U = retroOverlay.material.uniforms;
   U.uTime.value = t; U.uVig.value = tune.vhVig; U.uScan.value = tune.rtScan; U.uScanPx.value = tune.rtScanSize; U.uGrain.value = tune.rtGrain;
@@ -5816,6 +6035,7 @@ function retroUpdate(t){
 }
 /* the screen-only CRT pass; in the headset the picture goes straight to the eyes */
 function retroRender(t){
+  if (state === 'edit' && LY.cam){ renderer.render(scene, LY.cam); return; }   // v0.0.29: the yard editor's own camera
   if (!tune.rtOn || !tune.vhCRT || renderer.xr.isPresenting){ renderer.render(scene, camera); return; }
   const sz = renderer.getDrawingBufferSize(crt.v2), px = Math.max(1, Math.round(tune.rtScreenPix));
   const w = Math.max(64, Math.round(sz.x / px)), h = Math.max(48, Math.round(sz.y / px));
@@ -5863,7 +6083,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.28 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.29 · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
     const {x, w:tw} = TAB_RECTS[i], on = pg === panelPage;
@@ -6776,7 +6996,8 @@ renderer.setAnimationLoop((time, frame) => {
   } else if (state === 'flat'){
     if (game.role === 'human') simulateHumanFlat(dt, t);
     else { simulateFlat(dt); v24Prec(dt, t, false); integrate(dt, t, false); v24PrecHud(); }
-  } else idle(t);
+  } else if (state === 'edit') lyEditTick(dt, t);   // v0.0.29: yard editor
+  else idle(t);
   gameTick(dt, t);
   netTick(dt, t, xr || state === 'flat');
   updateLegs(dt, t);
@@ -6942,8 +7163,7 @@ function sendState(force){
 
 /* remote flies */
 const sQ2 = new THREE.Quaternion(), sQ3 = new THREE.Quaternion(), sEul = new THREE.Euler();
-const flyBodyGeo = new THREE.SphereGeometry(0.16, 16, 12), flyEyeGeo = new THREE.SphereGeometry(0.085, 14, 10);
-const flyBodyMat = new THREE.MeshLambertMaterial({color:0x2a2e35});
+const flyEyeGeo = new THREE.SphereGeometry(0.085, 14, 10);
 const labels = [];
 function labelSize(sp, w, h){ sp.userData.lw = w; sp.userData.lh = h; sp.scale.set(w, h, 1); }
 function fitLabels(){ const k = 1 / rig.scale.x; camera.getWorldPosition(_lbC);
@@ -7450,7 +7670,7 @@ function netTick(dt, now, playing){
    claps eliminate at once, and knocked flies that hit props give style bonuses.
    ===================================================================== */
 
-const SKIN_A = 0xe9b48f, SKIN_B = 0x8d5a3b, SKIN_C = 0xf3c9a4;
+const SKIN_B = 0x8d5a3b, SKIN_C = 0xf3c9a4;
 /* v0.0.11: the only human is Grover. Navy MAJOR cap (v0.0.13 text), sunglasses, a big yelling mouth, white tee with
    a cookie emblem, navy shorts, chunky sneakers. Same posable rig as before, so tracking, colliders,
    swatters and flies crawling on him all work the same. (Big Dale, Rhonda and Pip are retired.) */
@@ -8966,7 +9186,6 @@ function artLegsSimple(obj, mode, t, footY){
   for (const L of R){ artFootLocal(L, mode, t, footY, AL.foot); AL.foot.applyMatrix4(M); AL.tmp.copy(AL.foot); artLeg(M, L, AL.tmp, s); }
 }
 /* nudge a foot target onto the crawl surface the game already uses (bounded: two short probes, max shift clamped) */
-const probeV = new V3();
 function settleFoot(p, up, s){
   // v0.0.22: feet go onto the VISIBLE surface (a short ray down the body's own axis); the old field nudge lifted them onto padded colliders
   if (typeof vcFoot === 'function'){ vcFoot(p, up, s); return p; }
@@ -9231,7 +9450,6 @@ function updateMotes(){
 }
 
 /* ---------- practice flies (bots), simulated by the first human's headset ---------- */
-const botGeo = new THREE.SphereGeometry(0.16, 10, 8);
 function makeBotView(){
   const g = new THREE.Group();
   const body = new THREE.Group(); g.add(body); g.body = body;
@@ -9501,7 +9719,6 @@ function actToast(text, secs){ popup(text, secs || 2.4); ACT.toastT = clock.elap
 const actV = new V3(), actV2 = new V3(), actV3 = new V3();
 function actMyPose(out){ if (game.role === 'fly' && game.crawl) return out.copy(game.crawl.C); return camera.getWorldPosition(out); }
 function actMyEligible(now){ return game.role === 'fly' && state !== 'menu' && !game.out && !(game.deadUntil > now); }
-function actPidOfSlot(j){ return j === mySlot() ? racePid : ACT.slotPid.get(j) || null; }
 function actSlotOfPid(pid){ if (pid === racePid) return mySlot(); for (const [j, p] of ACT.slotPid) if (p === pid && net.remotes.has(j)) return j; return null; }
 /* recent pose samples per participant (coordinator uses them for swept contact); a jump clears history */
 /* v0.0.19b: remote samples are placed at the SENDER's time (mapped to my clock with the smallest delay seen recently),
@@ -9938,7 +10155,6 @@ function ghostWatch(){
   ghostPlay(R, raceNow(), demo ? 'Route replay (start ring ' + (R.start + 1) + ')' : 'Route replay', 'watch');
   actToast((demo ? 'Demonstration replay from ring ' + (R.start + 1) : 'Replaying your route from ring ' + (R.start + 1)) + '. It plays once.', 2.6);
 }
-const ghQ = new THREE.Quaternion();
 function ghostTick(now){
   ghostRecTick();
   const G = ACT.ghost; if (!G){ ghostView.visible = false; return; }
@@ -10243,6 +10459,7 @@ function pgInit(){
     PG.props.push(p); PG.duck = p;
   }
   pgBuildBoombox(); pgPushOut(); v24ToysInit();   // v0.0.24: the boombox, a lawn chair and a flamingo can be picked up
+  lyRegPG(); lyRefresh();   // v0.0.29: the toys and the duck follow their groups
   pgLog({k:'init', props:PG.props.length});
 }
 /* ---------- the boombox: a chunky cassette radio, anchored; two big buttons on top ---------- */
@@ -11419,7 +11636,7 @@ function v24ToySettle(p, dt, touched){
 }
 
 window.__likeflies_g26 = {FLY26, FLY_ART, G26, g26Bind, g26Contact, g26Pose, g26VcTarget, g26LocalCurl, net, game, VC, V22, gather, field, humanPrims, remoteHumans, vcCrawl, crawlAt};
-window.__likeflies = {pg:{PG, PG_RULES, v24WingRoot, TOYS, V24T, V24O, v24OccLeave, v24ToyDist, V24, V24S, PREC, PGH, v24Protects, v24Reachable, v24RecoverHome, v24DuckDist, v24PrecToggle, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
+window.__likeflies = {ly:{LY, apply:lyApply, refresh:lyRefresh, parse:lyParse, json:lyToJSON, ids:LY_IDS, pts:LY_PTS, arr:LY_ARR}, pg:{PG, PG_RULES, v24WingRoot, TOYS, V24T, V24O, v24OccLeave, v24ToyDist, V24, V24S, PREC, PGH, v24Protects, v24Reachable, v24RecoverHome, v24DuckDist, v24PrecToggle, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
 const menu = $('#menu'), hud = $('#hud'), pad = $('#pad'), note = $('#vrNote');
@@ -11523,6 +11740,261 @@ document.querySelectorAll('#charRow button').forEach(b => b.addEventListener('cl
 drawFoodBars();
 if (cleanRoom(qs.get('room'))) joinRoom(qs.get('room'));
 addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }catch(e){} });
+/* =====================================================================
+   v0.0.29: THE YARD EDITOR (PC, mouse and keyboard). Open the game with ?edit.
+   Click a prop to select it, drag it across the lawn, turn it with Q and E, resize it with the slider, hide it, then save.
+   Saved layouts live in this browser; "Download layout.json" makes the file that goes next to index.html on the website,
+   so everyone who opens the game gets the same yard.
+   ===================================================================== */
+(() => {
+if (!LY_EDIT) return;
+const st = document.createElement('style');
+st.textContent = `
+#lyPanel{position:fixed;left:0;top:0;bottom:0;width:330px;z-index:50;background:rgba(18,26,22,.94);color:#e9f0e6;font:14px/1.4 system-ui,sans-serif;display:flex;flex-direction:column;box-shadow:2px 0 12px rgba(0,0,0,.35)}
+#lyPanel h1{font-size:18px;margin:0;padding:12px 14px 2px}
+#lyPanel .sub{color:#a7baa6;font-size:12px;padding:0 14px 8px}
+#lyList{flex:1;overflow:auto;padding:4px 8px;border-top:1px solid #2c3830;border-bottom:1px solid #2c3830}
+#lyList button{display:flex;justify-content:space-between;width:100%;text-align:left;background:none;border:0;color:inherit;font:inherit;padding:5px 8px;border-radius:7px;cursor:pointer}
+#lyList button:hover{background:#26332c}
+#lyList button.on{background:#0f7d78;color:#fff}
+#lyList button[disabled]{opacity:.45;cursor:default}
+#lyList .tag{font-size:11px;color:#ffd166}
+#lyList button.on .tag{color:#fff}
+#lySel{padding:10px 14px;display:grid;gap:7px}
+#lySel .nm{font-weight:700;font-size:15px}
+#lySel label{display:grid;grid-template-columns:62px 1fr 64px;align-items:center;gap:6px;font-size:13px}
+#lySel input[type=number]{width:64px;background:#101713;color:#e9f0e6;border:1px solid #3a4a40;border-radius:5px;padding:2px 4px}
+#lySel input[type=range]{width:100%}
+#lySel .row{display:flex;gap:6px;flex-wrap:wrap}
+#lyPanel button.b{background:#26332c;color:#e9f0e6;border:1px solid #3a4a40;border-radius:7px;padding:6px 9px;font:inherit;font-size:13px;cursor:pointer}
+#lyPanel button.b:hover{background:#31423a}
+#lyPanel button.p{background:#0f7d78;border-color:#0f7d78;color:#fff}
+#lyFoot{padding:10px 14px;display:grid;gap:7px}
+#lyStatus{font-size:12px;color:#ffd166;min-height:16px}
+#lyHelp{position:fixed;right:10px;bottom:10px;z-index:50;background:rgba(18,26,22,.85);color:#e9f0e6;font:12px/1.5 system-ui,sans-serif;padding:8px 11px;border-radius:9px;max-width:330px}
+#lyHelp b{color:#ffd166}
+#lyLoad{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(10,16,13,.75);color:#fff;font:18px system-ui,sans-serif}
+`;
+document.head.appendChild(st);
+
+const U = LY_M, S = {sel:-1, drag:null, orbit:null, pan:null, yaw:0.6, pitch:0.95, dist:820, tgt:new V3(0, 0, 40), undo:[], dirty:false, ready:false, keys:{}, box:null};
+const cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
+LY.cam = cam;
+const panel = document.createElement('div'); panel.id = 'lyPanel';
+panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.29 · layout: <span id="lySrc"></span></div>
+<div id="lyList"></div>
+<div id="lySel"><div class="nm">Click a prop in the yard or in the list.</div></div>
+<div id="lyFoot">
+  <div class="row"><button class="b p" id="lySave">Save</button><button class="b" id="lyDown">Download layout.json</button><button class="b" id="lyOpen">Open file</button></div>
+  <div class="row"><button class="b" id="lyCopy">Copy as text</button><button class="b" id="lyTest">Play this layout</button><button class="b" id="lyResetAll">Reset all</button><button class="b" id="lyUndo">Undo</button></div>
+  <div id="lyStatus"></div>
+  <input type="file" id="lyFile" accept=".json,application/json" hidden>
+</div>`;
+document.body.appendChild(panel);
+const help = document.createElement('div'); help.id = 'lyHelp';
+help.innerHTML = `<b>Click</b> select · <b>drag</b> move · <b>Q / E</b> turn 15° (Shift 1°) · <b>arrows</b> nudge 10 cm (Shift 1 m) · <b>H</b> hide · <b>R</b> reset prop · <b>F</b> frame · <b>Esc</b> deselect<br><b>Right drag</b> orbit · <b>middle drag</b> or <b>W A S D</b> pan · <b>wheel</b> zoom · <b>T</b> top view · <b>Ctrl+Z</b> undo · <b>Ctrl+S</b> save`;
+document.body.appendChild(help);
+const load = document.createElement('div'); load.id = 'lyLoad'; load.textContent = 'Loading the yard models…'; document.body.appendChild(load);
+const $e = id => document.getElementById(id);
+const status = (t, ok) => { const el = $e('lyStatus'); el.textContent = t; el.style.color = ok === false ? '#ff8a73' : '#ffd166'; };
+
+/* ---------- entry helpers ---------- */
+const entry = gi => LY.lay[LY_IDS[gi]] || (LY.lay[LY_IDS[gi]] = {dx:0, dz:0, turn:0, scale:1, hidden:false});
+const peek = gi => LY.lay[LY_IDS[gi]] || {dx:0, dz:0, turn:0, scale:1, hidden:false};
+const pushUndo = () => { S.undo.push(JSON.stringify(LY.lay)); if (S.undo.length > 100) S.undo.shift(); };
+const changed = () => { S.dirty = true; S.boxDirty = true; };
+const isEdited = gi => { const e = LY.lay[LY_IDS[gi]]; return !!e && (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden); };
+
+/* ---------- list and selected-prop controls ---------- */
+function buildList(){
+  const L = $e('lyList'); L.innerHTML = '';
+  LY.groups.forEach((G, gi) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.g = gi;
+    const has = LY.objs.some(o => o.g === gi) || LY.insts.some(I => I.list.some(e => e.g === gi));
+    b.disabled = G.lock || !has;
+    b.innerHTML = `<span></span><span class="tag"></span>`; b.firstChild.textContent = G.name;
+    b.lastChild.textContent = G.lock ? 'locked' : !has ? 'not in yard' : isEdited(gi) ? (peek(gi).hidden ? 'hidden' : 'moved') : '';
+    b.onclick = () => select(gi, true);
+    if (gi === S.sel) b.classList.add('on');
+    L.appendChild(b);
+  });
+}
+function selPanel(){
+  const P = $e('lySel');
+  if (S.sel < 0){ P.innerHTML = '<div class="nm">Click a prop in the yard or in the list.</div><div class="sub" style="padding:0">The cookout in the middle and the house are locked in this version.</div>'; return; }
+  const G = LY.groups[S.sel], e = peek(S.sel), noHide = LY.noHide.has(S.sel);
+  P.innerHTML = `<div class="nm"></div>
+  <label>Across<input type="range" id="lyX" min="-20" max="20" step="0.05"><input type="number" id="lyXn" step="0.1"></label>
+  <label>Depth<input type="range" id="lyZ" min="-20" max="20" step="0.05"><input type="number" id="lyZn" step="0.1"></label>
+  <label>Turn<input type="range" id="lyT" min="-180" max="180" step="1"><input type="number" id="lyTn" step="1"></label>
+  <label>Size<input type="range" id="lyS" min="0.5" max="2" step="0.05"><input type="number" id="lySn" step="0.05" min="0.25" max="4"></label>
+  <div class="row"><label style="display:flex;gap:6px;grid-template-columns:none"><input type="checkbox" id="lyH"> Hidden</label><button class="b" id="lyR">Reset this prop</button></div>
+  <div class="sub" style="padding:0" id="lyInfo"></div>`;
+  P.querySelector('.nm').textContent = G.name;
+  const H = $e('lyH'); H.disabled = noHide; if (noHide) H.parentElement.title = 'This one has a pick-up toy (or the duck) in it. Hiding is not supported for it yet.';
+  const bind = (rid, nid, key, fmt) => {
+    const r = $e(rid), n = $e(nid);
+    r.addEventListener('pointerdown', pushUndo); n.addEventListener('focus', pushUndo);
+    const set = v => { const en = entry(S.sel); en[key] = v; changed(); syncSel(); };
+    r.addEventListener('input', () => set(Number(r.value)));
+    n.addEventListener('change', () => { const v = Number(n.value); if (isFinite(v)) set(key === 'scale' ? Math.max(0.25, Math.min(4, v)) : v); });
+  };
+  bind('lyX', 'lyXn', 'dx'); bind('lyZ', 'lyZn', 'dz'); bind('lyT', 'lyTn', 'turn'); bind('lyS', 'lySn', 'scale');
+  H.addEventListener('change', () => { pushUndo(); entry(S.sel).hidden = H.checked; changed(); syncSel(); });
+  $e('lyR').onclick = () => { pushUndo(); delete LY.lay[LY_IDS[S.sel]]; changed(); syncSel(); };
+  syncSel();
+}
+function syncSel(){
+  if (S.sel < 0) return;
+  const e = peek(S.sel), G = LY.groups[S.sel], f = (v, d) => Number(v.toFixed(d));
+  const pairs = [['lyX', 'lyXn', e.dx, 2], ['lyZ', 'lyZn', e.dz, 2], ['lyT', 'lyTn', e.turn, 0], ['lyS', 'lySn', e.scale, 2]];
+  for (const [r, n, v, d] of pairs){ const R = $e(r), N = $e(n); if (!R) return; if (document.activeElement !== R) R.value = v; if (document.activeElement !== N) N.value = f(v, d); }
+  $e('lyH').checked = !!e.hidden;
+  const x = G.ax / U + e.dx, z = G.az / U + e.dz;
+  $e('lyInfo').textContent = `Stands ${Math.abs(x).toFixed(1)} m ${x < 0 ? 'west' : 'east'} and ${Math.abs(z).toFixed(1)} m ${z < 0 ? 'toward the house' : 'toward the front'} of the yard centre. Yard edge: ${(YARD.x1 / U).toFixed(1)} m each side.`;
+  const btn = document.querySelector(`#lyList button[data-g="${S.sel}"] .tag`); if (btn) btn.textContent = isEdited(S.sel) ? (e.hidden ? 'hidden' : 'moved') : '';
+}
+function select(gi, frame){
+  S.sel = gi; document.querySelectorAll('#lyList button').forEach(b => b.classList.toggle('on', Number(b.dataset.g) === gi));
+  S.boxDirty = true; selPanel();
+  if (gi >= 0){ const b = document.querySelector(`#lyList button[data-g="${gi}"]`); if (b && b.scrollIntoView) b.scrollIntoView({block:'nearest'}); if (frame) frameSel(); }
+}
+
+/* ---------- selection box ---------- */
+const boxHelper = new THREE.Box3Helper(new THREE.Box3(), 0xffd23f); boxHelper.visible = false; boxHelper.renderOrder = 999;
+boxHelper.material.depthTest = false; boxHelper.material.transparent = true; boxHelper.userData.dyn = boxHelper.userData.ns = true;
+scene.add(boxHelper);
+const _bb = new THREE.Box3(), _bt = new THREE.Box3(), _bm = new THREE.Matrix4(), _bp = new V3();
+function groupBox(gi, out){
+  out.makeEmpty();
+  for (const it of LY.objs) if (it.g === gi && it.o.parent && !LY.pgObj.has(it.o)){ _bt.setFromObject(it.o); if (!_bt.isEmpty() && _bt.getSize(_bp).length() < 600) out.union(_bt); }
+  for (const T of LY.pg) if (T.g === gi){ _bt.setFromObject(T.p.obj); if (!_bt.isEmpty()) out.union(_bt); }
+  for (const I of LY.insts) for (const e of I.list) if (e.g === gi){ I.o.getMatrixAt(e.i, _bm); if (!I.o.geometry.boundingBox) I.o.geometry.computeBoundingBox(); _bt.copy(I.o.geometry.boundingBox).applyMatrix4(_bm); out.union(_bt); }
+  return out;
+}
+function updateBox(){
+  if (S.sel < 0){ boxHelper.visible = false; return; }
+  groupBox(S.sel, boxHelper.box); boxHelper.visible = !boxHelper.box.isEmpty();
+}
+function frameSel(){
+  if (S.sel < 0) return; groupBox(S.sel, _bb); if (_bb.isEmpty()) return;
+  _bb.getCenter(S.tgt); S.tgt.y = 0; S.dist = Math.max(140, Math.min(900, _bb.getSize(_bp).length() * 3.2));
+}
+
+/* ---------- camera ---------- */
+function updateCam(dt){
+  const k = S.keys, sp = S.dist * 0.9 * dt, fw = new V3(-Math.sin(S.yaw), 0, -Math.cos(S.yaw)), rt = new V3(Math.cos(S.yaw), 0, -Math.sin(S.yaw));
+  if (k.KeyW) S.tgt.addScaledVector(fw, sp); if (k.KeyS) S.tgt.addScaledVector(fw, -sp); if (k.KeyD) S.tgt.addScaledVector(rt, sp); if (k.KeyA) S.tgt.addScaledVector(rt, -sp);
+  S.tgt.x = Math.max(YARD.x0 - 200, Math.min(YARD.x1 + 200, S.tgt.x)); S.tgt.z = Math.max(YARD.z0 - 200, Math.min(YARD.z1 + 200, S.tgt.z));
+  const cp = Math.cos(S.pitch);
+  cam.position.set(S.tgt.x + Math.sin(S.yaw) * cp * S.dist, S.tgt.y + Math.sin(S.pitch) * S.dist, S.tgt.z + Math.cos(S.yaw) * cp * S.dist);
+  cam.lookAt(S.tgt);
+}
+function resizeCam(){ const w = innerWidth, h = innerHeight; cam.aspect = w / h; cam.updateProjectionMatrix(); }
+addEventListener('resize', resizeCam);
+
+/* ---------- picking and dragging ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new V3(0, 1, 0), 0);
+function setRay(ev){ const r = renderer.domElement.getBoundingClientRect(); ndc.set((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); }
+function groupOfHit(h){
+  if (h.object.isInstancedMesh && h.object.userData.lyGI && h.instanceId != null){ const g = h.object.userData.lyGI[h.instanceId]; return g != null && g >= 0 ? g : -1; }
+  for (let o = h.object; o; o = o.parent){ const T = LY.pg.find(t => t.p.obj === o); if (T) return T.g; if (o.userData.lyG != null && o.userData.lyG >= 0) return o.userData.lyG; }
+  return -1;
+}
+function pick(ev){
+  setRay(ev);
+  const hits = ray.intersectObjects(scene.children, true);
+  for (const h of hits){ if (h.object === boxHelper || !h.object.visible) continue; const g = groupOfHit(h); if (g >= 0 && !LY.groups[g].lock) return g; if (h.object.isMesh && !h.object.isInstancedMesh && h.distance > 0 && g < 0 && h.object.geometry && h.object.geometry.type === 'PlaneGeometry') break; }
+  return -1;
+}
+function groundAt(ev, out){ setRay(ev); return ray.ray.intersectPlane(ground, out); }
+const cvs = renderer.domElement;
+cvs.addEventListener('contextmenu', ev => { if (state === 'edit') ev.preventDefault(); });
+cvs.addEventListener('pointerdown', ev => {
+  if (state !== 'edit' || !S.ready) return;
+  ev.preventDefault(); ev.stopPropagation(); cvs.setPointerCapture(ev.pointerId);
+  if (ev.button === 2){ S.orbit = {x:ev.clientX, y:ev.clientY, yaw:S.yaw, pitch:S.pitch}; return; }
+  if (ev.button === 1){ S.pan = {x:ev.clientX, y:ev.clientY, t:S.tgt.clone()}; return; }
+  const g = pick(ev);
+  if (g < 0){ select(-1); S.pan = {x:ev.clientX, y:ev.clientY, t:S.tgt.clone()}; return; }
+  if (g !== S.sel) select(g, false);
+  const p = groundAt(ev, new V3()); if (!p) return;
+  const e = peek(g); pushUndo(); S.drag = {g, start:p.clone(), dx:e.dx, dz:e.dz, moved:false};
+}, true);
+cvs.addEventListener('pointermove', ev => {
+  if (state !== 'edit') return;
+  if (S.orbit){ S.yaw = S.orbit.yaw - (ev.clientX - S.orbit.x) * 0.006; S.pitch = Math.max(0.12, Math.min(1.55, S.orbit.pitch + (ev.clientY - S.orbit.y) * 0.005)); return; }
+  if (S.pan){ const k = S.dist / 700, dx = (ev.clientX - S.pan.x) * k, dy = (ev.clientY - S.pan.y) * k, fw = new V3(-Math.sin(S.yaw), 0, -Math.cos(S.yaw)), rt = new V3(Math.cos(S.yaw), 0, -Math.sin(S.yaw));
+    S.tgt.copy(S.pan.t).addScaledVector(rt, -dx).addScaledVector(fw, dy); return; }
+  if (S.drag){ const p = groundAt(ev, new V3()); if (!p) return; const e = entry(S.drag.g);
+    let nx = S.drag.dx + (p.x - S.drag.start.x) / U, nz = S.drag.dz + (p.z - S.drag.start.z) / U;
+    if (ev.altKey){ nx = Math.round(nx * 4) / 4; nz = Math.round(nz * 4) / 4; }   // Alt: snap to 25 cm
+    e.dx = Math.max(-40, Math.min(40, nx)); e.dz = Math.max(-40, Math.min(40, nz)); S.drag.moved = true; changed(); syncSel(); }
+}, true);
+const endPtr = ev => { if (S.drag && !S.drag.moved) S.undo.pop(); S.drag = S.orbit = S.pan = null; };
+cvs.addEventListener('pointerup', endPtr, true); cvs.addEventListener('pointercancel', endPtr, true);
+cvs.addEventListener('wheel', ev => { if (state !== 'edit') return; ev.preventDefault(); ev.stopPropagation(); S.dist = Math.max(40, Math.min(2200, S.dist * Math.exp(ev.deltaY * 0.0012))); }, {passive:false, capture:true});
+
+/* ---------- keys ---------- */
+addEventListener('keydown', ev => {
+  if (state !== 'edit') return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' && document.activeElement.type !== 'range' && document.activeElement.type !== 'checkbox') return;
+  const c = ev.code, ctrl = ev.ctrlKey || ev.metaKey;
+  if (ctrl && c === 'KeyZ'){ ev.preventDefault(); undo(); return; }
+  if (ctrl && c === 'KeyS'){ ev.preventDefault(); save(); return; }
+  if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(c)) S.keys[c] = true;
+  if (c === 'KeyT'){ S.pitch = S.pitch > 1.4 ? 0.95 : 1.55; }
+  if (c === 'KeyF') frameSel();
+  if (c === 'Escape') select(-1);
+  if (S.sel < 0) { ev.stopPropagation(); return; }
+  const e = () => entry(S.sel), step = ev.shiftKey ? 1 : 0.1, tstep = ev.shiftKey ? 1 : 15;
+  if (c === 'KeyQ'){ pushUndo(); e().turn = ((e().turn - tstep + 540) % 360) - 180; changed(); syncSel(); }
+  if (c === 'KeyE'){ pushUndo(); e().turn = ((e().turn + tstep + 540) % 360) - 180; changed(); syncSel(); }
+  if (c === 'KeyH' && !LY.noHide.has(S.sel)){ pushUndo(); e().hidden = !e().hidden; changed(); syncSel(); }
+  if (c === 'KeyR'){ pushUndo(); delete LY.lay[LY_IDS[S.sel]]; changed(); syncSel(); }
+  const fw = new V3(-Math.sin(S.yaw), 0, -Math.cos(S.yaw)), rt = new V3(Math.cos(S.yaw), 0, -Math.sin(S.yaw));   // arrows move along the view
+  const mv = (v, k) => { ev.preventDefault(); pushUndo(); e().dx += v.x * k; e().dz += v.z * k; changed(); syncSel(); };
+  if (c === 'ArrowUp') mv(fw, step); if (c === 'ArrowDown') mv(fw, -step); if (c === 'ArrowRight') mv(rt, step); if (c === 'ArrowLeft') mv(rt, -step);
+  ev.stopPropagation();
+}, true);
+addEventListener('keyup', ev => { S.keys[ev.code] = false; }, true);
+
+/* ---------- files ---------- */
+const layoutText = () => JSON.stringify(lyToJSON(LY.lay), null, 2);
+function save(){ try { localStorage.setItem('lf-yard-layout', layoutText()); status('Saved in this browser (' + Object.keys(lyToJSON(LY.lay).groups).length + ' props changed).'); } catch(e){ status('Could not save in this browser: ' + e.message, false); } }
+function undo(){ if (!S.undo.length){ status('Nothing to undo.'); return; } LY.lay = JSON.parse(S.undo.pop()); changed(); selPanel(); buildList(); status('Undone.'); }
+$e('lySave').onclick = save;
+$e('lyDown').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([layoutText()], {type:'application/json'})); a.download = 'layout.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  status('layout.json downloaded. Put it next to index.html on the website and everyone gets this yard.'); };
+$e('lyOpen').onclick = () => $e('lyFile').click();
+$e('lyFile').onchange = async ev => { const f = ev.target.files && ev.target.files[0]; if (!f) return;
+  try { const L = lyParse(JSON.parse(await f.text())); pushUndo(); LY.lay = L; changed(); selPanel(); buildList(); status('Opened ' + f.name + '. Save to keep it in this browser.'); }
+  catch(e){ status('That file is not a yard layout (' + e.message + ').', false); } ev.target.value = ''; };
+$e('lyCopy').onclick = async () => { try { await navigator.clipboard.writeText(layoutText()); status('Layout copied. Paste it to Sage or to Claude.'); } catch(e){ status('Copy was blocked by the browser.', false); } };
+$e('lyTest').onclick = () => { save(); const u = new URL(location.href); u.searchParams.delete('edit'); u.searchParams.set('layout', 'local'); window.open(u.toString(), '_blank'); };
+$e('lyResetAll').onclick = () => { pushUndo(); LY.lay = {}; changed(); selPanel(); buildList(); status('Every prop is back where it started. Undo brings your changes back.'); };
+$e('lyUndo').onclick = undo;
+
+/* ---------- start: wait for the models, then take over the screen ---------- */
+function allLoaded(){ return PROP_ART.jobs.every(j => PROP_ART.status[j.key]) && PG.inited; }
+function start(){
+  state = 'edit'; try { menu.hidden = true; hud.hidden = true; pad.hidden = true; } catch(e){}
+  if (scene.fog){ scene.fog.near = 4000; scene.fog.far = 6000; }
+  resizeCam(); updateCam(0);
+}
+lyEditTick = (dt, t) => {
+  if (!S.ready){
+    if (allLoaded()){ lyRefresh(); S.ready = true; load.remove(); buildList(); selPanel(); $e('lySrc').textContent = LY.src; if (LY.err) status(LY.err, false); else status('Ready. ' + Object.keys(lyToJSON(LY.lay).groups).length + ' props changed in this layout.'); }
+    updateCam(dt); return;
+  }
+  if (S.dirty){ S.dirty = false; lyApply(); }
+  if (S.boxDirty){ S.boxDirty = false; updateBox(); }
+  updateCam(dt);
+};
+if (document.readyState === 'complete') start(); else addEventListener('load', start);
+})();
+
 })();
 </script>
 
