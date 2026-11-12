@@ -1,0 +1,39 @@
+{
+  "source": "v019-release/act19-embedded-module.js",
+  "results": [
+    {
+      "case": "Friend-code recipient may search imported crumb",
+      "passed": true,
+      "observed": [
+        "Searching for Friend's crumb: By the garden"
+      ]
+    },
+    {
+      "case": "First scan frame requires sustained gaze rather than disabled elapsed time",
+      "passed": true,
+      "observed": {
+        "discovered": false,
+        "progress": 0.15
+      }
+    },
+    {
+      "case": "Sustained gaze can still discover the target",
+      "passed": true
+    },
+    {
+      "case": "Disabled interval does not count toward reactivated scan",
+      "passed": true
+    },
+    {
+      "case": "Repeated menu redraw preserves friend-code draft, focus and selection",
+      "passed": true,
+      "observed": {
+        "value": "LFC1:friend-code-in-progress",
+        "focused": true,
+        "start": 8,
+        "end": 12
+      }
+    }
+  ],
+  "limits": "Isolated execution of exact delivered function bodies with fixtures, not a browser/headset test."
+}

@@ -1,0 +1,4 @@
+duck19.js (single browser, desktop Chromium, software WebGL), run after the live-duck fix:
+PASS the duck target follows the live duck  moved 1.768 in 2.5 s
+PASS looking at the pool water (not the duck) does not scan the duck  {"t":null,"got":false}
+PASS looking at the duck scans it

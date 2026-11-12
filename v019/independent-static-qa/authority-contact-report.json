@@ -1,0 +1,51 @@
+{
+  "source": "v019-release/act19-embedded-module.js",
+  "moduleSha256": "c91fb2cfd822f479b9ff249cfad5f8e95ab60b7ef0bc3857654bb12e9eb54732",
+  "passed": true,
+  "results": [
+    {
+      "name": "Non-coordinator high epoch does not replace activity state",
+      "passed": true
+    },
+    {
+      "name": "Claimed coordinator slot must match sender connection",
+      "passed": true
+    },
+    {
+      "name": "Current coordinator state is accepted",
+      "passed": true
+    },
+    {
+      "name": "Malformed activity structures are rejected without throwing",
+      "passed": true,
+      "detail": {
+        "rejected": 7
+      }
+    },
+    {
+      "name": "Crossing at 8 m/s per fly with 120 ms delay is detected",
+      "passed": true,
+      "detail": {
+        "tag": true,
+        "closest": 9.086065233532281e-13
+      }
+    },
+    {
+      "name": "Same delayed paths offset 1.5 m do not tag",
+      "passed": true,
+      "detail": {
+        "tag": false,
+        "closest": 1.0606601717802038
+      }
+    },
+    {
+      "name": "Teleport through another fly clears contact history",
+      "passed": true
+    },
+    {
+      "name": "Stopped/stale pose stream cannot tag",
+      "passed": true
+    }
+  ],
+  "limits": "Isolated exact exported function bodies with vector math and fixtures. Does not establish actual packet delivery, live fast flybys, full host migration or headset behavior."
+}

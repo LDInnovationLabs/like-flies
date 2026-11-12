@@ -1,0 +1,4 @@
+Like Flies v19b + local usability review 1
+index.html 5515686 bytes
+SHA256 ee683f7276256034db74c559a744e9c347189838735740ebfbf4cfcac2cffce2
+Source: frozen Claude v19b plus isolated Guide/menu patch, no Tag/network changes after b.

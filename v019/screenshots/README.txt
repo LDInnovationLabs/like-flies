@@ -1,0 +1,1 @@
+Actual desktop game renders supplied by Claude. panel_activities_v19b.png is frozen b before the local compact-label/scan/draft patch. v19-contact-sheet-original.png is the initial v19 candidate, not the final patched file and not a headset capture. Read V19-PLAYTEST-REPORT.md for inherited evidence limits.

@@ -1,0 +1,12 @@
+{
+  "changes": [
+    "Reset scan clock while scan is disabled or menu is open",
+    "Bound gaze credit after first activation or a suspended frame",
+    "Remember friend-code draft and selection before redraw",
+    "Restore friend-code entry and focus after redraw",
+    "Use compact headset journal labels without overlap"
+  ],
+  "htmlBytes": 5515686,
+  "sha256": "ee683f7276256034db74c559a744e9c347189838735740ebfbf4cfcac2cffce2",
+  "scope": "Activities module only; original Claude candidate preserved separately."
+}

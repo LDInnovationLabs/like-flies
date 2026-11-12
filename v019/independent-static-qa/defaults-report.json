@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "recordedDefaults": 54,
+  "tuningDefinitions": 101,
+  "checks": [
+    "54 recorded v18b defaults preserved",
+    "Already migrated v18 profile retains later gameplay and retro edits",
+    "Sound, HUD, crawl edits, stable identity and old record retained",
+    "Retro/VHS personal sliders remain excluded from shared tuning"
+  ],
+  "limit": "Isolated actual-source initialization with storage fixture; no browser or headset claim."
+}

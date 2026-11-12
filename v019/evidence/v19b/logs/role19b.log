@@ -1,0 +1,6 @@
+PASS joining Tag pauses automatic race starts and shows the Tag line  {"s0":{"race":"armed","inTag":false,"want":false,"pas":0,"role":"fly","hud":"FLY · HP ●●● · Lives 10/10 · Ate 0 · Ready 0/10 · Start: 8 Rubber duck · No room record · "},"s1":{"race":"off","inTag":true,"want":true,"pas":0,"role":"fly","hud":"FLY · HP ●●● · Lives 10/10 · Ate 0 · Buzz Tag: waiting for another fly · Leave in Activiti"}}
+PASS switching to Human leaves Tag at once, no points  {"race":"off","inTag":false,"want":false,"pas":0,"role":"human","hud":"Left Buzz Tag: switched to Human · Food left 25/25 · Flies ate 0 · 6 practice flies · Grab"}
+PASS back as a fly (not in Tag): racing re-arms on its own  {"race":"armed","inTag":false,"want":false,"pas":0,"role":"fly","hud":"FLY · HP ●●● · Lives 10/10 · Ate 0 · Ready 0/10 · Start: 4 Corn row · No room record · you"}
+PASS explicit Leave: racing re-arms  {"race":"armed","inTag":false,"want":false,"pas":0,"role":"fly","hud":"FLY · HP ●●● · Lives 10/10 · Ate 0 · Ready 0/10 · Start: 4 Corn row · No room record · you"}
+PASS SYNTHETIC: a valid newer snapshot from the current coordinator connection is accepted  {"ep":1,"pas":2,"host":0}
+no page errors

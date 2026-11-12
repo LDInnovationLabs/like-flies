@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Like Flies v0.0.19b</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;color:#1b1f1d;background:#fbfbf8}h1{font-size:24px}h2{font-size:18px;margin-top:28px}code{background:#eee;padding:1px 4px;border-radius:3px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}.p{color:#126b2e;font-weight:600}.f{color:#a3261b;font-weight:600}.i{color:#6b5a12;font-weight:600}</style></head><body>
+<h1>Like Flies v0.0.19b: scoped correction pass</h1>
+<p><b>index.html</b> SHA256 <code>1267bbbafd517dbb775a1d9125b88c40e214d64568f673e8b1ef73eb1bf17b84</code>, 5,514,915 bytes. Original v0.0.19 candidate is untouched (SHA256 <code>6b1b7887…fe644</code>). All 17 embedded models hash-match; the inline script passes <code>node --check</code>. The activities module is shipped exactly as embedded in <code>act19b-embedded-module.js</code>.</p>
+<p><b>Test environment:</b> headless Chromium with software WebGL, a local http server and a local PeerJS server. <b>SYNTHETIC</b> means the real game functions were fed scripted pose samples or messages. <b>LIVE</b> means two real pages exchanged real peer messages. No old broad suites were re-run.</p>
+
+<h2>1. Imported crumb could not be found by the importer</h2>
+<p>Each crumb now keeps two separate identities. <code>by</code> is the original hider, who can never find it. <code>own</code> is the manager (the importer, for an imported crumb), who alone can replace or delete it. A find is rejected only when <code>pid === c.by</code>, when the player has already found it, or when there are 16 finds. Search is refused only for the original hider. The card shows "imported by you" to the importer.</p>
+<table><tr><th>Check (SYNTHETIC, single browser, real proximity/view/dwell)</th><th>Result</th></tr>
+<tr><td>Import a friend's code, then Find this: search is allowed (offline)</td><td class="p">PASS</td></tr>
+<tr><td>The importer finds the imported crumb offline</td><td class="p">PASS</td></tr>
+<tr><td>In a room: the original hider is denied a find, the importer is credited, and the original hider can't delete or move the imported copy</td><td class="p">PASS</td></tr></table>
+
+<h2>2. Snapshot sender authority</h2>
+<p><code>actOnSnap(j,d)</code> now:</p>
+<ol>
+<li>validates the entire structure, with bounds, before anything else touches it: members, passes, IT, separation list, timers, names, crumbs and finds</li>
+<li>rejects a snapshot whose stated coordinator <code>d.hs</code> is not the sending connection <code>j</code></li>
+<li>holds (does not apply) a snapshot from a connection that is not the current coordinator. A held snapshot is applied only if that sender actually becomes the coordinator within 8 s, which preserves handoff when the snapshot arrives before the peer list catches up.</li>
+</ol>
+<p>Only after these checks does the epoch/revision comparison run. The coordinator re-sends its snapshot every 3 s, so late joiners still catch up.</p>
+<p>This pass also fixed a crash present in v0.0.19: the first activity change threw "Cannot read properties of undefined (reading 'it')" because <code>lastSeen</code> started as <code>{}</code>.</p>
+<table><tr><th>Check</th><th>Result</th></tr>
+<tr><td>SYNTHETIC: a high-epoch spoof from a non-coordinator is held and never applied</td><td class="p">PASS</td></tr>
+<tr><td>SYNTHETIC: a stated coordinator that differs from the sending connection is rejected</td><td class="p">PASS</td></tr>
+<tr><td>SYNTHETIC: 8 malformed snapshots are rejected without throwing; state unchanged</td><td class="p">PASS</td></tr>
+<tr><td>SYNTHETIC: the held spoof expires (the game clock is advanced 9 s because software rendering runs it slowly)</td><td class="p">PASS</td></tr>
+<tr><td>SYNTHETIC: a valid newer snapshot from the current coordinator connection is accepted (handoff path)</td><td class="p">PASS</td></tr>
+<tr><td>LIVE (two peers): a late joiner adopts the coordinator's snapshots under the new check</td><td class="p">PASS</td></tr></table>
+
+<h2>3. Buzz Tag fast fly-by</h2>
+<p><b>What changed</b></p>
+<ul>
+<li><b>Sweeps:</b> contact is swept over the time interval both flies' samples actually cover. Each IT/runner pair continues from where its previous sweep ended, so a crossing that falls between two coarse samples is no longer skipped.</li>
+<li><b>Timestamps:</b> remote samples are time-stamped by the sender with a real-time clock (<code>performance.now</code>).</li>
+<li><b>Receive-age correction:</b> the receiver estimates each sample's age from the drift against a sliding 3 s minimum offset, plus half the measured round trip. The coordinator pings every 2 s once 2 or more players are in Tag. Base latency is capped at 0.15 s and total age at 0.3 s.</li>
+<li><b>Unchanged:</b> stale-data age (0.5 s), reach (0.55 × fly size), wall occlusion, the teleport/span guard, the 2 s ready / 4 s protection, and the no-repeat separation rule.</li>
+</ul>
+<table><tr><th>SYNTHETIC case (real sweep code, scripted samples)</th><th>new</th><th>old v19</th></tr>
+<tr><td>15 m/s fly-by, 15 Hz, uneven 40 to 260 ms delays</td><td class="p">tag</td><td>tag</td></tr>
+<tr><td>Head-on, both moving, 150 ms delay</td><td class="p">tag</td><td>tag</td></tr>
+<tr><td>Sparse uneven updates (0.45 s, 100 to 400 ms late)</td><td class="p">tag</td><td>tag</td></tr>
+<tr><td>Sparse straddle (0.6 s updates, crossing only between samples)</td><td class="p">tag (0.10 m)</td><td class="f">miss (0.41 m)</td></tr>
+<tr><td>Crossing paths, 8 m/s each, 120 ms late, round trip measured</td><td class="p">tag (0.075 m)</td><td class="f">miss (0.75 m)</td></tr>
+<tr><td>Head-on, 250 ms late, round trip measured</td><td class="p">tag</td><td>tag</td></tr>
+<tr><td>1 m near miss / 1.5 m sparse side pass</td><td class="p">no tag</td><td>no tag</td></tr>
+<tr><td>Teleport straight through IT</td><td class="p">no tag</td><td class="f">tag</td></tr>
+<tr><td>Packets stop before contact (stale)</td><td class="p">no tag</td><td>no tag</td></tr>
+<tr><td>INFO: crossing paths 120 ms late with no round trip measured yet</td><td class="i">miss (0.75 m)</td><td>miss</td></tr>
+<tr><td>INFO: crossing paths 250 ms late (compensation capped at 150 ms)</td><td class="i">miss (0.57 m)</td><td>miss (1.33 m)</td></tr></table>
+<p>Jittery arrival is not modelled in the crossing-paths cases.</p>
+<p><b>LIVE fast-pass result</b></p>
+<p>The one allowed two-peer check (under 3 minutes) <span class="f">FAILED</span>. It ran before the real-time timestamp change, while samples were still stamped with each page's game clock. Software rendering ran those clocks at different speeds, so the samples looked stale and RTT read 0. The scripted crossing also took about 7.5 s, so it was not a fast pass.</p>
+<p>A follow-up diagnostic after the fix (not a pass/fail test) showed a live held contact tagging normally (distance 0, reach 0.275, RTT about 0.49 s).</p>
+<p><b>Honest limit:</b> a fast live fly-by has <b>not</b> been verified in this environment. On real headsets, compensation needs one round-trip ping first (up to 2 s after the second player joins). Delays beyond about 150 ms base latency still under-correct crossing paths.</p>
+
+<h2>Role switch / race restart (previously not run)</h2>
+<p>SYNTHETIC driver on one page, real game code:</p>
+<ul>
+<li>joining Tag pauses automatic race starts <span class="p">PASS</span></li>
+<li>switching to Human leaves Tag immediately with no points <span class="p">PASS</span></li>
+<li>switching back to a fly re-arms racing <span class="p">PASS</span></li>
+<li>an explicit Leave re-arms racing <span class="p">PASS</span></li>
+</ul>
+<p>No page errors.</p>
+
+<h2>Wording correction</h2>
+<p>Earlier reports and test comments said "real flown lap". Those laps were <b>scripted gate traversals through the actual race detector</b>: racelib16 repositions the rig with <code>H.at</code> frame by frame. They are not human input flight. The test sources in this ZIP are corrected. The v0.0.19 report's "really flown lap" line should be read the same way.</p>
+
+<h2>Not re-tested</h2>
+<ul>
+<li>A live three-peer coordinator handoff under the new sender binding. It passed in v0.0.19 before the binding was added. The binding relies on the hold-until-coordinator path plus the 3 s resend, and that path is covered synthetically only.</li>
+<li>Quest hardware, real WebXR input, and real-network latency.</li>
+</ul>
+</body></html>

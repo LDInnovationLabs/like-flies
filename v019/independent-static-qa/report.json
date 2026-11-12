@@ -1,0 +1,302 @@
+{
+  "file": "C:\\Users\\jobjs\\Documents\\ChatGPT\\Job Stauffer Only Threads FORWARD\\LikeFlies-Review\\v019-release\\index.html",
+  "html_bytes": 5515686,
+  "html_sha256": "ee683f7276256034db74c559a744e9c347189838735740ebfbf4cfcac2cffce2",
+  "version_marker": true,
+  "baseline": "v019-work/v018b-baseline.html",
+  "approved_fly_exact": true,
+  "embedded_exact_models": {
+    "d35eedb6be88a4416fc51d0015d1c97c09fdba7f092c03a4a03e1ea6c69fc047": {
+      "name": "Chair",
+      "bytes": 50152,
+      "triangles": 172,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Chair_Body"
+      ],
+      "external_resources": []
+    },
+    "5cc2a7cc3083bd867269a1a1af96005c7a5037f476cf682d819b7fc53404630a": {
+      "name": "Pool_Duck",
+      "bytes": 145132,
+      "triangles": 952,
+      "primitives": 2,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Pool_Duck_Body",
+        "LF_Pool_Duck_Duck"
+      ],
+      "external_resources": []
+    },
+    "3766424b0dc1df0bc34330e7cd84b450d792f01afd1c8784f3246bbedb727e6b": {
+      "name": "Grill",
+      "bytes": 200536,
+      "triangles": 1104,
+      "primitives": 2,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Grill_Body",
+        "LF_Grill_Lid"
+      ],
+      "external_resources": []
+    },
+    "7f55839537698a4588e1968031fea39dafa974de4c651ccf8a0b8ca5c194e102": {
+      "name": "Picnic_Umbrella",
+      "bytes": 116852,
+      "triangles": 520,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Picnic_Umbrella_Body"
+      ],
+      "external_resources": []
+    },
+    "3ea305c0a7157fec787df4e7b9548d3d3ec6a39c644a88641ef65d5117a26585": {
+      "name": "Fence",
+      "bytes": 66516,
+      "triangles": 392,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Fence_Body"
+      ],
+      "external_resources": []
+    },
+    "1276c9cf303b7fe5a0b83a6b14d176b02cbf6cc8b46a74853e6809ba0e86757b": {
+      "name": "Coop",
+      "bytes": 228032,
+      "triangles": 1010,
+      "primitives": 2,
+      "materials": 2,
+      "mesh_nodes": [
+        "LF_Coop_Body",
+        "LF_Coop_Trim"
+      ],
+      "external_resources": []
+    },
+    "ccee68f397e285e11172fa3c71f16ea3048098f92f27e043dac6b3397a3ae411": {
+      "name": "House",
+      "bytes": 932076,
+      "triangles": 5942,
+      "primitives": 2,
+      "materials": 2,
+      "mesh_nodes": [
+        "LF_House_Body",
+        "LF_House_Trim"
+      ],
+      "external_resources": []
+    },
+    "e260dc69837cf8690a1857c1ec7362887ad9dfc4a21737dfe6e9bc6320a3f664": {
+      "name": "Chicken",
+      "bytes": 153084,
+      "triangles": 570,
+      "primitives": 4,
+      "materials": 2,
+      "mesh_nodes": [
+        "LF_Chicken_Body",
+        "LF_Chicken_Head",
+        "LF_Chicken_Leg_L",
+        "LF_Chicken_Leg_R"
+      ],
+      "external_resources": []
+    },
+    "a3275ddaf14e2d63fc4667dbbf17821399a4015ba535e1f834052a47f9355cf4": {
+      "name": "Sunflower",
+      "bytes": 133664,
+      "triangles": 376,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Sunflower_Body"
+      ],
+      "external_resources": []
+    },
+    "798901b79753dd8918af9372c73bd6b91f9ba33a821c27fd1f2cf67dcff672b8": {
+      "name": "Corn",
+      "bytes": 105356,
+      "triangles": 448,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Corn_Body"
+      ],
+      "external_resources": []
+    },
+    "f8019393e886983da40a0177b57770f6981fda233a7ad1c4bef83512a08bc6d0": {
+      "name": "Tomato",
+      "bytes": 519024,
+      "triangles": 3412,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Tomato_Body"
+      ],
+      "external_resources": []
+    },
+    "2265f1bb043f9c1c0526092a5f362e891f2f3421ce1c3e29c80c636c9af1f122": {
+      "name": "Flowers",
+      "bytes": 127284,
+      "triangles": 471,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Flowers_Body"
+      ],
+      "external_resources": []
+    },
+    "7d7299c77b71a05cc604abcf8fbe174e8fe03cf568a9ceb0c674ab2200afa3af": {
+      "name": "Grover",
+      "bytes": 475300,
+      "triangles": 2112,
+      "primitives": 9,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Grover_Arm_L",
+        "LF_Grover_Arm_R",
+        "LF_Grover_Hand_L",
+        "LF_Grover_Hand_R",
+        "LF_Grover_Head",
+        "LF_Grover_Leg_L",
+        "LF_Grover_Leg_R",
+        "LF_Grover_Swatter",
+        "LF_Grover_Torso"
+      ],
+      "external_resources": []
+    },
+    "3e171e65f41ac55d89fd8f5ba32e3efab3e53fda0d7ecbe58d233a754f040469": {
+      "name": "Flamingo",
+      "bytes": 34416,
+      "triangles": 336,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Flamingo_Body"
+      ],
+      "external_resources": []
+    },
+    "bfb0791db23de3945aae47a391ff1b62705321ebb72c2a0672cdba594b39ff4e": {
+      "name": "Cooler",
+      "bytes": 6992,
+      "triangles": 60,
+      "primitives": 1,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Cooler_Body"
+      ],
+      "external_resources": []
+    },
+    "1915adf32dd69735f1a283b842740c11d3f7afac687156eef692bbb536901646": {
+      "name": "Tricycle",
+      "bytes": 193940,
+      "triangles": 984,
+      "primitives": 4,
+      "materials": 1,
+      "mesh_nodes": [
+        "LF_Tricycle_Body",
+        "LF_Tricycle_Wheel_Front",
+        "LF_Tricycle_Wheel_Rear_L",
+        "LF_Tricycle_Wheel_Rear_R"
+      ],
+      "external_resources": []
+    },
+    "c76c692c1f660f3d9dd038e5e314c5e77af362e42afbeb2ef55b14d776aafa84": {
+      "name": "Approved_Fly",
+      "bytes": 207424,
+      "triangles": 2640,
+      "primitives": 5,
+      "materials": 2,
+      "mesh_nodes": [
+        "LF_Body",
+        "LF_Wing_L",
+        "LF_Wing_R"
+      ],
+      "external_resources": []
+    }
+  },
+  "missing_exact_models_need_inspection": [],
+  "invalid_embedded_models": [],
+  "syntax": [
+    {
+      "script": 2,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "script": 3,
+      "passed": true,
+      "error": ""
+    }
+  ],
+  "external_scripts": [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"
+  ],
+  "core_function_text_signals": {
+    "readInputs": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "syncFlyScale": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "netTick": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "startCrawl": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "setCrawlPrim": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "crawlInput": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "crawlStep": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "crawlRelease": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "flyStick": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "unstick": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "flyDie": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "flyHit": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "flyGameTick": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "grabSwatter": {
+      "present": true,
+      "same_text_as_baseline": true
+    },
+    "dropSwatter": {
+      "present": true,
+      "same_text_as_baseline": true
+    }
+  },
+  "limits": [
+    "Static integrity and syntax only. Does not prove runtime loading, collision alignment, traversal, multiplayer or headset performance.",
+    "Missing exact hashes may indicate deliberate transformed/repacked geometry; inspect implementation and actual renders before judging.",
+    "Core function text differences are inspection signals, not automatic gameplay regressions."
+  ]
+}

@@ -1,0 +1,2 @@
+PASS Sage adopts the coordinator's snapshots under the new authority check (late join to Tag)  {"A":{"rev":3,"it":"Job"},"B":{"rev":3,"it":"Job","ev":0}}  [44s]
+FAIL a straight fly-through in ~7537 ms (no holding) transfers IT once, +1 pass  runner Sage = remote at the coordinator {"it":"Job","pas":{"Job":0,"Sage":0},"tagEv":[],"rtt":[0]}  [70s]

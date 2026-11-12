@@ -1,0 +1,16 @@
+PASS Job and Sage connected (Robin joins later: three software-rendered browsers slow every update past the 0.5 s pose limit)  [26s]
+PASS A joins alone: waiting for another fly  You are in. Waiting for another fly...  [39s]
+PASS B joins: exactly one IT, both agree  {"B":{"ep":0,"rev":3,"mem":2,"it":"Job","pas":{"Job":0,"Sage":0},"crumbs":0,"finds":[],"host":false},"A":{"ep":0,"rev":3,"mem":2,"it":"Job","pas":{"Job":0,"Sage":0},"crumbs":0,"finds":[],"host":true}}  [42s]
+PASS a close pass transfers IT once and gives the former IT +1 pass  hold contact (fast crossing missed in this slow test browser) {"ep":0,"rev":4,"mem":2,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":0,"finds":[],"host":true}  [66s]
+PASS escape-window UI shows on Sage  FLY · HP ●●● · Lives 10/10 · Ate 0 · YOU'RE IT · touch another fly · passes 0 · No room record · your race pts 0 · hover · 0.0 m/s · 2 playing · No tracking · F  [70s]
+PASS staying on top of each other for 5.5 s: no transfer back, no extra points  {"ep":0,"rev":4,"mem":2,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":0,"finds":[],"host":true}  [76s]
+PASS Robin (not in Tag) sitting on the IT fly is never tagged  {"ep":0,"rev":4,"mem":2,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":0,"finds":[],"host":true}  [147s]
+PASS Job hides a crumb on the lawn; Sage and Robin get it from the room  {"spot":[10,0,20],"prevWhy":""}  [152s]
+PASS Job gets no self-find; Sage finds it once; duplicate requests add nothing  {"selfSearch":null,"s5":{"ep":0,"rev":6,"mem":2,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":1,"finds":[1],"host":true},"hudSearch":"Searching for Job's crumb: Near something blue · YOU'RE IT · touch another fly · passes 0 · No room record · your race p"}  [174s]
+PASS Job leaves: Sage coordinates, one agreed state (epoch up), crumb and passes kept, Tag paused with one member  {"before":{"ep":0,"rev":6,"mem":2,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":1,"finds":[1],"host":false},"B":{"ep":1,"rev":8,"mem":1,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":1,"finds":[1],"host":true},"C":{"ep":1,"rev":8,"mem":1,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":1,"finds":[1],"host":false}}  [182s]
+PASS Robin still finds the departed hider's crumb (independent find, validated by the new coordinator)  {"ep":1,"rev":9,"mem":1,"it":"Sage","pas":{"Job":1,"Sage":0},"crumbs":1,"finds":[2],"host":false}  [188s]
+PASS explicit Leave is immediate  [189s]
+
+coordinator events (Sage):
+[{"at":166.81,"k":"host-takeover","ep":1},{"at":166.81,"k":"gone","pid":"pmvr32njtdqb6l8"},{"at":174.11,"k":"find","pid":"pmvr34ds7aumb59","cid":"jtdqb6l8-mvr35vmk"},{"at":175.01,"k":"leave","pid":"pmvr32w1p4qyx4y"}]
+no page errors

@@ -1,0 +1,7 @@
+PASS Sage sets the room record and keeps a ghost of it  [{"k":"4|C67aa3313","cs":4698,"n":86}]  [89s]
+PASS no consent: no replay is sent, Job sees "ghost not shared"  Record available, ghost not shared  [91s]
+PASS with consent the record ghost arrives in bounded chunks and validates  [{"at":90.7,"k":"ghost-shared","run":"pmvr3el5yt6bsy.mvr3f67l.7b62","bytes":2469}]  [93s]
+PASS Job races from ring 5: the shared record ghost plays (still just one other player in the room)  {"on":true,"label":"Room record","remotes":1}  [110s]
+PASS Ghost Off removes the ghost at once  [111s]
+PASS invalid, oversized, over-chunked and wrong-sender replays are rejected without breaking anything  {"r":["Shared ghost was invalid, ignored","oversize chunk ignored","too many chunks ignored","wrong sender ignored"],"cached":1}  [111s]
+no page errors

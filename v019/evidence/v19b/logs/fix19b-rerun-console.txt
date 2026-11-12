@@ -1,0 +1,21 @@
+PASS import, then Find this: the importer is allowed to search a friend crumb (offline)  {"msg":"Imported on this browser. Pick it with Next crumb.","searching":"pfriend9-abc123","card":"1/1 · Robin: Look underneath · this browser · my finds 0 · searching ()"}
+PASS the importer finds the imported friend crumb (offline, real proximity + view + dwell)
+PASS in a room: the original hider is denied a find; the importer is credited; the original hider cannot delete or move the imported copy  {"afterHider":[],"afterMe":1,"stillThere":true,"notMoved":true,"me":"1t96e"}
+PASS a spoofed high-epoch snapshot from a non-coordinator is held, never applied  {"spoof":"ok","spoofApplied":false,"held":true,"mismatch":"ok","mismatchApplied":false,"malformed":["ok","ok","ok","ok","ok","ok","ok","ok"],"unchanged":true}
+PASS a snapshot whose stated coordinator is not the sending connection is rejected
+PASS 8 malformed snapshots (null members, negative passes, bad lists, unknown IT, bad names/crumbs, no tag) rejected without throwing; state unchanged  ["ok","ok","ok","ok","ok","ok","ok","ok"]
+PASS the held spoof expires on its own (8 s of game time) and is never applied
+PASS fast fly-by at 15 m/s, 15 Hz with uneven 40-260 ms delays: tagged by the new sweep  {"newD":0,"oldD":0,"newTag":true,"oldTag":true}
+PASS head-on crossing while both fly, 150 ms delay: tagged by the new sweep (sender-time alignment)  {"newD":0,"oldD":0.005,"newTag":true,"oldTag":true}
+PASS sparse uneven updates (every 0.45 s, 100-400 ms late), crossing between samples: tagged  {"newD":0,"oldD":0,"newTag":true,"oldTag":true}
+PASS a 1 m near miss is never a tag  {"newD":1,"oldD":1,"newTag":false,"oldTag":false}
+PASS a teleport straight through IT is not a tag  {"newD":20,"oldD":0,"newTag":false,"oldTag":true}
+PASS stale data (packets stop before contact) never tags  {"newD":2.6,"oldD":2.6,"newTag":false,"oldTag":false}
+PASS head-on at 8 m/s each with 250 ms delay and a measured round trip: tagged  {"newD":0,"oldD":0.005,"newTag":true,"oldTag":true}
+INFO head-on with 250 ms delay but NO round-trip measurement yet: {"newD":0,"oldD":0.005,"newTag":true,"oldTag":true}
+PASS sparse straddle (0.6 s updates, crossing only between samples): tagged by the gap-free sweep  {"newD":0.1,"oldD":0.412,"newTag":true,"oldTag":false}
+PASS crossing paths, 8 m/s each, runner data 120 ms late (jittery arrival not modelled), round trip measured: tagged (delay compensation)  {"newD":0.075,"oldD":0.754,"newTag":true,"oldTag":false}
+INFO crossing paths, 120 ms late, NO round trip measured yet: {"newD":0.754,"oldD":0.754,"newTag":false,"oldTag":false} | 250 ms late (compensation capped at 150 ms): {"newD":0.566,"oldD":1.334,"newTag":false,"oldTag":false}
+PASS sparse pass 1.5 m to the side: not tagged  {"newD":1.5,"oldD":1.552,"newTag":false,"oldTag":false}
+old-v19 sweep on the same cases: {"fastJitter":true,"headOn":true,"sparse":true,"nearMiss":false,"teleport":true,"stale":false,"headOnLag":true,"headOnLagNoRtt":true,"sparseStraddle":false,"sparseMiss":false,"crossLag":false,"crossLagNoRtt":false,"crossLag250":false}
+no page errors
