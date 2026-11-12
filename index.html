@@ -107,7 +107,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.30 · Grover's new house (back side, first blockout)</div>
+      <div class="eyebrow">Test v0.0.31 · Session recorder (no gameplay changes)</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -116,6 +116,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
     <p class="note"><a href="?edit" id="lyEditLink">Yard editor</a> (PC, mouse and keyboard): move, turn, resize or hide props and save a layout.</p>
+    <p class="note">Session recorder (PC): open the room link with <b>&amp;spectate</b> on the end and leave the tab open. It saves the session to Downloads when everyone leaves.</p>
     <p class="note" id="vrNote">Checking for a VR headset…</p>
 
     <div class="roles">
@@ -214,6 +215,29 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
   </div>
 </div>
 
+<script>/* v0.0.31: catch every error from the first line on, so the session recorder can see it.
+   Kept in window.__lfErr (newest last, at most 200; a repeated message only bumps its count). */
+(function(){
+  var E = window.__lfErr = [], seen = {};
+  function add(k, m, s, st){
+    try{
+      m = String(m == null ? '' : m).slice(0, 400); var key = k + '|' + m + '|' + (s || '');
+      if (seen[key]){ seen[key].n++; seen[key].last = Math.round(performance.now()); return; }
+      var e = {k:k, m:m, s:s || '', st:st ? String(st).slice(0, 700) : '', n:1, t:Math.round(performance.now())};
+      seen[key] = e; E.push(e); if (E.length > 200){ var old = E.shift(); delete seen[old.k + '|' + old.m + '|' + (old.s || '')]; }
+    }catch(x){}
+  }
+  window.__lfErrAdd = add;
+  addEventListener('error', function(ev){
+    if (ev && ev.target && ev.target !== window && (ev.target.src || ev.target.href)){ add('load', 'failed to load ' + (ev.target.src || ev.target.href)); return; }
+    add('error', ev && ev.message, ev && ev.filename ? String(ev.filename).split('/').pop().slice(0, 60) + ':' + ev.lineno + ':' + ev.colno : '', ev && ev.error && ev.error.stack);
+  }, true);
+  addEventListener('unhandledrejection', function(ev){ var r = ev && ev.reason; add('rejection', r && r.message || r, '', r && r.stack); });
+  ['error', 'warn'].forEach(function(lv){
+    var o = console[lv]; if (!o) return;
+    console[lv] = function(){ try{ add('console.' + lv, Array.prototype.map.call(arguments, function(a){ return a && a.message ? a.message : typeof a === 'object' ? (function(){ try{ return JSON.stringify(a); }catch(x){ return String(a); } })() : String(a); }).join(' ')); }catch(x){} return o.apply(console, arguments); };
+  });
+})();</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>/* GLTFLoader from three@0.128.0 (examples/js/loaders/GLTFLoader.js, MIT license), inlined to match the r128 core */
@@ -5626,7 +5650,7 @@ function lyToJSON(lay){
   for (const id of LY_IDS){ const e = lay[id]; if (!e) continue;
     const r = v => Math.round(v * 1000) / 1000;
     if (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden) groups[id] = {dx:r(e.dx), dz:r(e.dz), turn:r(e.turn), scale:r(e.scale), hidden:!!e.hidden}; }
-  return {format:'like-flies-layout', version:1, build:'v0.0.30', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
+  return {format:'like-flies-layout', version:1, build:'v0.0.31', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
 }
 function lyLoad(){
   const q = new URLSearchParams(location.search).get('layout');
@@ -6100,7 +6124,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.30 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.31 · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
     const {x, w:tw} = TAB_RECTS[i], on = pg === panelPage;
@@ -7041,6 +7065,7 @@ addEventListener('resize', resize); resize();
 const MAX_SLOTS = 10, PREFIX = 'ldil-likeflies-', SEND_HZ = 15;
 const SLOT_COLORS = [0xff5a4e, 0x7fe3d6, 0xffd23f, 0xb9a2ff, 0x6fe39a, 0xff9f43, 0x5fb3ff, 0xff7ad9, 0xc3f04a, 0x9a7bff];   // v0.0.21B: ten slots
 const qs = new URLSearchParams(location.search);
+const SPECTATE = qs.has('spectate');   // v0.0.31: this tab is the session recorder
 const net = {peer:null, slot:0, room:'', gen:0, conns:new Map(), pending:new Map(), remotes:new Map(), dialTimer:null, sendAcc:0, name:''};
 const cleanRoom = r => (r || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 24);
 const slotId = i => PREFIX + net.room + '-' + i;
@@ -7058,7 +7083,7 @@ function shareLink(){ return location.origin + location.pathname + '?room=' + en
 function updateStatus(){
   if (!net.peer){ return; }
   const n = net.remotes.size;
-  mpStatus('In room "' + net.room + '" as player #' + net.slot + '. ' + (n ? n + (n === 1 ? ' other player' : ' other players') + ' here.' : 'Waiting for someone to join.'));
+  mpStatus('In room "' + net.room + '" as player #' + net.slot + '. ' + (n ? n + (n === 1 ? ' other player' : ' other players') + ' here.' : 'Waiting for someone to join.') + (net.specs && net.specs.size ? ' Session recorder is on.' : ''));
   if (typeof syncRoleUI === 'function') syncRoleUI();
 }
 
@@ -7118,6 +7143,8 @@ function dial(){
 }
 function setupConn(conn){
   const j = slotOf(conn.peer);
+  if (isSpecSlot(j)) return specConn(conn, j);   // v0.0.31: the session recorder is not a player
+  specWrap(conn);
   const gen = net.gen;
   conn.on('open', () => {
     if (gen !== net.gen){ try{ conn.close(); }catch(e){} return; }
@@ -7144,6 +7171,7 @@ function leaveRoom(quiet){
   for (const c of net.conns.values()){ try{ c.close(); }catch(e){} }
   for (const c of net.pending.values()){ try{ c.close(); }catch(e){} }
   net.conns.clear(); net.pending.clear();
+  for (const c of net.specs.values()){ try{ c.close(); }catch(e){} } net.specs.clear();   // v0.0.31
   for (const j of [...net.remotes.keys()]) dropRemote(j);
   if (net.peer){ try{ net.peer.destroy(); }catch(e){} }
   net.peer = null; net.slot = 0; net.room = '';
@@ -7151,10 +7179,73 @@ function leaveRoom(quiet){
   if (!quiet){ mpStatus('Flying solo. Pick a room name, join, and send the link to a friend.'); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
 }
 
+/* =====================================================================
+   v0.0.31: SESSION RECORDER, player side.
+   A recorder tab (?spectate) joins the room on a slot from 91 to 99. Players keep it out of net.conns, so the game
+   never treats it as a player (no fly, no host, no votes). Every message a player sends to anyone is mirrored to the
+   recorder once, plus a diagnostics line each second (frame rate, VR, input, flight state, tuning changes, errors).
+   ===================================================================== */
+const SPEC_MIN = 91, isSpecSlot = j => j >= SPEC_MIN && j <= 99;
+net.specs = new Map();
+const SPEC = {sent:new Set(), errAt:0, tune:null, lastF:0, lastT:0, full:true};
+function specForward(m){
+  if (!net.specs.size || !m || typeof m !== 'object' || m.t === 'ap' || m.t === 'aP') return;
+  if (SPEC.sent.has(m)) return;                                   // a broadcast goes out once, not once per player
+  if (!SPEC.sent.size) queueMicrotask(() => SPEC.sent.clear());
+  SPEC.sent.add(m);
+  const w = {t:'fw', m};
+  for (const c of net.specs.values()) if (c.open){ try{ c.send(w); }catch(e){} }
+}
+function specWrap(conn){
+  if (conn.__lfSpec) return; conn.__lfSpec = 1;
+  const send = conn.send.bind(conn);
+  conn.send = m => { try{ specForward(m); }catch(e){} return send(m); };
+}
+function specHello(){
+  return {t:'hi', b:'v0.0.31', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
+    ua:navigator.userAgent.slice(0, 200), url:location.href.slice(0, 200), scr:[screen.width, screen.height, devicePixelRatio], dt:new Date().toISOString(),
+    tune:Object.assign({}, tune), shared:typeof shareState !== 'undefined' ? {rev:shareState.rev, by:shareState.by} : null, ly:LY && LY.src, migrated:store.get('likeflies.migrated', 0)};
+}
+function specConn(conn, j){
+  const gen = net.gen;
+  conn.on('open', () => {
+    if (gen !== net.gen){ try{ conn.close(); }catch(e){} return; }
+    net.specs.set(j, conn); SPEC.full = true; SPEC.errAt = 0;
+    try{ conn.send(specHello()); }catch(e){}
+    updateStatus();
+  });
+  conn.on('data', d => { if (d && d.t === 'hiq'){ SPEC.full = true; try{ conn.send(specHello()); }catch(e){} } });
+  const gone = () => { if (net.specs.get(j) === conn){ net.specs.delete(j); updateStatus(); } };
+  conn.on('close', gone); conn.on('error', gone);
+}
+function specDiag(){ try{ specDiag1(); }catch(e){} }
+function specDiag1(){
+  if (!net.peer || !net.specs.size) return;
+  const now = performance.now(), fps = SPEC.lastT ? Math.round((frameNo - SPEC.lastF) * 10000 / (now - SPEC.lastT)) / 10 : 0;
+  SPEC.lastF = frameNo; SPEC.lastT = now;
+  const tu = {}; let nt = 0;
+  if (SPEC.full || !SPEC.tune){ Object.assign(tu, tune); nt = -1; SPEC.full = false; }
+  else for (const k in tune) if (tune[k] !== SPEC.tune[k]){ tu[k] = tune[k]; nt++; }
+  SPEC.tune = Object.assign({}, tune);
+  const E = window.__lfErr || [], er = [];
+  for (const e of E) if (e.t >= SPEC.errAt || (e.last && e.last >= SPEC.errAt)) er.push(e);
+  SPEC.errAt = Math.round(now) + 1;
+  const ri = renderer.info.render, st = game.stuck;
+  const m = {t:'dg', fps, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode, st:state, ro:game.role, fl:flightState, gr:grounded ? 1 : 0,
+    stk:st ? [st.kind || '?', st.part || '', st.owner == null ? '' : st.owner] : 0, cr:game.crawl ? 1 : 0, rc:race.phase, tri:ri.triangles, calls:ri.calls,
+    hid:document.hidden ? 1 : 0, mem:performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : 0};
+  if (nt) m.tu = tu, m.tfull = nt < 0 ? 1 : 0;
+  if (er.length) m.er = er;
+  for (const c of net.specs.values()) if (c.open){ try{ c.send(m); }catch(e){} }
+}
+setInterval(specDiag, 1000);
+
+window.__likefliesNet = {net, game:() => game, authority:() => authority(), leave:() => leaveRoom(false), join:r => joinRoom(r)};   // v0.0.31: test hooks
+
 /* what we send: head pose, velocity, hands relative to the head, flight state */
 const sHead = new V3(), sQ = new THREE.Quaternion(), sHand = new V3();
 function sendState(force){
-  if (!net.peer || !net.conns.size) return;
+  if (!net.peer || (!net.conns.size && !net.specs.size)) return;   // v0.0.31: a solo player with the recorder on still reports
   if (!force && state === 'menu') return;
   camera.getWorldPosition(sHead); camera.getWorldQuaternion(sQ);
   rig.updateMatrixWorld(true);
@@ -7176,6 +7267,7 @@ function sendState(force){
   if (isAuthority() && game.bots.length){ msg.bfs = tune.flyScale; msg.b = game.bots.map(b => [r3(b.p.x), r3(b.p.y), r3(b.p.z), (b.state === 'dead' || b.state === 'wait') ? 0 : b.state === 'stun' ? 3 : b.carry ? 2 : (b.state === 'land' || b.state === 'onHuman' || b.state === 'web') ? 4 : 1, b.food]); }
   if (!(game.role === 'human' && game.local)){ const nw = clock.elapsedTime; Object.assign(msg, {ts:+(performance.now() / 1000).toFixed(3), dd:game.deadUntil > nw ? 1 : 0, lv:game.lives, hpt:game.hp, sk:game.stuck ? 1 : 0, cw:crS ? 1 : 0, gs:crS ? r3(crS.speed) : 0, fs:tune.flyScale, at:(crS && crS.host) ? crawlAt(crS) : (game.stuck && game.stuck.kind === 'human' && game.stuck.part) ? [game.stuck.owner, game.stuck.ci, r3(game.stuck.local.x), r3(game.stuck.local.y), r3(game.stuck.local.z)] : 0, cr:game.carry, out:game.out ? 1 : 0, stn:nw < game.tumbleUntil ? 1 : 0, sc:game.points}); }
   for (const c of net.conns.values()){ if (c.open){ try{ c.send(msg); }catch(e){} } }
+  specForward(msg);   // v0.0.31 (once: skipped if a send above already mirrored it)
 }
 
 /* remote flies */
@@ -7672,7 +7764,7 @@ const friendTarget = new V3();
 function netTick(dt, now, playing){
   updateRemotes(dt, now);
   updateListener();
-  if (!net.peer || !net.conns.size) return;
+  if (!net.peer || (!net.conns.size && !net.specs.size)) return;   // v0.0.31
   net.sendAcc += dt;
   if (net.sendAcc >= (playing ? 1 / SEND_HZ : 0.5)){ net.sendAcc = 0; sendState(true); }
 }
@@ -9601,7 +9693,7 @@ function showRemoteBots(list){
 /* ---------- events between players ---------- */
 function sendEvent(e){
   e.t = 'e'; e.from = mySlot();
-  if (!net.conns.size){ if (e.to === mySlot()) onEvent(e); return; }
+  if (!net.conns.size){ specForward(e); if (e.to === mySlot()) onEvent(e); return; }   // v0.0.31: solo events reach the recorder too
   if (e.to && net.conns.get(e.to)){ try{ net.conns.get(e.to).send(e); }catch(err){} return; }
   for (const c of net.conns.values()) if (c.open){ try{ c.send(e); }catch(err){} }
 }
@@ -11755,8 +11847,268 @@ $('#roleHuman').addEventListener('click', () => setRole('human', game.ci));
 document.querySelectorAll('#charRow button').forEach(b => b.addEventListener('click', () => setRole('human', +b.dataset.ci)));
 { const saved = store.get('likeflies.role', null); if (saved && saved.role === 'human') setRole('human', Math.max(0, Math.min(2, saved.ci | 0))); else syncRoleUI(); }
 drawFoodBars();
-if (cleanRoom(qs.get('room'))) joinRoom(qs.get('room'));
+if (!SPECTATE && cleanRoom(qs.get('room'))) joinRoom(qs.get('room'));
 addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }catch(e){} });
+/* =====================================================================
+   v0.0.31: SESSION RECORDER (spectator tab). Open the room link on a PC with &spectate added, e.g.
+   .../?room=backyard&spectate   (or ?spectate=backyard). Leave the tab open.
+   It joins the room on a hidden slot (99 down to 91), never appears in the game, and records everything the players send:
+   every player's state at 15 Hz, Grover's pose, events, races, tuning, a diagnostics line per player each second, and errors.
+   When the room has been empty for 30 seconds the session file downloads by itself (likeflies-session-....jsonl.gz).
+   A copy is kept in this browser as it records, so a closed tab or a crash loses nothing: the next time the recorder
+   opens, it downloads the unfinished session first.
+   ===================================================================== */
+(() => {
+if (!SPECTATE) return;
+const REC_BUILD = 'v0.0.31', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
+try{ renderer.setAnimationLoop(null); }catch(e){}          // the recorder draws nothing in 3D: save the PC's GPU
+document.title = 'Like Flies recorder';
+const css = document.createElement('style');
+css.textContent = `
+#recUI{position:fixed;inset:0;z-index:100;background:#0e1612;color:#e9f0e6;font:14px/1.45 system-ui,sans-serif;overflow:auto;padding:22px 26px}
+#recUI h1{font-size:22px;margin:0 0 2px}#recUI .sub{color:#9fb59c;margin-bottom:14px}
+#recUI .big{font-size:18px;font-weight:600;margin:8px 0 4px}#recUI .warn{color:#ffb35c}#recUI .ok{color:#7fe3a0}
+#recUI table{border-collapse:collapse;margin:8px 0 12px;min-width:760px}#recUI td,#recUI th{padding:4px 10px;border-bottom:1px solid #26352c;text-align:left;font-variant-numeric:tabular-nums}
+#recUI th{color:#9fb59c;font-weight:500}#recUI button{font:inherit;padding:7px 14px;border-radius:8px;border:1px solid #4d6b58;background:#1d2b23;color:#e9f0e6;cursor:pointer;margin-right:8px}
+#recUI button:hover{background:#28402f}#recUI input{font:inherit;padding:6px 10px;border-radius:8px;border:1px solid #4d6b58;background:#101a15;color:#e9f0e6}
+#recUI .row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}#recUI canvas{background:#15241b;border-radius:10px}
+#recUI .feed{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#c9d6c6;white-space:pre-wrap;max-height:260px;overflow:auto;background:#121d17;border-radius:10px;padding:10px 12px;min-width:420px;flex:1}
+#recUI .saved{font:12px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#9fe3b4}`;
+document.head.appendChild(css);
+const ui = document.createElement('div'); ui.id = 'recUI';
+ui.innerHTML = `<h1>Like Flies session recorder</h1>
+<div class="sub">${REC_BUILD} · leave this tab open (it can sit behind other windows). Nobody in the game sees it.</div>
+<div id="recRoomRow" hidden>Room: <input id="recRoom" size="18" placeholder="room name"> <button id="recGo">Start recording</button></div>
+<div class="big" id="recStatus">Starting…</div>
+<div id="recSession"></div>
+<div style="margin:10px 0"><button id="recSave">Save now (keep recording)</button><button id="recEnd">End session and save</button></div>
+<table id="recTable"><thead><tr><th>#</th><th>Name</th><th>Role</th><th>Doing</th><th>FPS</th><th>VR</th><th>Input</th><th>Errors</th><th>Msgs/s</th><th>Last heard</th></tr></thead><tbody></tbody></table>
+<div class="row"><canvas id="recMap" width="380" height="380"></canvas><div class="feed" id="recFeed"></div></div>
+<div class="saved" id="recSaved"></div>`;
+document.body.appendChild(ui);
+const $r = id => ui.querySelector('#' + id);
+
+/* ---------- the recording ---------- */
+const S = {active:false, id:'', t0:0, started:'', lines:[], bytes:0, ck:0, seq:0, n:{}, emptyAt:0, saves:[], lastBots:{}, lastType:{}, peers:new Map(), feed:[]};
+const P = new Map();      // slot -> live info for the table and map
+const nowMs = () => Math.round(performance.now() - S.t0);
+function feed(txt){ const d = new Date(); S.feed.push(d.toTimeString().slice(0, 8) + '  ' + txt); if (S.feed.length > 200) S.feed.shift(); }
+function rec(o){ if (!S.active) return; o.t = nowMs(); const line = JSON.stringify(o); S.lines.push(line); S.bytes += line.length + 1; }
+function header(){
+  return {k:'header', format:'like-flies-session', version:1, build:REC_BUILD, room:REC.room, id:S.id, started:S.started, recorder:navigator.userAgent.slice(0, 200),
+    yard:typeof YARD !== 'undefined' ? YARD : null,
+    legend:{t:'ms since the session started (recorder clock)', j:'player slot (1 to 10)',
+      k:'header | join | leave | hi (player hello: build, device, full tuning) | m (a message a player sent) | dg (player diagnostics, 1 per second) | note | end',
+      s:'player state at 15 Hz: n name, ro role, on in-game, p head/body position, v velocity, q head quaternion, l/r hands relative to head, st flight state, f flap, cw crawling, sk stuck, at attached-to, dd dead, lv lives, out, sc points; humans also: rp rig position, ry rig yaw, hs human size, hp/hq head pose in the rig, L/R hands [pos, quat], sw swatting, fc finger curl, k kills. b = practice flies (kept 2 times a second)',
+      dg:'fps, xr in VR, im input, st menu/flat/xr state, ro role, fl flight state, gr grounded, stk stuck [kind, part, owner], cr crawling, rc race phase, tri/calls render cost, hid tab hidden, mem MB, tu tuning (full the first time, then only changes), er errors since the last line',
+      other:'e events (kill, hit, splat, grab, eat...), f food, tp/ts shared tuning, rs/rl race submit and room board, ps/pq/pn playground, ah/as/aq/gq/gc/gn activities'}};
+}
+function startSession(){
+  S.active = true; S.t0 = performance.now(); S.started = new Date().toISOString(); S.id = 'S' + Date.now().toString(36);
+  S.lines = []; S.bytes = 0; S.ck = 0; S.seq = 0; S.n = {}; S.lastBots = {}; S.lastType = {};
+  S.lines.push(JSON.stringify(header()));
+  for (const j of REC.conns.keys()) rec({k:'join', j});
+  feed('Session started');
+  ckMeta();
+}
+function fileName(){
+  const d = new Date(S.started || Date.now()), p = n => String(n).padStart(2, '0');
+  return 'likeflies-session-' + REC.room + '-' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()) + '-' + REC_BUILD;
+}
+async function pack(lines){
+  const text = lines.join('\n') + '\n';
+  let blob = new Blob([text], {type:'application/x-ndjson'}), ext = '.jsonl';
+  if (typeof CompressionStream !== 'undefined'){
+    try{ blob = await new Response(blob.stream().pipeThrough(new CompressionStream('gzip'))).blob(); ext = '.jsonl.gz'; }catch(e){}
+  }
+  return {blob, ext};
+}
+function download(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000);
+}
+async function saveNow(final, reason){
+  if (!S.active) return;
+  if (final){ rec({k:'end', reason}); }
+  const lines = S.lines.slice(), name = fileName() + (final ? '' : '-partial'), id = S.id;
+  if (final){ S.active = false; }
+  const {blob, ext} = await pack(lines);
+  download(blob, name + ext);
+  const kb = Math.round(blob.size / 1024), mins = Math.round((lines.length ? (JSON.parse(lines[lines.length - 1]).t || 0) : 0) / 6000) / 10;
+  S.saves.push(name + ext + '  (' + kb + ' KB, ' + mins + ' min, ' + lines.length + ' lines)');
+  feed((final ? 'Saved ' : 'Saved a copy: ') + name + ext);
+  if (final) ckDrop(id);
+}
+
+/* ---------- a copy in this browser, in case the tab closes ---------- */
+let DB = null;
+function idb(){ return new Promise(res => { if (DB) return res(DB); try{ const q = indexedDB.open('likeflies-recorder', 1);
+  q.onupgradeneeded = () => { const d = q.result; d.createObjectStore('chunks', {keyPath:['id', 'seq']}); d.createObjectStore('meta', {keyPath:'id'}); };
+  q.onsuccess = () => { DB = q.result; res(DB); }; q.onerror = () => res(null); }catch(e){ res(null); } }); }
+async function ckMeta(){ const d = await idb(); if (!d) return; try{ d.transaction('meta', 'readwrite').objectStore('meta').put({id:S.id, room:REC.room, started:S.started, name:fileName()}); }catch(e){} }
+async function checkpoint(){
+  if (!S.active || S.ck >= S.lines.length) return;
+  const d = await idb(); if (!d) return;
+  const part = S.lines.slice(S.ck); S.ck = S.lines.length;
+  try{ d.transaction('chunks', 'readwrite').objectStore('chunks').put({id:S.id, seq:S.seq++, lines:part}); }catch(e){}
+}
+async function ckDrop(id){
+  const d = await idb(); if (!d) return;
+  try{ const tx = d.transaction(['chunks', 'meta'], 'readwrite'); tx.objectStore('chunks').delete(IDBKeyRange.bound([id, 0], [id, Infinity])); tx.objectStore('meta').delete(id); }catch(e){}
+}
+async function recoverOld(){
+  const d = await idb(); if (!d) return;
+  const metas = await new Promise(res => { try{ const q = d.transaction('meta').objectStore('meta').getAll(); q.onsuccess = () => res(q.result || []); q.onerror = () => res([]); }catch(e){ res([]); } });
+  for (const m of metas){
+    if (m.id === S.id) continue;
+    const chunks = await new Promise(res => { try{ const q = d.transaction('chunks').objectStore('chunks').getAll(IDBKeyRange.bound([m.id, 0], [m.id, Infinity])); q.onsuccess = () => res(q.result || []); q.onerror = () => res([]); }catch(e){ res([]); } });
+    const lines = []; chunks.sort((a, b) => a.seq - b.seq).forEach(c => lines.push(...c.lines));
+    if (lines.length){ lines.push(JSON.stringify({k:'end', reason:'recovered: the recorder tab closed before the session ended', t:null}));
+      const {blob, ext} = await pack(lines); download(blob, (m.name || ('likeflies-session-' + m.room)) + '-recovered' + ext);
+      S.saves.push((m.name || m.id) + '-recovered' + ext + '  (' + Math.round(blob.size / 1024) + ' KB)'); feed('Recovered an unfinished session from last time and saved it'); }
+    await ckDrop(m.id);
+  }
+}
+
+/* ---------- joining the room as the hidden recorder ---------- */
+const recId = i => PREFIX + REC.room + '-' + i;   // like slotId, but for the recorder's own room
+const REC = {room:'', peer:null, gen:0, conns:new Map(), pending:new Map(), dialT:null, status:'', warn:false};
+function setStatus(t, w){ REC.status = t; REC.warn = !!w; }
+function start(room){
+  room = cleanRoom(room); if (!room){ $r('recRoomRow').hidden = false; setStatus('Type the room name the players will use, then press Start recording.', true); return; }
+  REC.room = room; $r('recRoomRow').hidden = true;
+  try{ history.replaceState(null, '', location.pathname + '?room=' + encodeURIComponent(room) + '&spectate'); }catch(e){}
+  if (typeof Peer === 'undefined'){ setStatus('The multiplayer library did not load. Check the connection and reload.', true); return; }
+  claimRec(99, ++REC.gen);
+}
+function claimRec(i, gen){
+  if (gen !== REC.gen) return;
+  if (i < SPEC_MIN){ setStatus('Every recorder slot in this room is taken (another recorder tab is already open?).', true); return; }
+  let peer, opened = false;
+  try{ peer = new Peer(recId(i), peerOpts()); }catch(e){ setStatus('Could not start online play here.', true); return; }
+  setStatus('Connecting to room "' + REC.room + '"…');
+  peer.on('open', () => { if (gen !== REC.gen){ peer.destroy(); return; } opened = true; REC.peer = peer; REC.slot = i; dialRec(); clearInterval(REC.dialT); REC.dialT = setInterval(dialRec, 3000); });
+  peer.on('disconnected', () => { if (gen !== REC.gen || peer.destroyed) return; setStatus('Lost the connection service. Reconnecting…', true); setTimeout(() => { if (gen === REC.gen && !peer.destroyed){ try{ peer.reconnect(); }catch(e){} } }, 2000); });
+  peer.on('error', err => {
+    if (gen !== REC.gen) return; const type = err && err.type;
+    if (type === 'peer-unavailable') return;
+    if (!opened && type === 'unavailable-id'){ peer.destroy(); claimRec(i - 1, gen); return; }
+    if (!opened){ peer.destroy(); setStatus("Can't reach the online service (" + (type || 'error') + '). Retrying in 10 seconds…', true); setTimeout(() => claimRec(i, gen), 10000); }
+    else feed('Network note: ' + (type || 'error'));
+  });
+}
+function dialRec(){
+  const peer = REC.peer; if (!peer || peer.destroyed || peer.disconnected) return;
+  for (let j = 1; j <= MAX_SLOTS; j++){
+    if (REC.conns.has(j) || REC.pending.has(j)) continue;
+    let c; try{ c = peer.connect(recId(j), {serialization:'json', reliable:true}); }catch(e){ continue; }
+    if (!c) continue;
+    REC.pending.set(j, c); setupRec(c, j);
+    setTimeout(() => { if (REC.pending.get(j) === c){ REC.pending.delete(j); try{ c.close(); }catch(e){} } }, 6000);
+  }
+}
+function setupRec(c, j){
+  const gen = REC.gen;
+  c.on('open', () => {
+    if (gen !== REC.gen){ try{ c.close(); }catch(e){} return; }
+    REC.pending.delete(j); const old = REC.conns.get(j); if (old && old !== c){ try{ old.close(); }catch(e){} }
+    REC.conns.set(j, c);
+    if (!S.active) startSession();
+    S.emptyAt = 0; rec({k:'join', j}); const L = live(j); L.joined = L.heard = performance.now(); feed('Player #' + j + ' joined');
+  });
+  c.on('data', d => { if (gen === REC.gen && d) onRec(j, d); });
+  const gone = () => dropRec(j, c, '');
+  c.on('close', gone); c.on('error', gone);
+}
+function dropRec(j, c, why){
+  if (REC.conns.get(j) === c){ REC.conns.delete(j); rec(why ? {k:'leave', j, why} : {k:'leave', j}); const L = P.get(j); feed('Player #' + j + (L && L.name ? ' (' + L.name + ')' : '') + ' left' + (why ? ' (' + why + ')' : '')); P.delete(j);
+    if (!REC.conns.size && S.active) S.emptyAt = performance.now();
+    if (why){ try{ c.close(); }catch(e){} } }
+  if (REC.pending.get(j) === c) REC.pending.delete(j);
+}
+function live(j){ let L = P.get(j); if (!L){ L = {j, name:'', ro:'', st:'', fps:'', xr:0, im:'', errs:0, msgs:0, rate:0, heard:0, p:null}; P.set(j, L); } return L; }
+const HEAVY = {ps:1000, as:1000, pq:250};
+function onRec(j, d){
+  const L = live(j), now = performance.now(); L.heard = now; L.msgs++;
+  if (d.t === 'hi'){ L.name = d.n; L.ro = d.ro; rec({k:'hi', j, d}); feed('#' + j + ' ' + d.n + ' says hello: ' + d.b + ', ' + (d.ua.match(/OculusBrowser|Quest|Android|iPhone|iPad|Windows|Mac OS X|Linux/) || ['device?'])[0]); return; }
+  if (d.t === 'dg'){
+    L.fps = d.fps; L.xr = d.xr; L.im = d.im; L.ro = d.ro;
+    if (d.er){ for (const e of d.er){ if (!/warn/.test(e.k) && !(e.n > 1 && e.last)) L.errs++; feed('#' + j + ' ' + e.k + ': ' + e.m.slice(0, 140) + (e.n > 1 ? ' (x' + e.n + ')' : '')); } }
+    if (d.tu && !d.tfull) feed('#' + j + ' changed ' + Object.keys(d.tu).slice(0, 6).join(', ') + (Object.keys(d.tu).length > 6 ? '…' : ''));
+    rec({k:'dg', j, d}); return;
+  }
+  if (d.t !== 'fw' || !d.m || typeof d.m !== 'object') { rec({k:'m', j, d}); return; }
+  const m = d.m, ty = m.t || '?';
+  S.n[ty] = (S.n[ty] || 0) + 1;
+  if (ty === 's'){
+    L.name = m.n || L.name; L.ro = m.ro || L.ro; L.st = m.ro === 'human' ? (m.sw && (m.sw[0] || m.sw[1]) ? 'swatting' : 'walking') : (m.dd ? 'dead' : m.sk ? 'stuck' : m.cw ? 'crawling' : (m.st || '')) + (m.on ? '' : ' (menu)');
+    const pp = m.ro === 'human' && Array.isArray(m.rp) ? m.rp : m.p; if (Array.isArray(pp)) L.p = pp;
+    if (m.b){ if (now - (S.lastBots[j] || 0) < 500){ const c = Object.assign({}, m); delete c.b; rec({k:'m', j, d:c}); return; } S.lastBots[j] = now; }
+    rec({k:'m', j, d:m}); return;
+  }
+  const gap = HEAVY[ty]; if (gap){ const key = j + ty; if (now - (S.lastType[key] || 0) < gap) return; S.lastType[key] = now; }
+  if (ty === 'e') feed('#' + j + ' event: ' + (m.k || '?') + (m.to ? ' to #' + m.to : '') + (m.cause ? ' (' + m.cause + ')' : ''));
+  else if (ty === 'tp' || ty === 'ts') feed('#' + j + ' shared tuning (' + ty + ')');
+  else if (ty === 'rs') feed('#' + j + ' race finish submitted');
+  rec({k:'m', j, d:m});
+}
+
+/* ---------- the screen ---------- */
+const mapB = {x0:Infinity, x1:-Infinity, z0:Infinity, z1:-Infinity};
+if (typeof YARD !== 'undefined') Object.assign(mapB, {x0:YARD.x0, x1:YARD.x1, z0:YARD.z0, z1:YARD.z1});
+function drawMap(){
+  const cv = $r('recMap'), c = cv.getContext('2d'), W = cv.width, H = cv.height;
+  for (const L of P.values()) if (L.p){ mapB.x0 = Math.min(mapB.x0, L.p[0]); mapB.x1 = Math.max(mapB.x1, L.p[0]); mapB.z0 = Math.min(mapB.z0, L.p[2]); mapB.z1 = Math.max(mapB.z1, L.p[2]); }
+  c.clearRect(0, 0, W, H);
+  if (!isFinite(mapB.x0)) return;
+  const span = Math.max(mapB.x1 - mapB.x0, mapB.z1 - mapB.z0) || 1, k = (W - 40) / span;
+  const X = x => 20 + (x - mapB.x0) * k, Z = z => 20 + (z - mapB.z0) * k;
+  c.strokeStyle = '#3b5544'; c.strokeRect(X(mapB.x0), Z(mapB.z0), (mapB.x1 - mapB.x0) * k, (mapB.z1 - mapB.z0) * k);
+  c.fillStyle = '#6f8a75'; c.font = '11px system-ui'; c.fillText('house', W / 2 - 14, 14); c.fillText('top view', 22, H - 8);
+  for (const L of P.values()){ if (!L.p) continue; const col = SLOT_COLORS[(L.j - 1) % SLOT_COLORS.length];
+    c.fillStyle = '#' + col.toString(16).padStart(6, '0'); c.beginPath(); c.arc(X(L.p[0]), Z(L.p[2]), L.ro === 'human' ? 9 : 5, 0, 7); c.fill();
+    c.fillStyle = '#e9f0e6'; c.fillText((L.name || '#' + L.j) + (L.ro === 'human' ? ' (Grover)' : ''), X(L.p[0]) + 10, Z(L.p[2]) + 4); }
+}
+function fmtT(ms){ const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+let lastMsgs = new Map();
+function paint(){
+  const now = performance.now();
+  if (REC.peer && !REC.peer.disconnected){
+    if (S.active && S.emptyAt){ const left = Math.max(0, EMPTY_GRACE - (now - S.emptyAt) / 1000); setStatus('Room "' + REC.room + '" is empty. Saving the session in ' + Math.ceil(left) + ' s unless someone comes back.'); }
+    else if (S.active) setStatus('Recording room "' + REC.room + '": ' + REC.conns.size + (REC.conns.size === 1 ? ' player' : ' players') + '.');
+    else setStatus('Waiting in room "' + REC.room + '". Recording starts when the first player joins.');
+  }
+  $r('recStatus').textContent = REC.status; $r('recStatus').className = 'big ' + (REC.warn ? 'warn' : S.active ? 'ok' : '');
+  $r('recSession').textContent = S.active ? 'Session ' + fmtT(now - S.t0) + ' · ' + S.lines.length.toLocaleString() + ' lines · ' + (S.bytes / 1048576).toFixed(1) + ' MB before compression' : '';
+  $r('recSave').disabled = $r('recEnd').disabled = !S.active;
+  const rows = [...P.values()].sort((a, b) => a.j - b.j).map(L => {
+    const prev = lastMsgs.get(L.j) || [L.msgs, now]; const rate = now > prev[1] ? (L.msgs - prev[0]) * 1000 / (now - prev[1]) : 0; lastMsgs.set(L.j, [L.msgs, now]);
+    const ago = L.heard ? ((now - L.heard) / 1000).toFixed(1) + ' s' : '-';
+    return '<tr><td>' + L.j + '</td><td>' + esc(L.name) + '</td><td>' + esc(L.ro === 'human' ? 'Grover' : L.ro) + '</td><td>' + esc(L.st) + '</td><td>' + L.fps + '</td><td>' + (L.xr ? 'yes' : 'no') + '</td><td>' + esc(L.im) + '</td><td' + (L.errs ? ' class="warn"' : '') + '>' + L.errs + '</td><td>' + rate.toFixed(0) + '</td><td>' + ago + '</td></tr>';
+  });
+  $r('recTable').tBodies[0].innerHTML = rows.join('') || '<tr><td colspan="10" style="color:#7d927b">No players connected.</td></tr>';
+  const fe = $r('recFeed'), atEnd = fe.scrollTop + fe.clientHeight >= fe.scrollHeight - 4; fe.textContent = S.feed.join('\n'); if (atEnd) fe.scrollTop = fe.scrollHeight;
+  $r('recSaved').innerHTML = S.saves.length ? 'Saved to your Downloads folder:<br>' + S.saves.map(esc).join('<br>') : '';
+  drawMap();
+}
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+function tick(){
+  const now = performance.now();   // a headset that closes its browser often never says goodbye: 15 s of silence counts as leaving
+  for (const [j, c] of [...REC.conns]){ const L = P.get(j); if (L && L.heard && now - L.heard > SILENT * 1000) dropRec(j, c, 'silent for ' + SILENT + ' s'); }
+  if (S.active && S.emptyAt && performance.now() - S.emptyAt >= EMPTY_GRACE * 1000){ S.emptyAt = 0; saveNow(true, 'the room was empty for ' + EMPTY_GRACE + ' s'); }
+  paint();
+}
+setInterval(tick, 500);
+setInterval(checkpoint, CK_EVERY);
+addEventListener('pagehide', () => { checkpoint(); try{ if (REC.peer) REC.peer.destroy(); }catch(e){} });
+$r('recSave').addEventListener('click', () => saveNow(false));
+$r('recEnd').addEventListener('click', () => saveNow(true, 'ended by hand'));
+$r('recGo').addEventListener('click', () => start($r('recRoom').value));
+$r('recRoom').addEventListener('keydown', e => { if (e.key === 'Enter') start($r('recRoom').value); });
+window.__likefliesRec = {S, REC, P, saveNow, fileName};
+recoverOld().then(() => start(cleanRoom(qs.get('spectate')) || cleanRoom(qs.get('room')) || store.get('likeflies.room', '')));
+})();
+
 /* =====================================================================
    v0.0.29: THE YARD EDITOR (PC, mouse and keyboard). Open the game with ?edit.
    Click a prop to select it, drag it across the lawn, turn it with Q and E, resize it with the slider, hide it, then save.
@@ -11798,7 +12150,7 @@ const U = LY_M, S = {sel:-1, drag:null, orbit:null, pan:null, yaw:0.6, pitch:0.9
 const cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
 LY.cam = cam;
 const panel = document.createElement('div'); panel.id = 'lyPanel';
-panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.30 · layout: <span id="lySrc"></span></div>
+panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.31 · layout: <span id="lySrc"></span></div>
 <div id="lyList"></div>
 <div id="lySel"><div class="nm">Click a prop in the yard or in the list.</div></div>
 <div id="lyFoot">
