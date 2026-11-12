@@ -107,7 +107,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.32 · Playtest fixes: turning, dash, glide, meter, movable rings</div>
+      <div class="eyebrow">Test v0.0.33 · No phantom dashes, trigger hop, low panel, Grover moods, trash spawn, fly trails</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -115,7 +115,8 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
-    <p class="note"><b>New in v0.0.32:</b> turning goes the way you lean, dashes grow with your swing, glide with your hands on a hang-glider bar, a move meter on the flight data panel, a 20-foot measuring stick by the pool, and Grover can grab a race ring with the grip and let go anywhere (desktop Grover: K). Settings for all of it are on the <b>New</b> tab.</p>
+    <p class="note"><b>New in v0.0.33:</b> turning your head no longer dashes you (a dash needs real hand travel), the trigger takeoff hops you up a foot and a half, the flight data panel sits low and centered, Grover whistles, grins and gnashes, flies start on the trash in the cans, and as Grover you see a wispy trail behind every fly. Settings are on the <b>v33</b> tab.</p>
+    <p class="note"><b>From v0.0.32:</b> turning goes the way you lean, dashes grow with your swing, glide with your hands on a hang-glider bar, a move meter on the flight data panel, a 20-foot measuring stick by the pool, and Grover can grab a race ring with the grip and let go anywhere (desktop Grover: K). Settings for all of it are on the <b>New</b> tab.</p>
     <p class="note"><a href="?edit" id="lyEditLink">Yard editor</a> (PC, mouse and keyboard): move, turn, resize or hide props and save a layout.</p>
     <p class="note">Session recorder (PC): open the room link with <b>&amp;spectate</b> on the end and leave the tab open. It saves the session to Downloads when everyone leaves.</p>
     <p class="note" id="vrNote">Checking for a VR headset…</p>
@@ -3998,10 +3999,10 @@ const TUNE = [
   {g:'VHS',   k:'vhTrack',    label:'Tracking band',      min:0,   max:1,   step:0.05, def:0.35, hint:'Screen only: a faint band of tracking noise drifting down the picture.'},
   // v0.0.32: everything new from the v0.0.31 playtest lives on one tab, so each piece can be switched back off
   {g:'New', k:'dash32',     label:'New dash (0 = v0.0.31 dash)', min:0, max:1, step:1, def:1, hint:'1: a sideways or forward/back dash goes a set distance that grows with your swing speed, at a capped speed. 0: the old dash.'},
-  {g:'New', k:'dashFt',     label:'Dash distance at a 3 m/s swing', min:0.5, max:15, step:0.25, def:4, unit:' ft', hint:'Feet at Grover\'s scale. Watch the move meter while you test.'},
+  {g:'New', k:'dashFt',     label:'Dash distance at a 2 m/s swing', min:0.5, max:15, step:0.25, def:4, unit:' ft', hint:'Feet at Grover\'s scale. Watch the move meter while you test.'},
   {g:'New', k:'dashGrow',   label:'Dash grows with swing',   min:0, max:2, step:0.05, def:1, hint:'1: twice the swing speed goes twice as far. 0: every dash is the same distance. 2: hard swings go much farther.'},
-  {g:'New', k:'dashMin',    label:'Smallest swing that dashes', min:0.6, max:4, step:0.1, def:1.4, unit:' m/s', hint:'Slower hand moves give only the old small nudge, so repositioning your arms does not dash you.'},
-  {g:'New', k:'dashHold',   label:'Setup move filter',       min:0, max:0.3, step:0.01, def:0.1, unit:' s', hint:'A dash waits this long; if a stronger swing the other way follows, the first move counts as a setup and is ignored. 0 is off (no delay).'},
+  {g:'New', k:'dashMin',    label:'Smallest swing that dashes', min:0.4, max:4, step:0.1, def:1, unit:' m/s', hint:'Average hand speed over the whole stroke. Slower moves give only the old small nudge.'},
+  {g:'New', k:'dashHold',   label:'Setup move filter',       min:0, max:0.3, step:0.01, def:0.15, unit:' s', hint:'A dash waits this long; if a stronger swing the other way follows, the first move counts as a setup and is ignored. 0 is off (no delay).'},
   {g:'New', k:'dashSide',   label:'Straight side dashes',    min:0, max:100, step:5, def:70, unit:'%', hint:'How much of the forward or back drift a mostly sideways dash loses. 0 keeps it all (v0.0.31).'},
   {g:'New', k:'glideZone',  label:'Glide pose zone',         min:0, max:1, step:1, def:1, hint:'1: glide anywhere from a hang-glider bar in front of you out to a full T. 0: T-pose only (v0.0.31).'},
   {g:'New', k:'glideReach', label:'Glide arm reach',         min:30, max:90, step:5, def:55, unit:'%', hint:'How far out each hand must be (share of half your arm span) for the wide glide zone. Lower is easier to hold.'},
@@ -4010,6 +4011,15 @@ const TUNE = [
   {g:'New', k:'crawlTick',  label:'Crawl footsteps',         min:0, max:100, step:5, def:60, unit:'%', hint:'Little cartoony steps while you crawl. 0 is off.'},
   {g:'New', k:'ringNum',    label:'Ring numbers',            min:0, max:100, step:5, def:55, unit:'%', hint:'How strong the see-through number in each race ring is. 0 hides them.'},
   {g:'New', k:'ringBob',    label:'Rings bob',               min:0, max:1, step:1, def:1, hint:'Race rings float with a gentle bob.'},
+  // v0.0.33: the v0.0.32 playtest and the alt-build ideas
+  {g:'v33', k:'dashTravel', label:'Hand travel for a dash',  min:0.05, max:0.5, step:0.01, def:0.2, unit:' m', hint:'How far one hand must really move (level, measured against your neck so head turns do not count) before a stroke can dash you.'},
+  {g:'v33', k:'hopFt',      label:'Trigger hop',             min:0, max:5, step:0.25, def:1.5, unit:' ft', hint:'Pull the trigger while crawling or standing: you hop up this far (feet at Grover\'s scale). 0 is the old push-off.'},
+  {g:'v33', k:'hudPos',     label:'Flight panel low center', min:0, max:1, step:1, def:1, hint:'1: the flight data panel sits centered just below your view, tilted toward you. 0: top left (v0.0.32).'},
+  {g:'v33', k:'hudDown',    label:'Flight panel drop',       min:8, max:45, step:1, def:24, unit:' deg', hint:'How far below straight ahead the panel sits. Higher keeps it farther out of the way.'},
+  {g:'v33', k:'groverMoods',label:'Grover mood faces',       min:0, max:1, step:1, def:1, hint:'Grover whistles when idle, grins when a fly is near or he got one, and gnashes when he swings. Players see each other.'},
+  {g:'v33', k:'flyTrails',  label:'Fly trails',              min:0, max:2, step:1, def:1, hint:'1: when you are Grover, every fly drags a wispy trail. 2: everyone sees them. 0: off.'},
+  {g:'v33', k:'trailFt',    label:'Fly trail length',        min:0.25, max:3, step:0.25, def:1, unit:' ft', hint:'Feet at Grover\'s scale.'},
+  {g:'v33', k:'trashSpawn', label:'Spawn on the trash',      min:0, max:1, step:1, def:1, hint:'1: flies start on the trash under a can\'s tipped lid and fly out. 0: beside the can (v0.0.32).'},
 ];
 /* v0.0.18: defaults read from the menus in the v17 playtest video (V18-DEFAULTS-FROM-VIDEO.json). Every other setting keeps its v0.0.17 default. */
 const V18_DEFAULTS = {"hoverLift":205,"push":400,"dashDist":30.5,"dashSnap":8,"curve":4,"carry":100,"drift":1,"glideSpeed":12,"steer":6.1,"lean":3,"airDrag":0.25,"brake":0.2,"gravity":2,"maxSpeed":120,"turn":3.5,"palm":0.2,"armSens":65,"flutSens":65,"rhythm":0.85,"freqInf":2,"intInf":2,"boostAccel":20,"boostCap":30,"coastHold":0.7,"boostDecay":1,"dashSep":3,"rtOn":1,"rtColors":62,"rtDither":1,"rtPixel":2,"rtSat":1,"rtCon":1.06,"rtBri":0.07,"rtWarm":1,"rtFade":0.07,"rtScan":0.3,"rtScanSize":3,"rtGrain":0.04,"rtSnap":0,"rtFog":2,"rtVRRes":1,"rtScreenPix":8,"vhVig":1,"vhTint":0.15,"vhOSD":0,"vhEvents":1,"vhEventLen":0.5,"vhRoll":0,"vhCRT":1,"vhCurve":1,"vhChroma":2.5,"vhBleed":0.3,"vhWobble":0.3,"vhTrack":0.3};
@@ -4018,9 +4028,9 @@ for (const t of TUNE) if (Object.prototype.hasOwnProperty.call(V18_DEFAULTS, t.k
 const V32_DEFAULTS = {rtScan:0.1, rtBri:0.12, rtCon:1.16, vhVig:0.4, vhTint:0, glideSpeed:16, walkSpeed:2.5};
 for (const t of TUNE) if (Object.prototype.hasOwnProperty.call(V32_DEFAULTS, t.k)) t.def = V32_DEFAULTS[t.k];
 const groupOf = t => t.g || 'Flight';
-const PAGES = ['Activities', 'Yard', 'Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS', 'New'];
+const PAGES = ['Activities', 'Yard', 'Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS', 'New', 'v33'];
 const TAB_LABEL = {'Powered glide':'Glide'};   // 'Race' shows the room board
-const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort', 'Retro':'Retro look (only you)', 'VHS':'VHS and CRT (only you)', 'New':'New in v0.0.32 (dash, glide, meter, rings)'};
+const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort', 'Retro':'Retro look (only you)', 'VHS':'VHS and CRT (only you)', 'New':'New in v0.0.32 (dash, glide, meter, rings)', 'v33':'New in v0.0.33 (dash fix, hop, panel, Grover, trash, trails)'};
 const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
 const TUNE_KEY = 'likeflies.tune.v0.0.06';
@@ -4035,6 +4045,8 @@ if (store.get('likeflies.migrated', 0) < 18){ for (const k of V18_PRESET) tune[k
 /* v0.0.32 one-time update: Job's brighter filter, glide 16 and walk 2.5 become your values once. Later changes are kept. */
 let v32Migrated = false;
 if (store.get('likeflies.migrated', 0) < 32){ for (const k of Object.keys(V32_DEFAULTS)) tune[k] = DEFAULTS[k]; store.set('likeflies.migrated', 32); saveTune(); v32Migrated = true; }
+/* v0.0.33 one-time update: the dash now reads average swing speed, so its threshold and setup filter get new values once */
+if (store.get('likeflies.migrated', 0) < 33){ for (const k of ['dashMin', 'dashHold']) tune[k] = DEFAULTS[k]; store.set('likeflies.migrated', 33); saveTune(); }
 /* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
    so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
    flight data panel), the room and player number, and headset tracking are never sent. */
@@ -5106,10 +5118,11 @@ const PROPS = [];
 
 /* ---------- trash cans: fly spawn points around the yard ---------- */
 const SPAWNS = [new V3(80, 0, 86), new V3(-82, 0, 88), new V3(84, 0, -40), new V3(-88, 0, 36)];   // v0.0.10: the west can moved out of the new garden
+const CANS33 = [];   // v0.0.33: the can groups, for spawning on the trash
 SPAWNS.forEach(p => {
-  const g = HK.group(scene, p.x, 0, p.z);
+  const g = HK.group(scene, p.x, 0, p.z); CANS33.push(g); const pile33 = v33CanDetail(g, p);
   HK.hex(6, 5, 14, 0x6f7b86, g, 0, 0, 0, 10); const lid = HK.hex(6.4, 6.4, 0.8, 0x56606a, g, -2, 14.4, 0, 10); lid.rotation.z = 0.4;
-  solidShape([PR.cone(p.x, 7, p.z, 4.88, 5.86, 7), PR.lathe(new THREE.Matrix4().compose(new V3(p.x - 2, 14.4, p.z), new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), 0.4), new V3(1, 1, 1)), 0, 0.4, 5.85, 0.4, 0.4)], {label:'a trash can', ref:[p.x, p.z]});   // v0.0.15: tapered can and its tipped lid
+  solidShape([PR.cone(p.x, 7, p.z, 4.88, 5.86, 7), PR.lathe(new THREE.Matrix4().compose(new V3(p.x - 2, 14.4, p.z), new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), 0.4), new V3(1, 1, 1)), 0, 0.4, 5.85, 0.4, 0.4), pile33], {label:'a trash can', ref:[p.x, p.z]});   // v0.0.15: tapered can and its tipped lid
 });
 
 
@@ -5671,7 +5684,7 @@ function lyToJSON(lay){
   for (const id of LY_IDS){ const e = lay[id]; if (!e) continue;
     const r = v => Math.round(v * 1000) / 1000;
     if (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden) groups[id] = {dx:r(e.dx), dz:r(e.dz), turn:r(e.turn), scale:r(e.scale), hidden:!!e.hidden}; }
-  return {format:'like-flies-layout', version:1, build:'v0.0.32', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
+  return {format:'like-flies-layout', version:1, build:'v0.0.33', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
 }
 function lyLoad(){
   const q = new URLSearchParams(location.search).get('layout');
@@ -5940,9 +5953,9 @@ function placeHud(dt, lines){
   hudMesh.visible = !!tune.hud;
   if (!tune.hud) return;
   drawHud(lines);
-  hudTarget.copy(hudOff.set(-0.17, 0.11, -0.62)).applyQuaternion(camera.quaternion).add(camera.position);
+  hudTarget.copy(v33HudPose(hudOff)).applyQuaternion(camera.quaternion).add(camera.position);   // v0.0.33: low and centered
   const k = hudInit ? 1 - Math.exp(-8 * dt) : 1; hudInit = true;
-  hudMesh.position.lerp(hudTarget, k); hudMesh.quaternion.slerp(camera.quaternion, k);
+  hudMesh.position.lerp(hudTarget, k); hudMesh.quaternion.slerp(hudQ33, k);
 }
 
 /* ---------- comfort vignette ---------- */
@@ -6145,7 +6158,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.32 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.33 · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
     const {x, w:tw} = TAB_RECTS[i], on = pg === panelPage;
@@ -6485,7 +6498,7 @@ function simulateXR(dt, now, frame){
   const headL = camera.position;
   if (headPrevOk) headVelL.subVectors(headL, headPrev).divideScalar(dt); else { headVelL.set(0, 0, 0); headPrevOk = true; }
   headPrev.copy(headL);
-  updateHandVisuals(headL);
+  updateHandVisuals(headL); v33Frame(now);   // v0.0.33: hand travel against the neck
 
   if (menuOpen){ stopAll(); updateMenuPointer(); HANDS.forEach(h => h.prevOk = false); return false; }
   if (now < game.deadUntil){ stopAll(); flightState = 'splatted'; return true; }
@@ -6550,7 +6563,8 @@ function simulateXR(dt, now, frame){
   }
   if (flapNow) lastFlapT = now;
   let trigNow = false; for (const h of HANDS){ if (h.trig && !h.prevTrig) trigNow = true; h.prevTrig = h.trig; }
-  if (game.crawl && trigNow){ unstick(now); burst.set(0, 0, 0); }                      // trigger: push off
+  if (game.crawl && trigNow){ unstick(now); burst.set(0, 0, 0); v33Hop(); }          // trigger: push off, and v0.0.33 a real hop
+  else if (trigNow && grounded && !game.stuck) v33Hop();                              // v0.0.33: standing on the ground, the trigger hops too
   else if (game.stuck){ if (burst.length() > tune.takeoffFlap) unstick(now); else burst.set(0, 0, 0); }   // a hard flap takes off; gentle hand moves steer the crawl
   if (tune.dash32) v32DashFeed(burst, now);   // v0.0.32: sideways and forward/back moves go to the new dash
   addBurst(burst);
@@ -6562,6 +6576,7 @@ function simulateXR(dt, now, frame){
   if (gliding) glideStep(dt, 1);
   else vMove.multiplyScalar(Math.exp(-(3 / Math.max(0.2, tune.drift) + (braking ? tune.brake : 0)) * dt));
   vMove.y -= (tune.gravity + liftLossExtra(now)) * dt;
+  if (D33.lift > 0 && vMove.y < 0) vMove.y = 0;   // v0.0.33: no sinking while the hop lifts you
   const power = updateBoost(dt, now, gliding);
 
   /* 4. Lean-to-turn. The wing height difference is smoothed so flapping doesn't steer you. */
@@ -6740,7 +6755,8 @@ function integrate(dt, now, xr){
   if (sp0 > capS){ const k = capS / sp0; vel.multiplyScalar(k); vDash.multiplyScalar(k); vMove.multiplyScalar(k); boostVec.multiplyScalar(k); boost *= k; }
   rig.position.addScaledVector(vel, dt * flyK());
   if (now < game.stunUntil || game.stuck) D32.rem.set(0, 0, 0);
-  V32.dv = v32DashVel(dt, _dv32); rig.position.addScaledVector(V32.dv, dt * flyK());   // v0.0.32: the dash, capped at Max speed on its own
+  V32.dv = v32DashVel(dt, _dv32); rig.position.addScaledVector(V32.dv, dt * flyK());
+  if (D33.lift > 0){ if (clock.elapsedTime < game.stunUntil || game.stuck || game.crawl) D33.lift = 0; else rig.position.y += v33LiftVel(dt) * dt * flyK(); }   // v0.0.33: the trigger hop   // v0.0.32: the dash, capped at Max speed on its own
 
   grounded = false; contact.hit = false;
   rig.updateMatrixWorld(true); camera.getWorldPosition(head);
@@ -7232,7 +7248,7 @@ function specWrap(conn){
   conn.send = m => { try{ specForward(m); }catch(e){} return send(m); };
 }
 function specHello(){
-  return {t:'hi', b:'v0.0.32', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
+  return {t:'hi', b:'v0.0.33', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
     ua:navigator.userAgent.slice(0, 200), url:location.href.slice(0, 200), scr:[screen.width, screen.height, devicePixelRatio], dt:new Date().toISOString(),
     tune:Object.assign({}, tune), shared:typeof shareState !== 'undefined' ? {rev:shareState.rev, by:shareState.by} : null, ly:LY && LY.src, migrated:store.get('likeflies.migrated', 0)};
 }
@@ -7292,7 +7308,7 @@ function sendState(force){
     const pk = h => h.has ? [r3(h.pos.x), r3(h.pos.y), r3(h.pos.z), r3(h.q.x), r3(h.q.y), r3(h.q.z), r3(h.q.w)] : 0;
     Object.assign(msg, {ch:game.ci, si:game.spotIdx | 0, rp:[r3(rig.position.x), r3(rig.position.y), r3(rig.position.z)], ry:r3(_e32.setFromQuaternion(rig.quaternion, 'YXZ').y), hs:tune.humanSize, ms:r3(game.local.ms),
       hp:[r3(camera.position.x), r3(camera.position.y), r3(camera.position.z)], hq:[r3(camera.quaternion.x), r3(camera.quaternion.y), r3(camera.quaternion.z), r3(camera.quaternion.w)],
-      L:pk(hHands[0]), R:pk(hHands[1]), sw:[game.swat[0] ? 1 : 0, game.swat[1] ? 1 : 0], k:game.kills, sty:game.style, fc:g26SendCurl()});   // v0.0.26: fc = finger curl
+      L:pk(hHands[0]), R:pk(hHands[1]), sw:[game.swat[0] ? 1 : 0, game.swat[1] ? 1 : 0], k:game.kills, sty:game.style, fc:g26SendCurl(), md:V33.md | 0});   // v0.0.26: fc = finger curl
   }
   if (isAuthority() && game.bots.length){ msg.bfs = tune.flyScale; msg.b = game.bots.map(b => [r3(b.p.x), r3(b.p.y), r3(b.p.z), (b.state === 'dead' || b.state === 'wait') ? 0 : b.state === 'stun' ? 3 : b.carry ? 2 : (b.state === 'land' || b.state === 'onHuman' || b.state === 'web') ? 4 : 1, b.food]); }
   if (!(game.role === 'human' && game.local)){ const nw = clock.elapsedTime; Object.assign(msg, {ts:+(performance.now() / 1000).toFixed(3), dd:game.deadUntil > nw ? 1 : 0, lv:game.lives, hpt:game.hp, sk:game.stuck ? 1 : 0, cw:crS ? 1 : 0, gs:crS ? r3(crS.speed) : 0, fs:tune.flyScale, at:(crS && crS.host) ? crawlAt(crS) : (game.stuck && game.stuck.kind === 'human' && game.stuck.part) ? [game.stuck.owner, game.stuck.ci, r3(game.stuck.local.x), r3(game.stuck.local.y), r3(game.stuck.local.z)] : 0, cr:game.carry, out:game.out ? 1 : 0, stn:nw < game.tumbleUntil ? 1 : 0, sc:game.points}); }
@@ -7658,7 +7674,7 @@ function onState(j, d){
     if (r.first){ r.pos.copy(r.tgt); r.q.copy(r.tq); r.first = false; }
   } else {
     if (Array.isArray(d.rp)) r.trp.fromArray(d.rp);
-    r.si = d.si | 0; r.ry = +d.ry || 0; r.hs = +d.hs || 28; r.ms = +d.ms || 1; r.sw = Array.isArray(d.sw) ? d.sw : [0, 0]; r.fc = Array.isArray(d.fc) && d.fc.length === 4 && d.fc.every(Number.isFinite) ? d.fc : null;
+    r.md = d.md | 0; r.si = d.si | 0; r.ry = +d.ry || 0; r.hs = +d.hs || 28; r.ms = +d.ms || 1; r.sw = Array.isArray(d.sw) ? d.sw : [0, 0]; r.fc = Array.isArray(d.fc) && d.fc.length === 4 && d.fc.every(Number.isFinite) ? d.fc : null;
     if (Array.isArray(d.hp)) r.thp.fromArray(d.hp);
     if (Array.isArray(d.hq)) r.thq.fromArray(d.hq).normalize();
     [d.L, d.R].forEach((h, i) => { const t = r.th[i]; t.has = Array.isArray(h); if (t.has){ t.pos.set(h[0], h[1], h[2]); t.q.set(h[3], h[4], h[5], h[6]).normalize(); } });
@@ -8456,6 +8472,11 @@ function placeAtSpawn(){
   rig.position.set(s.x - Math.sign(s.x) * 12 + (Math.random() - 0.5) * 6, 16, s.z - Math.sign(s.z) * 12 + (Math.random() - 0.5) * 6);
   yaw = Math.atan2(rig.position.x - COOK.x, rig.position.z - COOK.z);
   rig.rotation.set(0, yaw, 0); pitch = 0;
+  if (tune.trashSpawn >= 0.5){   // v0.0.33: start on the trash under the tipped lid, facing out of the gap
+    const P = v33SpawnPoint(i, new V3());
+    if (P){ yaw = -Math.PI / 2 + (Math.random() - 0.5) * 0.5; rig.rotation.set(0, yaw, 0); rig.position.copy(P); rig.updateMatrixWorld(true);
+      const cw = camera.getWorldPosition(new V3()); rig.position.add(P.clone().sub(cw)); rig.updateMatrixWorld(true); }
+  }
 }
 
 function setRole(role, ci){
@@ -11792,7 +11813,7 @@ window.__likeflies_g26 = {FLY26, FLY_ART, G26, g26Bind, g26Contact, g26Pose, g26
      anywhere: it floats right there. Moving a ring cancels running races. Courses can be saved and shared by link.
    - Recorder: player activity decides when the room is "empty", controller input and game events are recorded.
    ===================================================================== */
-const V32 = {ver:'v0.0.32'};
+const V32 = {ver:'v0.0.33'};
 const _p32 = new V3(), _p32b = new V3(), _q32 = new THREE.Quaternion(), _s32 = new V3(), _m32 = new THREE.Matrix4(), _m32b = new THREE.Matrix4(), ONE32 = new V3(1, 1, 1);
 const ftU = () => 0.3048 * (tune.humanSize || 28);   // world units in one foot at Grover's scale
 
@@ -11838,7 +11859,7 @@ function v32DashFeed(burst, now){
     if (now >= Q.tEnd + tune.dashHold && (!opp || now - Q.tEnd > 0.6)){ D32.q = null; v32Release(Q, now); }
   }
 }
-function v32StrokeEnd(S, now){
+function v32StrokeEnd_v32(S, now){
   const Q = D32.q;
   S.tEnd = now;
   if (Q && Q.raw.dot(S.raw) < -0.3 * Q.raw.length() * S.raw.length() && S.peak >= 0.85 * Q.peak){   // the first move was the setup for this one
@@ -11847,7 +11868,7 @@ function v32StrokeEnd(S, now){
   if (tune.dashHold <= 0){ v32Release(S, now); return; }
   D32.q = S;
 }
-function v32Release(S, now){
+function v32Release_v32(S, now){
   const dir = _p32b.copy(S.raw); const raw = dir.length(); if (raw < 1e-6) return;
   dir.divideScalar(raw);
   const hsh = S.hr ? S.hr.length() / Math.max(1e-9, Math.hypot(S.hr.length(), S.vr || 0)) : 1;   // how sideways/level the stroke was
@@ -11898,17 +11919,17 @@ function v32Meter(dt, now){
   const vw = (game.crawl ? 0 : vel.length()) * flyK() / ftU();   // feet per second at Grover's scale
   V32.ftps = vw;
   if (!MM.moving){
-    if (vw > 0.35 && !game.crawl){ MM.moving = true; MM.start.copy(MM.lastP.lengthSq() ? MM.lastP : _p32); MM.still = 0; MM.peak = Math.max(0, ...MM.recent.map(r => r[1])); }
+    if (vw > 0.35 && !game.crawl){ MM.moving = true; MM.start.copy(MM.lastP.lengthSq() ? MM.lastP : _p32); MM.still = 0; MM.peak = Math.max(0, ...MM.recent.map(r => r[1])); MM.t0 = now; }
   } else {
     MM.peak = Math.max(MM.peak, hp);
     MM.live = _p32.distanceTo(MM.start) / ftU();
     if (vw < 0.15 || game.crawl || game.stuck) MM.still += dt; else MM.still = 0;
-    if (MM.still > 0.35){ MM.moving = false; MM.last = {ft:MM.live, swing:MM.peak}; v32Ev({k:'move', ft:+MM.live.toFixed(2), swing:+MM.peak.toFixed(2)}); }
+    if (MM.still > 0.35){ MM.moving = false; MM.last = {ft:MM.live, swing:(D32.last && D32.last.at >= (MM.t0 || 0) - 0.5) ? D32.last.peak : 0}; v32Ev({k:'move', ft:+MM.live.toFixed(2), swing:+MM.peak.toFixed(2)}); }
   }
   MM.lastP.copy(_p32);
 }
 function v32MeterLine(){
-  const sw = s => s > 0.05 ? s.toFixed(1) + ' m/s swing' : 'no swing';
+  const sw = s => s > 0.05 ? 'dash at ' + s.toFixed(1) + ' m/s' : 'no dash';
   if (MM.moving) return 'Moving ' + MM.live.toFixed(1) + ' ft';
   return MM.last ? 'Last move ' + MM.last.ft.toFixed(1) + ' ft, ' + sw(MM.last.swing) : 'Last move: none yet';
 }
@@ -12150,6 +12171,7 @@ function v32Tick(dt, t, xr){
   if (ringsMoving()){ race.cue = 'Rings moving: race paused'; race.cueUntil = raceNow() + 1; }
   if (state !== 'menu'){ v32Ruler(); v32Meter(dt, t); v32Steps(); }
   v32Input(dt);
+  v33Tick(dt, t);   // v0.0.33
 }
 window.__likeflies32 = {V32, D32, MM, RULER, COURSE, STEP, v32Yaw, v32Canon, v32DashFeed, v32Release, v32StrokeEnd, v32DashVel, v32GlidePose, v32RingHand, v32OnRing, v32OnCourse, v32ApplyCourse,
   courseCode, courseFromCode, courseLink, courseId, ringHeld, ringsMoving, v32DefaultCourse, v32MeterLine, ftU, rings:() => rings, turnAroundHead:a => turnAroundHead(a), startLevel:n => startLevel(n),
@@ -12167,6 +12189,249 @@ function v32HumanSt(){ const h = COURSE.hold[0] || COURSE.hold[1]; if (h) return
   crawlRelease = w('crawl', crawlRelease, (now, push, why) => ({src:'crawl', k:'takeoff', why:why || (push ? 'takeoff' : 'hit')}));
   grabSwatter = w('swat', grabSwatter, i => ({src:'swat', k:'swatter-grab', hand:i}));
   dropSwatter = w('swat', dropSwatter, i => ({src:'swat', k:'swatter-drop', hand:i})); }
+
+/* =====================================================================
+   v0.0.33: THE v0.0.32 PLAYTEST, PLUS THREE IDEAS FROM THE ALT BUILD (Job, Nov 12, 2026)
+   - No more phantom dashes. Hand motion is measured against your neck, not the headset, so turning your head no longer
+     looks like a swing. A dash needs real hand travel (20 cm, mostly level); its strength is the stroke's average
+     speed, not one jumpy frame. A swing the other way cancels what is left of the last dash.
+   - Trigger takeoff gives a real hop (1.5 ft).
+   - The flight data panel sits centered, low in your view, tilted toward you.
+   - Grover's moods: a mouth that whistles (with notes) when he is idle, grins when a fly is near or he got one,
+     and gnashes when he swings. Players see each other's Grover mood.
+   - Trash cans: ribbed cans with handles and a pile of trash under the tipped lid; flies spawn on the trash
+     and climb out.
+   - Fly trails: when you are Grover, every fly drags a wispy trail about a foot long, so they are easier to spot.
+   ===================================================================== */
+const V33 = {ver:'v0.0.33', md:0, mdUntil:0, mdKind:0, lastKills:0, idleSince:0, lastHand:[new V3(), new V3()], lastHead:new V3(), hasLast:false};
+
+/* ---------- hand travel, measured against the neck ---------- */
+const N33 = {prev:new V3(), ok:false, t:0, hist:[[], []]};
+const _n33 = new V3(), _d33 = new V3();
+function v33Frame(now){   // once per frame in VR, before the strokes: where the neck went, and each hand's move relative to it
+  _n33.set(0, -0.08, 0.09).applyQuaternion(camera.quaternion).add(camera.position);   // the neck: a little below and behind the eyes
+  const dn = _d33.subVectors(_n33, N33.prev); const ok = N33.ok && now - N33.t < 0.25;
+  HANDS.forEach((h, i) => {
+    const H = N33.hist[i];
+    if (h.has && ok && h.p33ok){ const d = h.pos.clone().sub(h.p33).sub(dn); H.push([now, d.x, d.y, d.z]); }
+    if (h.has){ h.p33 = (h.p33 || new V3()).copy(h.pos); h.p33ok = true; } else h.p33ok = false;
+    while (H.length && now - H[0][0] > 1.5) H.shift();
+  });
+  N33.prev.copy(_n33); N33.ok = true; N33.t = now;
+}
+const _t33 = new V3(), _w33 = new V3();
+function v33Travel(t0, t1){   // the hand that moved the most level distance between t0 and t1
+  let best = null;
+  N33.hist.forEach(H => {
+    const D = new V3(); let path = 0, n = 0;
+    for (const e of H) if (e[0] >= t0 && e[0] <= t1){ D.x += e[1]; D.y += e[2]; D.z += e[3]; path += Math.hypot(e[1], e[2], e[3]); n++; }
+    const h = Math.hypot(D.x, D.z);
+    if (n && (!best || h > best.h)) best = {h, v:Math.abs(D.y), path, D};
+  });
+  if (!best) return {h:0, v:0, path:0, dur:1, dir:new V3()};
+  best.dur = Math.max(0.06, t1 - t0);
+  _w33.set(-best.D.x, 0, -best.D.z); if (_w33.lengthSq() > 1e-9) _w33.normalize();   // push the air one way, go the other
+  best.dir = _w33.clone().applyQuaternion(rig.quaternion); best.dir.y = 0; if (best.dir.lengthSq() > 1e-9) best.dir.normalize();
+  return best;
+}
+/* replaces v0.0.32's stroke end and release */
+function v32StrokeEnd(S, now){
+  const Q = D32.q;
+  S.tEnd = now; S.T = v33Travel(S.t0 - 0.06, now);
+  if (Q && Q.T && S.T.h > 0 && Q.T.dir.dot(S.T.dir) < -0.3 && S.T.h >= 0.85 * Q.T.h){   // the first move was the setup for this one
+    D32.q = null; D32.cancelled++; v32Ev({k:'dash-setup-ignored', travel:+Q.T.h.toFixed(2)});
+  } else if (Q){ D32.q = null; v32Release(Q, now); }
+  if (tune.dashHold <= 0){ v32Release(S, now); return; }
+  D32.q = S;
+}
+function v32Release(S, now){
+  const T = S.T || v33Travel(S.t0 - 0.06, S.tEnd || now);
+  const swing = Math.min(8, T.path / T.dur);
+  if (T.h < 0.05){ D32.phantom = (D32.phantom || 0) + 1; return; }   // the hands barely moved against the neck: a head turn, not a swing
+  if (T.h < tune.dashTravel || T.h < 0.9 * T.v || swing < tune.dashMin){   // not a real level swing: the old small nudge, nothing more
+    const c = tune.carry / 100; vDash.addScaledVector(S.raw, 1 - c); vMove.addScaledVector(S.raw, c); D32.nudges++;
+    if (T.h >= 0.08) v32Ev({k:'dash-skipped', travel:+T.h.toFixed(2), up:+T.v.toFixed(2), swing:+swing.toFixed(2)});
+    return;
+  }
+  const dir = T.dir.clone(); if (dir.lengthSq() < 1e-9) return;
+  camera.getWorldDirection(_s32); _s32.y = 0; if (_s32.lengthSq() < 1e-6) _s32.set(0, 0, -1); _s32.normalize();
+  const fwd = dir.dot(_s32), sx = -_s32.z, sz = _s32.x, side = dir.x * sx + dir.z * sz;
+  if (Math.abs(side) > Math.abs(fwd)){ const f2 = fwd * (1 - tune.dashSide / 100); dir.set(sx * side + _s32.x * f2, 0, sz * side + _s32.z * f2).normalize(); }
+  const ft = Math.max(0.3, Math.min(30, tune.dashFt * Math.pow(swing / 2, tune.dashGrow)));
+  if (D32.rem.dot(dir) < 0) D32.rem.set(0, 0, 0);   // a swing the other way stops what is left of the last dash
+  D32.rem.addScaledVector(dir, ft * ftU() / Math.max(1e-3, flyK()));
+  D32.last = {ft:+ft.toFixed(2), peak:+swing.toFixed(2), at:now}; D32.n++; D32.until = now + 0.35;
+  v32Ev({k:'dash', ft:+ft.toFixed(2), swing:+swing.toFixed(2), travel:+T.h.toFixed(2), dir:[+dir.x.toFixed(2), +dir.z.toFixed(2)]});
+}
+
+/* ---------- trigger hop ---------- */
+const D33 = {lift:0, hops:0};
+function v33Hop(){ if (tune.hopFt <= 0) return; D33.lift = tune.hopFt * ftU() / Math.max(1e-3, flyK()); D33.hops++; v32Ev({k:'hop', ft:tune.hopFt}); }
+function v33LiftVel(dt){
+  if (D33.lift < 1e-3){ D33.lift = 0; return 0; }
+  const sp = Math.min(tune.maxSpeed, Math.max(D33.lift * 6, 3 * ftU() / Math.max(1e-3, flyK()))), step = Math.min(D33.lift, sp * dt);
+  D33.lift -= step; return sp;
+}
+
+/* ---------- flight data panel: centered low, tilted toward you ---------- */
+const hudQ33 = new THREE.Quaternion(), hudTilt33 = new THREE.Quaternion(), V3X33 = new V3(1, 0, 0);
+function v33HudPose(off){
+  if (tune.hudPos >= 0.5){ const a = tune.hudDown * Math.PI / 180; off.set(0, -Math.sin(a) * 0.64, -Math.cos(a) * 0.64); hudQ33.copy(camera.quaternion).multiply(hudTilt33.setFromAxisAngle(V3X33, -a)); }
+  else { off.set(-0.17, 0.11, -0.62); hudQ33.copy(camera.quaternion); }
+  return off;
+}
+
+/* ---------- Grover's moods ---------- */
+const MOODS = ['neutral', 'excited', 'angry', 'whistling'];
+function v33MouthTex(kind){
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 40; const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+  const px = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+  const lip = '#5a2a1c', dark = '#1d0d0a', tooth = '#f4efe2', tongue = '#c8505a';
+  if (kind === 1){   // excited: a big open grin
+    px(10, 12, 44, 4, lip); px(8, 14, 4, 6, lip); px(52, 14, 4, 6, lip);
+    px(12, 16, 40, 14, dark); px(14, 16, 36, 5, tooth); px(20, 24, 24, 6, tongue); px(14, 30, 36, 4, lip);
+  } else if (kind === 2){   // angry: gritted teeth, corners down
+    px(8, 22, 6, 4, lip); px(50, 22, 6, 4, lip); px(12, 14, 40, 4, lip); px(12, 28, 40, 4, lip);
+    px(12, 18, 40, 10, tooth); for (let x = 16; x < 52; x += 6) px(x, 18, 1, 10, '#8a8378'); px(12, 22, 40, 1, '#8a8378');
+  } else if (kind === 3){   // whistling: a little round pucker
+    px(24, 10, 16, 4, lip); px(20, 14, 4, 12, lip); px(40, 14, 4, 12, lip); px(24, 26, 16, 4, lip); px(24, 14, 16, 12, dark);
+  }
+  const t = new THREE.CanvasTexture(cv); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; return t;
+}
+const MOUTH_TEX = [null, v33MouthTex(1), v33MouthTex(2), v33MouthTex(3)];
+const NOTE_TEX = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d');
+  c.fillStyle = '#fff6c8'; c.strokeStyle = '#2a2a1e'; c.lineWidth = 5; c.font = 'bold 54px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.strokeText('♪', 32, 34); c.fillText('♪', 32, 34); return new THREE.CanvasTexture(cv); })();
+const NOTES = [];
+function v33Mouth(M){
+  if (!M || !M.g26 || !M.g26.drv || !M.g26.drv.head) return null;
+  if (M.mouth33) return M.mouth33;
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.105, 0.066), new THREE.MeshBasicMaterial({map:MOUTH_TEX[1], transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4}));
+  pl.position.set(0, 1.458, -0.174); pl.rotation.y = Math.PI; pl.visible = false; pl.renderOrder = 3; pl.frustumCulled = false;
+  M.g26.drv.head.add(pl); M.mouth33 = {pl, mood:0, noteT:0}; return M.mouth33;
+}
+function v33SetMood(M, mood, now, hideSelf){
+  const m = v33Mouth(M); if (!m) return;
+  const on = tune.groverMoods >= 0.5 && mood > 0 && !hideSelf;
+  m.pl.visible = on; if (on && m.mood !== mood) m.pl.material.map = MOUTH_TEX[mood], m.pl.material.needsUpdate = true;
+  m.mood = mood;
+  if (on && mood === 3 && now > m.noteT){   // whistling: a note floats up every so often
+    m.noteT = now + 0.75;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:NOTE_TEX, transparent:true, depthWrite:false})); sp.material.userData.noRetro = true; sp.userData.noRetro = true;
+    m.pl.updateMatrixWorld(true); m.pl.getWorldPosition(sp.position); scene.add(sp);
+    const U = tune.humanSize || 28; sp.position.addScaledVector(_t33.set(0, 0, 1).transformDirection(m.pl.matrixWorld), 0.1 * U);   // out in front of the lips
+    NOTES.push({sp, t0:now, U, side:Math.random() < 0.5 ? -1 : 1, base:sp.position.clone()});
+  }
+}
+function v33Notes(now){
+  for (let i = NOTES.length - 1; i >= 0; i--){
+    const n = NOTES[i], u = (now - n.t0) / 1.6;
+    if (u >= 1){ scene.remove(n.sp); n.sp.material.dispose(); NOTES.splice(i, 1); continue; }
+    n.sp.position.copy(n.base).add(_t33.set(n.side * 0.06 * u * n.U + Math.sin(u * 9) * 0.01 * n.U, 0.18 * u * n.U, 0));
+    n.sp.material.opacity = Math.min(1, (1 - u) * 1.6);
+    n.sp.scale.setScalar(0.08 * n.U * (0.7 + 0.5 * u) / Math.max(1e-3, rig.scale.x));   // sprites draw in the scaled rig's view space
+  }
+}
+function v33AiMood(now){
+  const A = PG.ai; if (!A || !A.on) return 0;
+  const st = PG_AI_STATES[A.s] || 'idle';
+  if (st === 'notice') return 1; if (st === 'windup' || st === 'swing') return 2;
+  if (st === 'cooldown') return A.swung ? 1 : 2;
+  return 3;
+}
+function v33MyMood(dt, now){   // the player's own Grover: what the others see
+  const m = game.local; if (!m || game.role !== 'human') return 0;
+  let hs = 0;
+  hHands.forEach((h, i) => { if (h && h.pos){ if (V33.hasLast) hs = Math.max(hs, h.pos.distanceTo(V33.lastHand[i]) / Math.max(1e-3, dt)); V33.lastHand[i].copy(h.pos); } });
+  camera.getWorldPosition(_t33); const headMove = V33.hasLast ? _t33.distanceTo(V33.lastHead) / Math.max(1e-3, dt) / (tune.humanSize || 28) : 0; V33.lastHead.copy(_t33); V33.hasLast = true;
+  if (game.kills > V33.lastKills){ V33.mdKind = 1; V33.mdUntil = now + 2.5; } V33.lastKills = game.kills;
+  if (hs > 1.6 && !(V33.mdKind === 1 && now < V33.mdUntil)){ V33.mdKind = 2; V33.mdUntil = now + 1; }
+  if (hs > 0.35 || headMove > 0.25) V33.idleSince = now;
+  if (now < V33.mdUntil) return V33.mdKind;
+  const U = pgU(); for (const t of hitTargets()) if (t.pos.distanceTo(_t33) < 0.6 * U) return 1;   // a fly right by his face
+  if (now - V33.idleSince > 4) return 3;
+  return 0;
+}
+
+/* ---------- trash-can spawn ---------- */
+function v33CanDetail(g, p){   // called while each can is built: ribs, handles, a pile of trash under the tipped lid
+  HK.hex(5.55, 5.5, 0.6, 0x56606a, g, 0, 3.6, 0, 10); HK.hex(5.86, 5.8, 0.6, 0x56606a, g, 0, 9.4, 0, 10); HK.hex(6.05, 6.05, 0.7, 0x4b545d, g, 0, 13.4, 0, 10);
+  for (const s of [-1, 1]){ const h = HK.box(1.6, 0.5, 0.5, 0x3f474f, g, 0, 11.4, s * 6.1); h.rotation.x = 0; HK.box(0.4, 1.4, 0.4, 0x3f474f, g, -0.6, 10.4, s * 5.95); HK.box(0.4, 1.4, 0.4, 0x3f474f, g, 0.6, 10.4, s * 5.95); }
+  const pile = HK.ball(4.3, 0x2b2f2c, g, 0, 14, 0, 9, 5); pile.scale.set(1, 0.32, 1);           // a black trash bag, full
+  const knot = HK.ball(0.8, 0x2b2f2c, g, -1.2, 15.2, 1.4, 6, 4); knot.scale.set(1, 1.3, 1);
+  const paper = HK.ball(0.95, 0xf1efe6, g, 2.0, 14.9, 2.4, 6, 4); paper.rotation.set(0.6, 0.3, 0.2);
+  HK.ball(0.7, 0xe8e2d0, g, 1.2, 15.1, -2.0, 6, 4);
+  const can = HK.hex(0.55, 0.55, 2.2, 0xc8322e, g, 0.6, 14.6, 0.6, 8); can.rotation.set(Math.PI / 2, 0, 0.7);
+  const peel = HK.box(0.5, 0.25, 2.2, 0xf0cf3a, g, -0.4, 15.0, 2.6); peel.rotation.set(0.2, 0.5, 0.35); const peel2 = HK.box(0.5, 0.25, 1.8, 0xe2bd2c, g, 0.0, 14.95, 3.2); peel2.rotation.set(-0.2, -0.6, -0.3);
+  const box = HK.box(3.2, 0.25, 3.0, 0xc79a58, g, -0.6, 15.1, -1.3); box.rotation.set(0.35, 0.4, 0.15);
+  const core = HK.hex(0.35, 0.55, 1.1, 0xe9d9a5, g, -2.2, 14.6, -0.8, 6); HK.ball(0.45, 0xb3332c, g, -2.2, 15.75, -0.8, 6, 4); core.rotation.z = 0.3;
+  return PR.ell(new THREE.Matrix4().makeTranslation(p.x, 14, p.z), 4.3, 1.38, 4.3);   // the pile is something a fly can stand on
+}
+function v33SpawnPoint(i, out){   // on the trash, on the open side under the tipped lid
+  const g = CANS33[i]; if (!g) return null; g.updateMatrixWorld(true);
+  out.set(3.0, 15.6, 0); g.localToWorld(out);
+  return out;
+}
+
+/* ---------- fly trails (what Grover sees) ---------- */
+const TRAILS = new Map(), TR_MAX = 64;
+const TRAIL_MAT = new THREE.ShaderMaterial({uniforms:{c:{value:new THREE.Color(0xf4f7ff)}}, transparent:true, depthWrite:false, side:THREE.DoubleSide,
+  vertexShader:'attribute float a; varying float va; void main(){ va = a; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader:'uniform vec3 c; varying float va; void main(){ gl_FragColor = vec4(c, va); }'});
+TRAIL_MAT.userData.noRetro = true;
+function v33TrailMesh(){
+  const geo = new THREE.BufferGeometry(), idx = [];
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TR_MAX * 2 * 3), 3));
+  geo.setAttribute('a', new THREE.BufferAttribute(new Float32Array(TR_MAX * 2), 1));
+  for (let i = 0; i < TR_MAX - 1; i++){ const a = 2 * i; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  geo.setIndex(idx);
+  const m = new THREE.Mesh(geo, TRAIL_MAT); m.frustumCulled = false; m.renderOrder = 4; m.userData.noRetro = true; scene.add(m); return m;
+}
+const _tc33 = new V3(), _ts33 = new V3(), _tv33 = new V3();
+function v33Trails(now){
+  const want = tune.flyTrails >= 1.5 || (tune.flyTrails >= 0.5 && game.role === 'human');
+  const seen = new Set();
+  if (want && state !== 'menu'){
+    const pts = [];
+    for (const r of net.remotes.values()) if (r.kind === 'fly' && r.on && !r.dead && !r.out && r.g && r.g.visible) pts.push(['p' + r.j, r.g.position]);
+    for (const b of game.bots) if (b.view && b.view.visible && b.state !== 'dead' && b.state !== 'wait') pts.push(['b' + b.id, b.view.position]);
+    camera.getWorldPosition(_tc33);
+    const maxLen = tune.trailFt * ftU(), w0 = 0.07 * ftU();
+    for (const [id, p] of pts){
+      seen.add(id);
+      let T = TRAILS.get(id); if (!T){ T = {pts:[], mesh:v33TrailMesh()}; TRAILS.set(id, T); }
+      const last = T.pts[T.pts.length - 1];
+      if (!last || now - last[1] > 0.025) T.pts.push([p.clone(), now]); else last[0].copy(p);   // the newest point follows the fly
+      while (T.pts.length > TR_MAX || (T.pts.length && now - T.pts[0][1] > 1.5)) T.pts.shift();
+      // keep only the newest stretch up to the trail length
+      let len = 0, k = T.pts.length - 1; for (; k > 0; k--){ len += T.pts[k][0].distanceTo(T.pts[k - 1][0]); if (len > maxLen) break; }
+      if (k > 0) T.pts.splice(0, k);
+      const n = T.pts.length, pos = T.mesh.geometry.attributes.position.array, al = T.mesh.geometry.attributes.a.array;
+      for (let i = 0; i < n; i++){
+        const P = T.pts[i][0], u = n > 1 ? 1 - i / (n - 1) : 1;   // u = 0 at the fly, 1 at the tail end
+        const Pn = T.pts[Math.min(n - 1, i + 1)][0], Pp = T.pts[Math.max(0, i - 1)][0];
+        _tv33.subVectors(Pn, Pp); _ts33.subVectors(_tc33, P).cross(_tv33); if (_ts33.lengthSq() < 1e-12) _ts33.set(0, 1, 0); _ts33.normalize().multiplyScalar(w0 * (1 - 0.8 * u));
+        pos.set([P.x + _ts33.x, P.y + _ts33.y, P.z + _ts33.z, P.x - _ts33.x, P.y - _ts33.y, P.z - _ts33.z], 6 * i);
+        const a = 0.7 * Math.pow(1 - u, 1.1); al[2 * i] = a; al[2 * i + 1] = a;
+      }
+      T.mesh.geometry.attributes.position.needsUpdate = true; T.mesh.geometry.attributes.a.needsUpdate = true;
+      T.mesh.geometry.setDrawRange(0, Math.max(0, (n - 1) * 6)); T.mesh.visible = n > 1;
+    }
+  }
+  for (const [id, T] of TRAILS) if (!seen.has(id)){ scene.remove(T.mesh); T.mesh.geometry.dispose(); TRAILS.delete(id); }
+}
+
+/* ---------- once per frame ---------- */
+function v33Tick(dt, t){
+  V33.md = v33MyMood(dt, t);
+  if (game.local) v33SetMood(game.local, V33.md, t, true);   // your own face is not drawn in first person
+  for (const r of net.remotes.values()) if (r.kind === 'human' && r.model) v33SetMood(r.model, r.on ? (r.md | 0) : 0, t, false);
+  if (PG.aiM) v33SetMood(PG.aiM, V33.force != null ? V33.force : v33AiMood(t), t, false);   // V33.force: test hook
+  v33Notes(t); v33Trails(t);
+}
+window.__likeflies33 = {V33, N33, D33, CANS:CANS33, TRAILS, NOTES, MOODS, v33Travel, v33Frame, v33Hop, v33HudPose, hudQ33, v33Mouth, v33SetMood, v33AiMood, v33SpawnPoint,
+  HANDS:() => HANDS, hop:() => { unstick(clock.elapsedTime); v33Hop(); },
+  feedTravel:(i, steps, dx, dy, dz, dtStep) => { const H = N33.hist[i], now = clock.elapsedTime; for (let k = 0; k < steps; k++) H.push([now - (steps - k) * dtStep, dx, dy, dz]); return now; }};
 
 window.__likeflies = {house:HOUSE30, ly:{LY, apply:lyApply, refresh:lyRefresh, parse:lyParse, json:lyToJSON, ids:LY_IDS, pts:LY_PTS, arr:LY_ARR}, pg:{PG, PG_RULES, v24WingRoot, TOYS, V24T, V24O, v24OccLeave, v24ToyDist, V24, V24S, PREC, PGH, v24Protects, v24Reachable, v24RecoverHome, v24DuckDist, v24PrecToggle, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
@@ -12283,7 +12548,7 @@ addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }cat
    ===================================================================== */
 (() => {
 if (!SPECTATE) return;
-const REC_BUILD = 'v0.0.32', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
+const REC_BUILD = 'v0.0.33', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
 try{ renderer.setAnimationLoop(null); }catch(e){}          // the recorder draws nothing in 3D: save the PC's GPU
 document.title = 'Like Flies recorder';
 const css = document.createElement('style');
@@ -12579,7 +12844,7 @@ const U = LY_M, S = {sel:-1, drag:null, orbit:null, pan:null, yaw:0.6, pitch:0.9
 const cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
 LY.cam = cam;
 const panel = document.createElement('div'); panel.id = 'lyPanel';
-panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.32 · layout: <span id="lySrc"></span></div>
+panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.33 · layout: <span id="lySrc"></span></div>
 <div id="lyList"></div>
 <div id="lySel"><div class="nm">Click a prop in the yard or in the list.</div></div>
 <div id="lyFoot">
