@@ -107,7 +107,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.33 · No phantom dashes, trigger hop, low panel, Grover moods, trash spawn, fly trails</div>
+      <div class="eyebrow">Test v0.0.34 · v0.0.19 flight is back · Presets · Blanket · Rings from 1 · Alt trails</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -115,7 +115,8 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
-    <p class="note"><b>New in v0.0.33:</b> turning your head no longer dashes you (a dash needs real hand travel), the trigger takeoff hops you up a foot and a half, the flight data panel sits low and centered, Grover whistles, grins and gnashes, flies start on the trash in the cans, and as Grover you see a wispy trail behind every fly. Settings are on the <b>v33</b> tab.</p>
+    <p class="note"><b>New in v0.0.34:</b> the flight is v0.0.19's again (the newer dash and glide zone are switched off), presets you name on a virtual keyboard and share live with the room (Presets tab), a blanket comfort field for fast flying (Blanket tab, every part has its own switch), rings always start at 1, right stick click drops a test marker, flies spawn facing the yard, and Grover sees the alt build's thin white fly trails.</p>
+    <p class="note"><b>From v0.0.33:</b> turning your head no longer dashes you (a dash needs real hand travel), the trigger takeoff hops you up a foot and a half, the flight data panel sits low and centered, Grover whistles, grins and gnashes, flies start on the trash in the cans, and as Grover you see a wispy trail behind every fly. Settings are on the <b>v33</b> tab.</p>
     <p class="note"><b>From v0.0.32:</b> turning goes the way you lean, dashes grow with your swing, glide with your hands on a hang-glider bar, a move meter on the flight data panel, a 20-foot measuring stick by the pool, and Grover can grab a race ring with the grip and let go anywhere (desktop Grover: K). Settings for all of it are on the <b>New</b> tab.</p>
     <p class="note"><a href="?edit" id="lyEditLink">Yard editor</a> (PC, mouse and keyboard): move, turn, resize or hide props and save a layout.</p>
     <p class="note">Session recorder (PC): open the room link with <b>&amp;spectate</b> on the end and leave the tab open. It saves the session to Downloads when everyone leaves.</p>
@@ -3998,13 +3999,13 @@ const TUNE = [
   {g:'VHS',   k:'vhWobble',   label:'Line wobble',        min:0,   max:1,   step:0.05, def:0.3,  hint:'Screen only: tiny sideways jitter of each line.'},
   {g:'VHS',   k:'vhTrack',    label:'Tracking band',      min:0,   max:1,   step:0.05, def:0.35, hint:'Screen only: a faint band of tracking noise drifting down the picture.'},
   // v0.0.32: everything new from the v0.0.31 playtest lives on one tab, so each piece can be switched back off
-  {g:'New', k:'dash32',     label:'New dash (0 = v0.0.31 dash)', min:0, max:1, step:1, def:1, hint:'1: a sideways or forward/back dash goes a set distance that grows with your swing speed, at a capped speed. 0: the old dash.'},
+  {g:'New', k:'dash32',     label:'New dash (0 = v0.0.19 dash)', min:0, max:1, step:1, def:0, hint:'1: a sideways or forward/back dash goes a set distance that grows with your swing speed, at a capped speed. 0: the old dash.'},
   {g:'New', k:'dashFt',     label:'Dash distance at a 2 m/s swing', min:0.5, max:15, step:0.25, def:4, unit:' ft', hint:'Feet at Grover\'s scale. Watch the move meter while you test.'},
   {g:'New', k:'dashGrow',   label:'Dash grows with swing',   min:0, max:2, step:0.05, def:1, hint:'1: twice the swing speed goes twice as far. 0: every dash is the same distance. 2: hard swings go much farther.'},
   {g:'New', k:'dashMin',    label:'Smallest swing that dashes', min:0.4, max:4, step:0.1, def:1, unit:' m/s', hint:'Average hand speed over the whole stroke. Slower moves give only the old small nudge.'},
   {g:'New', k:'dashHold',   label:'Setup move filter',       min:0, max:0.3, step:0.01, def:0.15, unit:' s', hint:'A dash waits this long; if a stronger swing the other way follows, the first move counts as a setup and is ignored. 0 is off (no delay).'},
   {g:'New', k:'dashSide',   label:'Straight side dashes',    min:0, max:100, step:5, def:70, unit:'%', hint:'How much of the forward or back drift a mostly sideways dash loses. 0 keeps it all (v0.0.31).'},
-  {g:'New', k:'glideZone',  label:'Glide pose zone',         min:0, max:1, step:1, def:1, hint:'1: glide anywhere from a hang-glider bar in front of you out to a full T. 0: T-pose only (v0.0.31).'},
+  {g:'New', k:'glideZone',  label:'Glide pose zone',         min:0, max:1, step:1, def:0, hint:'1: glide anywhere from a hang-glider bar in front of you out to a full T. 0: T-pose only (v0.0.31).'},
   {g:'New', k:'glideReach', label:'Glide arm reach',         min:30, max:90, step:5, def:55, unit:'%', hint:'How far out each hand must be (share of half your arm span) for the wide glide zone. Lower is easier to hold.'},
   {g:'New', k:'meter',      label:'Move meter',              min:0, max:1, step:1, def:1, hint:'Flight data panel line: last move in feet at Grover\'s scale and the swing speed that made it.'},
   {g:'New', k:'ruler',      label:'Measuring stick',         min:0, max:1, step:1, def:1, hint:'A 20-foot stick on the lawn between the kiddie pool and the flamingos.'},
@@ -4018,19 +4019,34 @@ const TUNE = [
   {g:'v33', k:'hudDown',    label:'Flight panel drop',       min:8, max:45, step:1, def:24, unit:' deg', hint:'How far below straight ahead the panel sits. Higher keeps it farther out of the way.'},
   {g:'v33', k:'groverMoods',label:'Grover mood faces',       min:0, max:1, step:1, def:1, hint:'Grover whistles when idle, grins when a fly is near or he got one, and gnashes when he swings. Players see each other.'},
   {g:'v33', k:'flyTrails',  label:'Fly trails',              min:0, max:2, step:1, def:1, hint:'1: when you are Grover, every fly drags a wispy trail. 2: everyone sees them. 0: off.'},
-  {g:'v33', k:'trailFt',    label:'Fly trail length',        min:0.25, max:3, step:0.25, def:1, unit:' ft', hint:'Feet at Grover\'s scale.'},
+  {g:'v33', k:'trailTime',  label:'Fly trail time',          min:0.1, max:1.5, step:0.05, def:0.5, unit:' s', hint:'v0.0.34: how much of a fly\'s path the trail shows. Length follows speed, as in the alt build (it used 0.21 s; our flies are slower, so 0.5 s gives about the same foot-plus trail).'},
+  {g:'v33', k:'ringOrder',  label:'Rings start at 1',        min:0, max:1, step:1, def:1, hint:'v0.0.34: 1: every lap starts at ring 1 and runs in order. 0: the nearest ring is your start (v0.0.16 to v0.0.33).'},
+  {g:'Blanket', k:'blanket',   label:'Blanket comfort field',  min:0, max:1, step:1, def:0, hint:'A field of dust around you that gives your eyes a steady frame when you fly fast (Starwave\'s blanket). The four parts below each have their own switch.'},
+  {g:'Blanket', k:'blDust',    label:'1. Dust that follows you', min:0, max:1, step:1, def:1, hint:'Soft specks all around you.'},
+  {g:'Blanket', k:'blStreak',  label:'2. Streaks with speed',  min:0, max:1, step:1, def:1, hint:'Each speck stretches into a streak as you speed up.'},
+  {g:'Blanket', k:'blRope',    label:'3. Rope (follows you)',  min:0, max:1, step:1, def:0, hint:'Off: the dust stays put and you fly through it. On: the dust is roped to you and trails behind, set by Follow and Rope lag.'},
+  {g:'Blanket', k:'blFade',    label:'4. Only when zooming',   min:0, max:1, step:1, def:1, hint:'Fades the field out at gentle glide speed and in when you dash, swim hard or race.'},
+  {g:'Blanket', k:'blFollow',  label:'Follow (rope)',          min:0, max:100, step:5, def:50, unit:'%', hint:'With the rope on: 0 = fixed in the world, 100 = locked to you.'},
+  {g:'Blanket', k:'blLag',     label:'Rope lag',               min:0.05, max:3, step:0.05, def:0.6, unit:' s', hint:'How long the roped field takes to catch up when you change speed.'},
+  {g:'Blanket', k:'blFadeFrom',label:'Fade in from',           min:0, max:6, step:0.25, def:1.5, unit:' ft/s', hint:'Below this speed the field is hidden (glide cruise is about 0.9 ft/s).'},
+  {g:'Blanket', k:'blFadeTo',  label:'Full at',                min:0.5, max:12, step:0.25, def:4, unit:' ft/s', hint:'At this speed the field is fully visible (full flutter is about 3 ft/s, a dash peaks near 9).'},
+  {g:'Blanket', k:'blStreakK', label:'Streak length',          min:0, max:1, step:0.05, def:0.25, unit:' s', hint:'Streak length = how far the dust slides past you in this much time.'},
+  {g:'Blanket', k:'blCount',   label:'Specks',                 min:20, max:600, step:10, def:250},
+  {g:'Blanket', k:'blRadius',  label:'Field size',             min:0.5, max:6, step:0.25, def:2, unit:' ft', hint:'Half the width of the box of dust around you, in feet at Grover\'s scale.'},
+  {g:'Blanket', k:'blSize',    label:'Speck size',             min:0.5, max:8, step:0.5, def:2},
+  {g:'Blanket', k:'blOpacity', label:'Brightness',             min:0.05, max:1, step:0.05, def:0.6},
   {g:'v33', k:'trashSpawn', label:'Spawn on the trash',      min:0, max:1, step:1, def:1, hint:'1: flies start on the trash under a can\'s tipped lid and fly out. 0: beside the can (v0.0.32).'},
 ];
 /* v0.0.18: defaults read from the menus in the v17 playtest video (V18-DEFAULTS-FROM-VIDEO.json). Every other setting keeps its v0.0.17 default. */
 const V18_DEFAULTS = {"hoverLift":205,"push":400,"dashDist":30.5,"dashSnap":8,"curve":4,"carry":100,"drift":1,"glideSpeed":12,"steer":6.1,"lean":3,"airDrag":0.25,"brake":0.2,"gravity":2,"maxSpeed":120,"turn":3.5,"palm":0.2,"armSens":65,"flutSens":65,"rhythm":0.85,"freqInf":2,"intInf":2,"boostAccel":20,"boostCap":30,"coastHold":0.7,"boostDecay":1,"dashSep":3,"rtOn":1,"rtColors":62,"rtDither":1,"rtPixel":2,"rtSat":1,"rtCon":1.06,"rtBri":0.07,"rtWarm":1,"rtFade":0.07,"rtScan":0.3,"rtScanSize":3,"rtGrain":0.04,"rtSnap":0,"rtFog":2,"rtVRRes":1,"rtScreenPix":8,"vhVig":1,"vhTint":0.15,"vhOSD":0,"vhEvents":1,"vhEventLen":0.5,"vhRoll":0,"vhCRT":1,"vhCurve":1,"vhChroma":2.5,"vhBleed":0.3,"vhWobble":0.3,"vhTrack":0.3};
 for (const t of TUNE) if (Object.prototype.hasOwnProperty.call(V18_DEFAULTS, t.k)) t.def = V18_DEFAULTS[t.k];
 /* v0.0.32: the look and speeds Job picked in the v0.0.31 playtest become the defaults */
-const V32_DEFAULTS = {rtScan:0.1, rtBri:0.12, rtCon:1.16, vhVig:0.4, vhTint:0, glideSpeed:16, walkSpeed:2.5};
+const V32_DEFAULTS = {rtScan:0.1, rtBri:0.12, rtCon:1.16, vhVig:0.4, vhTint:0, walkSpeed:2.5};   // v0.0.34: glide cruise back to v0.0.19's 12
 for (const t of TUNE) if (Object.prototype.hasOwnProperty.call(V32_DEFAULTS, t.k)) t.def = V32_DEFAULTS[t.k];
 const groupOf = t => t.g || 'Flight';
-const PAGES = ['Activities', 'Yard', 'Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS', 'New', 'v33'];
-const TAB_LABEL = {'Powered glide':'Glide'};   // 'Race' shows the room board
-const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort', 'Retro':'Retro look (only you)', 'VHS':'VHS and CRT (only you)', 'New':'New in v0.0.32 (dash, glide, meter, rings)', 'v33':'New in v0.0.33 (dash fix, hop, panel, Grover, trash, trails)'};
+const PAGES = ['Presets', 'Activities', 'Yard', 'Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS', 'Blanket', 'New', 'v33'];
+const TAB_LABEL = {'Powered glide':'Glide', 'v33':'v33+34'};   // 'Race' shows the room board
+const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort', 'Retro':'Retro look (only you)', 'VHS':'VHS and CRT (only you)', 'New':'New in v0.0.32 (dash, glide, meter, rings)', 'v33':'New in v0.0.33 and v0.0.34 (hop, panel, Grover, trash, trails, rings from 1)', 'Blanket':'Blanket comfort field (v0.0.34)'};
 const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
 const TUNE_KEY = 'likeflies.tune.v0.0.06';
@@ -4047,10 +4063,13 @@ let v32Migrated = false;
 if (store.get('likeflies.migrated', 0) < 32){ for (const k of Object.keys(V32_DEFAULTS)) tune[k] = DEFAULTS[k]; store.set('likeflies.migrated', 32); saveTune(); v32Migrated = true; }
 /* v0.0.33 one-time update: the dash now reads average swing speed, so its threshold and setup filter get new values once */
 if (store.get('likeflies.migrated', 0) < 33){ for (const k of ['dashMin', 'dashHold']) tune[k] = DEFAULTS[k]; store.set('likeflies.migrated', 33); saveTune(); }
+/* v0.0.34 one-time update: every flight setting back to v0.0.19c's values (the retro look and body size are left alone) */
+const V34_FLIGHT_KEYS = V18_PRESET.filter(k => { const t = TUNE.find(t => t.k === k); return t && t.g !== 'Retro' && t.g !== 'VHS'; }).concat(['glideSpeed', 'dash32', 'glideZone']);
+if (store.get('likeflies.migrated', 0) < 34){ for (const k of V34_FLIGHT_KEYS) tune[k] = DEFAULTS[k]; store.set('likeflies.migrated', 34); saveTune(); }
 /* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
    so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
    flight data panel), the room and player number, and headset tracking are never sent. */
-const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS' || /^(humanTags|wingRootK|precInput|precMax|precGain|precDead|meter|ruler|crawlTick|ringNum|ringBob)$/.test(t.k)).map(t => t.k));   // v0.0.24: tag view, wing root and precision hover are yours alone   // v0.0.17: the retro look is yours alone
+const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS' || /^(humanTags|wingRootK|precInput|precMax|precGain|precDead|meter|ruler|crawlTick|ringNum|ringBob|hudPos|hudDown|groverMoods|flyTrails|trailTime|trashSpawn|ringOrder|blanket|bl[A-Z]\w*)$/.test(t.k)).map(t => t.k));   // v0.0.24: tag view, wing root and precision hover are yours alone   // v0.0.17: the retro look is yours alone
 const SHARED_TUNE = TUNE.filter(t => !PERSONAL_KEYS.has(t.k));
 const shareState = {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'};
 /* a snapshot is accepted only when every shared slider is there as a finite number; values are clamped to the slider range, unknown keys dropped */
@@ -5121,8 +5140,9 @@ const SPAWNS = [new V3(80, 0, 86), new V3(-82, 0, 88), new V3(84, 0, -40), new V
 const CANS33 = [];   // v0.0.33: the can groups, for spawning on the trash
 SPAWNS.forEach(p => {
   const g = HK.group(scene, p.x, 0, p.z); CANS33.push(g); const pile33 = v33CanDetail(g, p);
+  const th34 = Math.atan2(-(COOK.z - p.z), COOK.x - p.x); g.rotation.y = th34; const q34 = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), th34);   // v0.0.34: the open side of the lid faces the cookout
   HK.hex(6, 5, 14, 0x6f7b86, g, 0, 0, 0, 10); const lid = HK.hex(6.4, 6.4, 0.8, 0x56606a, g, -2, 14.4, 0, 10); lid.rotation.z = 0.4;
-  solidShape([PR.cone(p.x, 7, p.z, 4.88, 5.86, 7), PR.lathe(new THREE.Matrix4().compose(new V3(p.x - 2, 14.4, p.z), new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), 0.4), new V3(1, 1, 1)), 0, 0.4, 5.85, 0.4, 0.4), pile33], {label:'a trash can', ref:[p.x, p.z]});   // v0.0.15: tapered can and its tipped lid
+  solidShape([PR.cone(p.x, 7, p.z, 4.88, 5.86, 7), PR.lathe(new THREE.Matrix4().compose(new V3(-2, 0, 0).applyQuaternion(q34).add(new V3(p.x, 14.4, p.z)), q34.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new V3(0, 0, 1), 0.4)), new V3(1, 1, 1)), 0, 0.4, 5.85, 0.4, 0.4), pile33], {label:'a trash can', ref:[p.x, p.z]});   // v0.0.15: tapered can and its tipped lid
 });
 
 
@@ -5684,7 +5704,7 @@ function lyToJSON(lay){
   for (const id of LY_IDS){ const e = lay[id]; if (!e) continue;
     const r = v => Math.round(v * 1000) / 1000;
     if (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden) groups[id] = {dx:r(e.dx), dz:r(e.dz), turn:r(e.turn), scale:r(e.scale), hidden:!!e.hidden}; }
-  return {format:'like-flies-layout', version:1, build:'v0.0.33', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
+  return {format:'like-flies-layout', version:1, build:'v0.0.34', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
 }
 function lyLoad(){
   const q = new URLSearchParams(location.search).get('layout');
@@ -6126,7 +6146,7 @@ function retroRender(t){
 }
 
 /* ---------- in-headset settings panel ---------- */
-const PW = 800, ROW = 52, ROW0 = 156, TAB_Y = 86;
+const PW = 800, ROW = 52, ROW0 = 214, TAB_Y = 86;   // v0.0.34: two rows of tabs
 const ROWS_MAX = Math.max(...PAGES.map(pg => TUNE.filter(t => groupOf(t) === pg).length));
 const TOG_Y = ROW0 + ROWS_MAX*ROW + 6, BTN_Y = TOG_Y + 70, SHARE_Y = BTN_Y + 84, PH = SHARE_Y + 170;   // v0.0.15: Apply-to-everyone row
 let panelPage = 'Flight';
@@ -6151,19 +6171,20 @@ function rr(c, x, y, w, h, r){ c.beginPath(); if (c.roundRect) c.roundRect(x, y,
 const TAB_RECTS = [];
 function tabRects(c){
   c.font = 'bold 17px system-ui, sans-serif'; const gap = 6, ws = PAGES.map(pg => c.measureText(TAB_LABEL[pg] || pg).width + 12), tot = ws.reduce((a, b) => a + b, 0), k = (PW - 60 - gap * (PAGES.length - 1)) / tot;
-  let x = 30; TAB_RECTS.length = 0; ws.forEach(w => { TAB_RECTS.push({x, w:w * k}); x += w * k + gap; });
+  TAB_RECTS.length = 0; const half = Math.ceil(PAGES.length / 2);   // v0.0.34: two rows so 16 tabs stay readable
+  [ws.slice(0, half), ws.slice(half)].forEach((row, r) => { const tt = row.reduce((a, b) => a + b, 0), kk = (PW - 60 - gap * (row.length - 1)) / tt; let x = 30; row.forEach(w => { TAB_RECTS.push({x, w:w * kk, y:TAB_Y + r * 58}); x += w * kk + gap; }); });
 }
 function drawPanel(){
   const c = pctx;
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.33 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.34 · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
-    const {x, w:tw} = TAB_RECTS[i], on = pg === panelPage;
-    c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, TAB_Y, tw, 52, 12); c.fill();
-    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; { const lab = TAB_LABEL[pg] || pg; let fsz = PAGES.length > 8 ? 17 : 23; c.font = 'bold ' + fsz + 'px system-ui, sans-serif'; while (fsz > 11 && c.measureText(lab).width > tw - 6){ fsz--; c.font = 'bold ' + fsz + 'px system-ui, sans-serif'; } c.fillText(lab, x + tw/2, TAB_Y + 35); }
+    const {x, w:tw, y:ty} = TAB_RECTS[i], on = pg === panelPage;
+    c.fillStyle = on ? '#7fe3d6' : 'rgba(238,245,234,0.08)'; rr(c, x, ty, tw, 52, 12); c.fill();
+    c.textAlign = 'center'; c.fillStyle = on ? '#062420' : '#eef5ea'; { const lab = TAB_LABEL[pg] || pg; let fsz = 21; c.font = 'bold ' + fsz + 'px system-ui, sans-serif'; while (fsz > 11 && c.measureText(lab).width > tw - 6){ fsz--; c.font = 'bold ' + fsz + 'px system-ui, sans-serif'; } c.fillText(lab, x + tw/2, ty + 35); }
   });
   const off = panelPage === 'Game' ? 1 : 0;
   if (off){
@@ -6176,6 +6197,7 @@ function drawPanel(){
   }
   if (panelPage === 'Activities') actDrawPanel(c);   // v0.0.19: four activity cards with big buttons
   if (panelPage === 'Yard') pgDrawPanel(c);           // v0.0.21B: the playground
+  if (panelPage === 'Presets') preDraw(c);            // v0.0.34: presets and the virtual keyboard
   if (panelPage === 'Race'){   // v0.0.16: the room race board in the headset
     const B = boardRows(); c.textAlign = 'left'; c.fillStyle = '#ffd23f'; c.font = 'bold 28px system-ui, sans-serif';
     c.fillText(B.crown ? 'Crown: ' + (ledger.names[B.crown.pid] || 'a fly') + '  ' + fmtCs(B.crown.cs) : (net.room ? 'No room record yet' : 'Join a room to race for the crown'), 30, ROW0 + 30);
@@ -6217,9 +6239,10 @@ function drawPanel(){
 function panelPress(px, py, start){
   if (start){
     activeRow = null;
-    if (py >= TAB_Y && py < TAB_Y + 52){ let k = TAB_RECTS.findIndex(r => px >= r.x - 3 && px < r.x + r.w + 3); if (k < 0) k = px < 30 ? 0 : PAGES.length - 1; panelPage = PAGES[k]; drawPanel(); return; }
+    if (py >= TAB_Y && py < TAB_Y + 110){ const k = TAB_RECTS.findIndex(r => px >= r.x - 3 && px < r.x + r.w + 3 && py >= r.y - 3 && py < r.y + 55); if (k >= 0){ panelPage = PAGES[k]; KB.on = false; drawPanel(); } return; }
     if (panelPage === 'Activities' && py >= ROW0 - 8 && py < TOG_Y){ actPanelPress(px, py); drawPanel(); return; }
     if (panelPage === 'Yard' && py >= ROW0 - 8 && py < TOG_Y){ pgPanelPress(px, py); drawPanel(); return; }
+    if (panelPage === 'Presets' && py < TOG_Y && prePress(px, py)){ drawPanel(); return; }   // v0.0.34
     if (panelPage === 'Race' && v32RacePanelPress(px, py)){ drawPanel(); return; }   // v0.0.32
     const off = panelPage === 'Game' ? 1 : 0;
     if (off && py >= ROW0 && py < ROW0 + ROW){
@@ -6838,7 +6861,7 @@ function raceSampleReset(){ race.prevOk = false; race.sides.length = 0; race.out
 function raceArm(why){
   const keepCue = race.cueUntil > raceNow();
   Object.assign(race, {phase:'armed', done:0, visited:[], trace:[], times:[], t0:0, lastProg:0, runId:'', sigStart:'', compStart:'', room:''});
-  race.start = race.next = nearestRing(raceHead());
+  race.start = race.next = tune.ringOrder >= 0.5 ? 0 : nearestRing(raceHead());   // v0.0.34: every lap starts at ring 1
   if (!keepCue) race.cue = '';
   raceLog({k:'arm', start:race.start, why:why || ''});
 }
@@ -7196,12 +7219,12 @@ function setupConn(conn){
     net.pending.delete(j);
     const old = net.conns.get(j); if (old && old !== conn){ try{ old.close(); }catch(e){} }
     net.conns.set(j, conn);
-    sendState(true); sendTuneSnapshot(conn); sendLedger(conn); actOnConnOpen(conn); pgOnConnOpen(conn); v32SendCourse(conn);   // v0.0.16: late joiners get the room board too   // v0.0.15: late joiners and reconnects get the current shared tuning
+    sendState(true); sendTuneSnapshot(conn); sendLedger(conn); actOnConnOpen(conn); pgOnConnOpen(conn); v32SendCourse(conn); preSendAll(conn);   // v0.0.34: my presets   // v0.0.16: late joiners get the room board too   // v0.0.15: late joiners and reconnects get the current shared tuning
   });
   conn.on('data', d => { if (gen !== net.gen || !d) return; if (d.t === 's') onState(j, d); else if (d.t === 'e') onEvent(d); else if (d.t === 'f') onFood(d);
     else if (d.t === 'tp') onTunePub(j, d); else if (d.t === 'ts') onTuneSet(j, d);   // v0.0.15: shared tuning
     else if (d.t === 'rs') onRaceSubmit(j, d); else if (d.t === 'rl') onLedger(j, d);
-    else if (d.t === 'rk') v32OnRing(j, d); else if (d.t === 'rc') v32OnCourse(j, d);   // v0.0.32: rings moved by a giant, whole courses
+    else if (d.t === 'rk') v32OnRing(j, d); else if (d.t === 'rc') v32OnCourse(j, d); else if (d.t === 'pr') preOnMsg(j, d);   // v0.0.34: presets   // v0.0.32: rings moved by a giant, whole courses
     else if (d.t === 'ps' || d.t === 'pq' || d.t === 'pn') pgOnMessage(j, d);   // v0.0.21B: playground
     else if (d.t === 'ah' || d.t === 'as' || d.t === 'aq' || d.t === 'gq' || d.t === 'gc' || d.t === 'gn' || d.t === 'ap' || d.t === 'aP') actOnMessage(j, d); });   // v0.0.19: activities   // v0.0.16: race finishes and the room board
   const gone = () => { if (net.conns.get(j) === conn){ net.conns.delete(j); dropRemote(j); } if (net.pending.get(j) === conn) net.pending.delete(j); };
@@ -7248,7 +7271,7 @@ function specWrap(conn){
   conn.send = m => { try{ specForward(m); }catch(e){} return send(m); };
 }
 function specHello(){
-  return {t:'hi', b:'v0.0.33', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
+  return {t:'hi', b:'v0.0.34', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
     ua:navigator.userAgent.slice(0, 200), url:location.href.slice(0, 200), scr:[screen.width, screen.height, devicePixelRatio], dt:new Date().toISOString(),
     tune:Object.assign({}, tune), shared:typeof shareState !== 'undefined' ? {rev:shareState.rev, by:shareState.by} : null, ly:LY && LY.src, migrated:store.get('likeflies.migrated', 0)};
 }
@@ -8474,7 +8497,8 @@ function placeAtSpawn(){
   rig.rotation.set(0, yaw, 0); pitch = 0;
   if (tune.trashSpawn >= 0.5){   // v0.0.33: start on the trash under the tipped lid, facing out of the gap
     const P = v33SpawnPoint(i, new V3());
-    if (P){ yaw = -Math.PI / 2 + (Math.random() - 0.5) * 0.5; rig.rotation.set(0, yaw, 0); rig.position.copy(P); rig.updateMatrixWorld(true);
+    if (P){ yaw = CANS33[i].rotation.y - Math.PI / 2 + (Math.random() - 0.5) * 0.5;   // v0.0.34: facing out of the gap, toward the yard
+      rig.rotation.set(0, yaw, 0); rig.position.copy(P); rig.updateMatrixWorld(true);
       const cw = camera.getWorldPosition(new V3()); rig.position.add(P.clone().sub(cw)); rig.updateMatrixWorld(true); }
   }
 }
@@ -11813,7 +11837,7 @@ window.__likeflies_g26 = {FLY26, FLY_ART, G26, g26Bind, g26Contact, g26Pose, g26
      anywhere: it floats right there. Moving a ring cancels running races. Courses can be saved and shared by link.
    - Recorder: player activity decides when the room is "empty", controller input and game events are recorded.
    ===================================================================== */
-const V32 = {ver:'v0.0.33'};
+const V32 = {ver:'v0.0.34'};
 const _p32 = new V3(), _p32b = new V3(), _q32 = new THREE.Quaternion(), _s32 = new V3(), _m32 = new THREE.Matrix4(), _m32b = new THREE.Matrix4(), ONE32 = new V3(1, 1, 1);
 const ftU = () => 0.3048 * (tune.humanSize || 28);   // world units in one foot at Grover's scale
 
@@ -11924,12 +11948,12 @@ function v32Meter(dt, now){
     MM.peak = Math.max(MM.peak, hp);
     MM.live = _p32.distanceTo(MM.start) / ftU();
     if (vw < 0.15 || game.crawl || game.stuck) MM.still += dt; else MM.still = 0;
-    if (MM.still > 0.35){ MM.moving = false; MM.last = {ft:MM.live, swing:(D32.last && D32.last.at >= (MM.t0 || 0) - 0.5) ? D32.last.peak : 0}; v32Ev({k:'move', ft:+MM.live.toFixed(2), swing:+MM.peak.toFixed(2)}); }
+    if (MM.still > 0.35){ MM.moving = false; MM.last = {ft:MM.live, dash:!!(tune.dash32 && D32.last && D32.last.at >= (MM.t0 || 0) - 0.5), swing:(tune.dash32 && D32.last && D32.last.at >= (MM.t0 || 0) - 0.5) ? D32.last.peak : MM.peak}; v32Ev({k:'move', ft:+MM.live.toFixed(2), swing:+MM.peak.toFixed(2)}); }
   }
   MM.lastP.copy(_p32);
 }
 function v32MeterLine(){
-  const sw = s => s > 0.05 ? 'dash at ' + s.toFixed(1) + ' m/s' : 'no dash';
+  const sw = s => s > 0.05 ? (MM.last && MM.last.dash ? 'dash at ' : 'swing ') + s.toFixed(1) + ' m/s' : 'no swing';
   if (MM.moving) return 'Moving ' + MM.live.toFixed(1) + ' ft';
   return MM.last ? 'Last move ' + MM.last.ft.toFixed(1) + ' ft, ' + sw(MM.last.swing) : 'Last move: none yet';
 }
@@ -12388,7 +12412,7 @@ function v33TrailMesh(){
   const m = new THREE.Mesh(geo, TRAIL_MAT); m.frustumCulled = false; m.renderOrder = 4; m.userData.noRetro = true; scene.add(m); return m;
 }
 const _tc33 = new V3(), _ts33 = new V3(), _tv33 = new V3();
-function v33Trails(now){
+function v33Trails_v33(now){
   const want = tune.flyTrails >= 1.5 || (tune.flyTrails >= 0.5 && game.role === 'human');
   const seen = new Set();
   if (want && state !== 'menu'){
@@ -12428,10 +12452,258 @@ function v33Tick(dt, t){
   for (const r of net.remotes.values()) if (r.kind === 'human' && r.model) v33SetMood(r.model, r.on ? (r.md | 0) : 0, t, false);
   if (PG.aiM) v33SetMood(PG.aiM, V33.force != null ? V33.force : v33AiMood(t), t, false);   // V33.force: test hook
   v33Notes(t); v33Trails(t);
+  v34Tick(dt, t);   // v0.0.34
 }
 window.__likeflies33 = {V33, N33, D33, CANS:CANS33, TRAILS, NOTES, MOODS, v33Travel, v33Frame, v33Hop, v33HudPose, hudQ33, v33Mouth, v33SetMood, v33AiMood, v33SpawnPoint,
   HANDS:() => HANDS, hop:() => { unstick(clock.elapsedTime); v33Hop(); },
   feedTravel:(i, steps, dx, dy, dz, dtStep) => { const H = N33.hist[i], now = clock.elapsedTime; for (let k = 0; k < steps; k++) H.push([now - (steps - k) * dtStep, dx, dy, dz]); return now; }};
+
+/* =====================================================================
+   v0.0.34: v0.0.19 FLIGHT IS THE STANDARD AGAIN, PLUS PRESETS, THE BLANKET AND THE ALT TRAILS (Job, Nov 12, 2026)
+   - Flight: the v0.0.32/33 dash controller and glide-pose zone are off by default and the glide cruise is back to 12,
+     so the flight code runs exactly as in v0.0.19c (Job: "way better, way more intuitive. This should be our standard").
+     A one-time update puts every player's flight settings back to these values.
+   - Presets: save the current settings under a name typed on a virtual keyboard in the headset; presets travel live to
+     everyone in the room and are written to the session recorder.
+   - Blanket comfort field (Starwave's idea): a field of dust that follows you, streaks that grow with speed, a rope
+     setting for how tightly it follows, and a fade so it only shows when you zoom. Each part has its own switch.
+   - Rings always start at 1. Right stick click drops a test marker. Flies spawn facing into the yard.
+   - Fly trails: the alt build's 1-pixel white lines, copied from its code (with its two small bugs fixed).
+   ===================================================================== */
+const V34 = {ver:'v0.0.34', markers:0, prevClick:false, trailsOn:false, lastT:0};
+
+/* ---------- presets ---------- */
+const PRE_SKIP = new Set(['humanSize', 'hudPos', 'hudDown', 'meter', 'ruler']);
+const preKeys = () => TUNE.filter(t => t.g !== 'Retro' && t.g !== 'VHS' && !PRE_SKIP.has(t.k)).map(t => t.k).concat(['vignette']);   // flight, comfort, blanket and game settings; not the retro look or body size
+function preSnap(src){ const o = {}; for (const k of preKeys()) if (src[k] !== undefined) o[k] = src[k]; return o; }
+function preBuiltins(){
+  const std = preSnap(DEFAULTS);
+  const gentle = Object.assign({}, std, {maxSpeed:Math.round(DEFAULTS.maxSpeed * 0.6), boostCap:+(DEFAULTS.boostCap * 0.6).toFixed(2), dashDist:+(DEFAULTS.dashDist * 0.6).toFixed(2),
+    push:Math.round(DEFAULTS.push * 0.75), vigMax:90, levelTime:1, motes:60, vignette:true, blanket:1, blFade:1});
+  const race = Object.assign({}, std, {blanket:1, blDust:1, blStreak:1, blRope:1, blFade:1});
+  return [{name:'Standard (v0.0.19 flight)', by:'built in', vals:std, src:'built'}, {name:'Gentle (first-timers)', by:'built in', vals:gentle, src:'built'},
+    {name:'Racing comfort (blanket on)', by:'built in', vals:race, src:'built'}];
+}
+const PRE = {list:(store.get('likeflies.presets34', []) || []).filter(p => p && p.name && p.vals), active:store.get('likeflies.presetActive', '') || '', page:0, msg:''};
+function preSave(){ store.set('likeflies.presets34', PRE.list); }
+function preAll(){ return preBuiltins().concat(PRE.list); }
+function preMine(){ return PRE.list.filter(p => p.src === 'mine'); }
+function preMyName(){ return (net.name || ('Fly ' + mySlot())).slice(0, 24); }
+function preSaveAs(name){
+  name = (name || '').trim().slice(0, 24); if (!name) return false;
+  const vals = preSnap(tune), p = {name, by:preMyName(), vals, src:'mine', t:Date.now()};
+  PRE.list = PRE.list.filter(q => !(q.src === 'mine' && q.name.toLowerCase() === name.toLowerCase())); PRE.list.push(p); preSave();
+  PRE.active = name; store.set('likeflies.presetActive', name); PRE.msg = 'Saved "' + name + '" and sent it to the room';
+  v32Ev({k:'preset-save', name, by:p.by, vals});
+  v32Broadcast({t:'pr', op:'save', name, by:p.by, vals, ts:p.t});
+  return true;
+}
+function preLoad(p){
+  if (!p) return;
+  for (const [k, v] of Object.entries(p.vals)){ if (k === 'vignette') tune.vignette = !!v; else if (typeof v === 'number' && isFinite(v)) tune[k] = v; }
+  PRE.active = p.name; store.set('likeflies.presetActive', p.name); PRE.msg = 'Loaded "' + p.name + '"' + (p.src === 'room' ? ' from ' + p.by : '');
+  saveTune(); syncDom(); popup('Preset: ' + p.name, 2);
+  v32Ev({k:'preset-load', name:p.name, by:p.by, src:p.src});
+}
+function preDelete(p){
+  if (!p || p.src === 'built') return;
+  PRE.list = PRE.list.filter(q => q !== p); preSave(); PRE.msg = 'Removed "' + p.name + '"';
+  v32Ev({k:'preset-delete', name:p.name, by:p.by});
+  if (p.src === 'mine') v32Broadcast({t:'pr', op:'del', name:p.name, by:p.by});
+}
+function preOnMsg(j, d){
+  try{
+    const add = (name, by, vals, ts) => {
+      if (typeof name !== 'string' || !vals || typeof vals !== 'object') return;
+      name = name.slice(0, 24); by = String(by || ('Fly ' + j)).slice(0, 24);
+      const clean = {}; for (const k of preKeys()) if (k in vals && (typeof vals[k] === 'number' || typeof vals[k] === 'boolean')) clean[k] = vals[k];
+      PRE.list = PRE.list.filter(q => !(q.src === 'room' && q.by === by && q.name === name)); PRE.list.push({name, by, vals:clean, src:'room', t:ts || Date.now()});
+    };
+    if (d.op === 'save'){ add(d.name, d.by, d.vals, d.ts); popup(String(d.by || 'Someone').slice(0, 24) + ' shared preset "' + String(d.name).slice(0, 24) + '"', 3); }
+    else if (d.op === 'all' && Array.isArray(d.list)) d.list.slice(0, 40).forEach(p => add(p.name, d.by, p.vals, p.ts));
+    else if (d.op === 'del') PRE.list = PRE.list.filter(q => !(q.src === 'room' && q.by === d.by && q.name === d.name));
+    preSave();
+    if (menuOpen && panelPage === 'Presets') drawPanel();
+  }catch(e){}
+}
+function preSendAll(conn){ const mine = preMine(); if (!mine.length) return; try{ conn.send({t:'pr', op:'all', by:preMyName(), list:mine.map(p => ({name:p.name, vals:p.vals, ts:p.t}))}); }catch(e){} }
+
+/* ---------- virtual keyboard and the Presets page (drawn on the settings panel) ---------- */
+const KB = {on:false, text:'', shift:false};
+const KB_ROWS = ['1234567890', 'qwertyuiop', 'asdfghjkl-', 'zxcvbnm_.!'];
+const KB_Y = ROW0 + 120, KB_H = 78, KB_G = 8, KB_W = (PW - 60 - 9 * KB_G) / 10;
+const PRE_Y = ROW0 + 150, PRE_RH = 60, PRE_N = 10;
+function kbKeys(){
+  const keys = [];
+  KB_ROWS.forEach((row, r) => { for (let i = 0; i < row.length; i++) keys.push({ch:row[i], x:30 + i * (KB_W + KB_G), y:KB_Y + r * (KB_H + KB_G), w:KB_W, h:KB_H}); });
+  const y = KB_Y + 4 * (KB_H + KB_G), w5 = (PW - 60 - 4 * KB_G) / 5;
+  ['Shift', 'Space', 'Back', 'Cancel', 'Save'].forEach((lab, i) => keys.push({ch:lab, x:30 + i * (w5 + KB_G), y, w:w5, h:KB_H}));
+  return keys;
+}
+function kbPress(ch){
+  if (ch === 'Shift') KB.shift = !KB.shift;
+  else if (ch === 'Space'){ if (KB.text.length < 24) KB.text += ' '; }
+  else if (ch === 'Back') KB.text = KB.text.slice(0, -1);
+  else if (ch === 'Cancel'){ KB.on = false; PRE.msg = 'Not saved'; }
+  else if (ch === 'Save'){ if (preSaveAs(KB.text)) KB.on = false; else PRE.msg = 'Type a name first'; }
+  else if (KB.text.length < 24){ KB.text += KB.shift ? ch.toUpperCase() : ch; KB.shift = false; }
+}
+function preDraw(c){
+  c.textAlign = 'left'; c.fillStyle = '#ffd23f'; c.font = 'bold 28px system-ui, sans-serif';
+  c.fillText('Presets', 30, ROW0 + 30);
+  c.fillStyle = '#a7baa6'; c.font = '22px system-ui, sans-serif';
+  c.fillText(('Active: ' + (PRE.active || 'none') + (PRE.msg ? '   ·   ' + PRE.msg : '')).slice(0, 72), 170, ROW0 + 30);
+  if (KB.on){
+    c.fillStyle = 'rgba(238,245,234,0.1)'; rr(c, 30, ROW0 + 48, PW - 60, 60, 12); c.fill();
+    c.fillStyle = '#eef5ea'; c.font = 'bold 34px system-ui, sans-serif'; c.fillText((KB.text || '') + (Math.floor(clock.elapsedTime * 2) % 2 ? '|' : ' '), 46, ROW0 + 90);
+    if (!KB.text){ c.fillStyle = '#7b8f7a'; c.font = '26px system-ui, sans-serif'; c.fillText('Name this preset, like "sage floaty"', 70, ROW0 + 88); }
+    kbKeys().forEach(k => {
+      const special = k.ch.length > 1, hot = (k.ch === 'Save') || (k.ch === 'Shift' && KB.shift);
+      c.fillStyle = hot ? '#7fe3d6' : special ? 'rgba(238,245,234,0.16)' : 'rgba(238,245,234,0.1)'; rr(c, k.x, k.y, k.w, k.h, 10); c.fill();
+      c.textAlign = 'center'; c.fillStyle = hot ? '#062420' : '#eef5ea'; c.font = 'bold ' + (special ? 26 : 32) + 'px system-ui, sans-serif';
+      c.fillText(special ? k.ch : (KB.shift ? k.ch.toUpperCase() : k.ch), k.x + k.w / 2, k.y + k.h / 2 + 11);
+    });
+    c.textAlign = 'left';
+    return;
+  }
+  c.fillStyle = '#ffd23f'; rr(c, 30, ROW0 + 52, PW - 60, 70, 14); c.fill();
+  c.textAlign = 'center'; c.fillStyle = '#062420'; c.font = 'bold 28px system-ui, sans-serif'; c.fillText('Save my current settings as a preset…', PW / 2, ROW0 + 97);
+  const all = preAll(), pages = Math.max(1, Math.ceil(all.length / PRE_N)); PRE.page = Math.min(PRE.page, pages - 1);
+  all.slice(PRE.page * PRE_N, PRE.page * PRE_N + PRE_N).forEach((p, i) => {
+    const y = PRE_Y + i * PRE_RH, on = p.name === PRE.active;
+    c.fillStyle = on ? 'rgba(255,210,63,0.16)' : 'rgba(238,245,234,0.05)'; rr(c, 30, y, PW - 60, PRE_RH - 8, 10); c.fill();
+    c.textAlign = 'left'; c.fillStyle = on ? '#ffd23f' : '#eef5ea'; c.font = '25px system-ui, sans-serif'; c.fillText(p.name.slice(0, 32), 46, y + 24);
+    c.fillStyle = '#a7baa6'; c.font = '17px system-ui, sans-serif'; c.fillText(p.src === 'built' ? 'built in' : p.src === 'mine' ? 'yours' : 'from ' + p.by, 46, y + 45);
+    c.fillStyle = '#7fe3d6'; rr(c, 500, y + 4, 130, PRE_RH - 16, 10); c.fill(); c.textAlign = 'center'; c.fillStyle = '#062420'; c.font = 'bold 22px system-ui, sans-serif'; c.fillText('Load', 565, y + 33);
+    if (p.src !== 'built'){ c.fillStyle = 'rgba(255,120,110,0.25)'; rr(c, 640, y + 4, 130, PRE_RH - 16, 10); c.fill(); c.fillStyle = '#ffd7d2'; c.fillText('Delete', 705, y + 33); }
+  });
+  if (pages > 1){ c.textAlign = 'center'; c.fillStyle = '#7fe3d6'; c.font = 'bold 24px system-ui, sans-serif'; c.fillText('◀  page ' + (PRE.page + 1) + ' of ' + pages + '  ▶', PW / 2, PRE_Y + PRE_N * PRE_RH + 26); }
+  c.textAlign = 'left';
+}
+function prePress(px, py){
+  if (KB.on){ for (const k of kbKeys()) if (px >= k.x && px < k.x + k.w && py >= k.y && py < k.y + k.h){ kbPress(k.ch); return true; } return true; }
+  if (py >= ROW0 + 52 && py < ROW0 + 122){ KB.on = true; KB.text = ''; KB.shift = false; PRE.msg = ''; return true; }
+  const all = preAll(), pages = Math.max(1, Math.ceil(all.length / PRE_N));
+  if (pages > 1 && py >= PRE_Y + PRE_N * PRE_RH && py < PRE_Y + PRE_N * PRE_RH + 44){ PRE.page = (PRE.page + (px < PW / 2 ? pages - 1 : 1)) % pages; return true; }
+  const i = Math.floor((py - PRE_Y) / PRE_RH);
+  if (py >= PRE_Y && i >= 0 && i < PRE_N){
+    const p = all[PRE.page * PRE_N + i]; if (!p) return true;
+    if (px >= 500 && px < 630) preLoad(p); else if (px >= 640 && px < 770 && p.src !== 'built') preDelete(p);
+    return true;
+  }
+  return py >= ROW0 - 8 && py < TOG_Y;
+}
+addEventListener('keydown', e => {   // on the PC page the real keyboard types into the preset name too
+  if (!KB.on || !menuOpen) return;
+  if (e.key === 'Enter') kbPress('Save'); else if (e.key === 'Escape') kbPress('Cancel'); else if (e.key === 'Backspace') kbPress('Back');
+  else if (e.key.length === 1 && KB.text.length < 24) KB.text += e.key;
+  else return;
+  e.preventDefault(); e.stopPropagation(); drawPanel();
+}, true);
+
+/* ---------- blanket comfort field ---------- */
+const BL_MAX = 600;
+const blPos = new Float32Array(BL_MAX * 3), blLine = new Float32Array(BL_MAX * 6);
+const blPtsGeo = new THREE.BufferGeometry(); blPtsGeo.setAttribute('position', new THREE.BufferAttribute(blPos, 3));
+const blLineGeo = new THREE.BufferGeometry(); blLineGeo.setAttribute('position', new THREE.BufferAttribute(blLine, 3));
+const blPtsMat = new THREE.PointsMaterial({color:0xfff2d6, size:0.05, sizeAttenuation:true, transparent:true, opacity:0.6, depthWrite:false});
+const blLineMat = new THREE.LineBasicMaterial({color:0xfff2d6, transparent:true, opacity:0.6, depthWrite:false});
+blPtsMat.userData.noRetro = true; blLineMat.userData.noRetro = true;
+const blPts = new THREE.Points(blPtsGeo, blPtsMat), blLines = new THREE.LineSegments(blLineGeo, blLineMat);
+[blPts, blLines].forEach(o => { o.frustumCulled = false; o.visible = false; o.userData.noRetro = true; scene.add(o); });
+const BL = {init:false, prevHead:new V3(), hv:new V3(), av:new V3(), fade:0, ok:false};
+const _bh = new V3(), _bd = new V3();
+function blTick(dt, now){
+  const want = tune.blanket >= 0.5 && game.role === 'fly' && state !== 'menu' && (tune.blDust >= 0.5 || tune.blStreak >= 0.5);
+  if (!want){ blPts.visible = blLines.visible = false; BL.ok = false; return; }
+  const n = Math.max(10, Math.min(BL_MAX, Math.round(tune.blCount))), U = ftU(), R = Math.max(0.2, tune.blRadius) * U, H = R;
+  camera.getWorldPosition(_bh);
+  if (!BL.init || !BL.ok){
+    for (let i = 0; i < BL_MAX; i++){ blPos[i * 3] = _bh.x + (Math.random() * 2 - 1) * H; blPos[i * 3 + 1] = _bh.y + (Math.random() * 2 - 1) * H; blPos[i * 3 + 2] = _bh.z + (Math.random() * 2 - 1) * H; }
+    BL.init = true; BL.ok = true; BL.prevHead.copy(_bh); BL.hv.set(0, 0, 0); BL.av.set(0, 0, 0);
+  }
+  const ddt = Math.max(1e-3, dt);
+  _bd.subVectors(_bh, BL.prevHead); BL.prevHead.copy(_bh);
+  if (_bd.length() > 3 * U){ BL.ok = false; return; }   // a respawn or teleport: start the field over next frame
+  BL.hv.lerp(_bd.divideScalar(ddt), 1 - Math.exp(-ddt / 0.08));
+  // rope: the field's own velocity chases yours; Follow sets how much of it the dust carries (0 = fixed in the world, 100 = locked to you)
+  const rope = tune.blRope >= 0.5, follow = rope ? Math.max(0, Math.min(1, tune.blFollow / 100)) : 0;
+  BL.av.lerp(BL.hv, 1 - Math.exp(-ddt / Math.max(0.02, tune.blLag)));
+  const mvx = BL.av.x * follow * ddt, mvy = BL.av.y * follow * ddt, mvz = BL.av.z * follow * ddt;
+  const relx = BL.hv.x - BL.av.x * follow, rely = BL.hv.y - BL.av.y * follow, relz = BL.hv.z - BL.av.z * follow;   // how fast the dust slides past you
+  const relFt = Math.hypot(relx, rely, relz) / U, spdFt = BL.hv.length() / U;
+  const target = tune.blFade >= 0.5 ? Math.max(0, Math.min(1, (spdFt - tune.blFadeFrom) / Math.max(0.05, tune.blFadeTo - tune.blFadeFrom))) : 1;
+  BL.fade += (target - BL.fade) * (1 - Math.exp(-ddt / 0.25));
+  const k = tune.blStreak >= 0.5 ? Math.max(0, tune.blStreakK) : 0, maxL = 1.5 * U;
+  let sx = relx * k, sy = rely * k, sz = relz * k; const sl = Math.hypot(sx, sy, sz); if (sl > maxL){ sx *= maxL / sl; sy *= maxL / sl; sz *= maxL / sl; }
+  for (let i = 0; i < n; i++){
+    const o = i * 3; let x = blPos[o] + mvx, y = blPos[o + 1] + mvy, z = blPos[o + 2] + mvz;
+    if (x < _bh.x - H) x += 2 * H; else if (x > _bh.x + H) x -= 2 * H;
+    if (y < _bh.y - H) y += 2 * H; else if (y > _bh.y + H) y -= 2 * H;
+    if (z < _bh.z - H) z += 2 * H; else if (z > _bh.z + H) z -= 2 * H;
+    blPos[o] = x; blPos[o + 1] = y; blPos[o + 2] = z;
+    const q = i * 6; blLine[q] = x; blLine[q + 1] = y; blLine[q + 2] = z; blLine[q + 3] = x + sx; blLine[q + 4] = y + sy; blLine[q + 5] = z + sz;
+  }
+  const op = Math.max(0, Math.min(1, tune.blOpacity)) * BL.fade;
+  blPtsMat.opacity = op; blPtsMat.size = 0.015 * Math.max(0.5, tune.blSize) * U;
+  blLineMat.opacity = op * 0.8;
+  blPts.visible = tune.blDust >= 0.5 && op > 0.01; blLines.visible = tune.blStreak >= 0.5 && op > 0.01 && relFt > 0.05;
+  blPtsGeo.setDrawRange(0, n); blPtsGeo.attributes.position.needsUpdate = true;
+  blLineGeo.setDrawRange(0, n * 2); blLineGeo.attributes.position.needsUpdate = true;
+  BL.relFt = relFt; BL.spdFt = spdFt; BL.op = op;
+}
+
+/* ---------- fly trails: the alt build's trails (alt-trails.txt), in this game's units ---------- */
+const TR_NF = 40, TR_SEG = 6, TR_PTS = 7;
+const trGeo = new THREE.BufferGeometry(); trGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TR_NF * TR_SEG * 6), 3));
+const trMat = new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:0.55}); trMat.userData.noRetro = true;
+const trails34 = new THREE.LineSegments(trGeo, trMat); trails34.frustumCulled = false; trails34.visible = false; trails34.userData.noRetro = true; scene.add(trails34);
+const TR = {hist:new Map(), acc:0, pushes:0};
+function v33Trails(now){   // replaces v0.0.33's flat ribbon trails
+  const dt = Math.max(0, Math.min(0.05, now - (V34.lastT || now))); V34.lastT = now;
+  const want = state !== 'menu' && (tune.flyTrails >= 1.5 || (tune.flyTrails >= 0.5 && game.role === 'human'));
+  if (want && !V34.trailsOn) TR.hist.clear();   // alt quirk fixed: no stray line left over from the last time someone was Grover
+  V34.trailsOn = want; trails34.visible = want;
+  if (!want) return;
+  const flies = [];
+  for (const r of net.remotes.values()) if (r.kind === 'fly' && r.on && r.g) flies.push(['p' + r.j, r.g.position, r.g.visible && !r.dead && !r.out && !r.at && !r.sk]);
+  for (const b of game.bots) if (b.view) flies.push(['b' + b.id, b.view.position, b.view.visible && !['land', 'web', 'dead', 'wait'].includes(b.state)]);
+  const iv = Math.max(0.01, tune.trailTime / TR_SEG);
+  TR.acc += dt; let push = false;
+  if (TR.acc >= iv){ TR.acc -= iv; if (TR.acc > iv) TR.acc = 0; push = true; TR.pushes++; }   // alt quirk fixed: sampled by time, not rounded to whole frames
+  const a = trGeo.attributes.position.array; let k = 0; const seen = new Set();
+  for (let fi = 0; fi < TR_NF; fi++){
+    const F = flies[fi];
+    let tr = null, show = false;
+    if (F){ seen.add(F[0]); tr = TR.hist.get(F[0]); if (!tr){ tr = []; TR.hist.set(F[0], tr); }
+      if (push){ tr.unshift(F[1].x, F[1].y, F[1].z); tr.length = Math.min(tr.length, TR_PTS * 3); }
+      show = F[2]; }
+    for (let i = 0; i < TR_SEG; i++){ const j = i * 3;
+      if (show && tr.length >= j + 6){ a[k++] = tr[j]; a[k++] = tr[j + 1]; a[k++] = tr[j + 2]; a[k++] = tr[j + 3]; a[k++] = tr[j + 4]; a[k++] = tr[j + 5]; }
+      else { a[k++] = 0; a[k++] = -9; a[k++] = 0; a[k++] = 0; a[k++] = -9; a[k++] = 0; } }
+  }
+  for (const id of TR.hist.keys()) if (!seen.has(id)) TR.hist.delete(id);
+  trGeo.attributes.position.needsUpdate = true;
+}
+
+/* ---------- test marker: right stick click ---------- */
+function v34Marker(src){
+  V34.markers++; popup('Marker ' + V34.markers, 1.5);
+  v32Ev({k:'marker', n:V34.markers, src});
+  try{ bloop('ring'); }catch(e){}
+}
+addEventListener('keydown', e => { if (e.code === 'KeyM' && !e.repeat && !KB.on && state !== 'menu') v34Marker('key'); });
+
+/* ---------- once per frame ---------- */
+function v34Tick(dt, t){
+  const g = HAND.right.src && HAND.right.src.gamepad, click = !!(g && g.buttons[3] && g.buttons[3].pressed);
+  if (click && !V34.prevClick && !menuOpen && renderer.xr.isPresenting) v34Marker('stick');
+  V34.prevClick = click;
+  blTick(dt, t);
+  if (KB.on && menuOpen && panelPage === 'Presets' && Math.floor(t * 2) !== V34.blinkT){ V34.blinkT = Math.floor(t * 2); drawPanel(); }
+}
+window.__likeflies34 = {V34, PRE, KB, BL, TR, preAll, preSaveAs, preLoad, preDelete, preOnMsg, preSnap, preKeys, kbKeys, kbPress, prePress, blTick, trails34, blPts, blLines, v34Marker,
+  press:(x, y) => panelPress(x, y, true), openMenu, closeMenu, page:p => { panelPage = p; drawPanel(); }, panelImage:() => { drawPanel(); return pCanvas.toDataURL(); }};
 
 window.__likeflies = {house:HOUSE30, ly:{LY, apply:lyApply, refresh:lyRefresh, parse:lyParse, json:lyToJSON, ids:LY_IDS, pts:LY_PTS, arr:LY_ARR}, pg:{PG, PG_RULES, v24WingRoot, TOYS, V24T, V24O, v24OccLeave, v24ToyDist, V24, V24S, PREC, PGH, v24Protects, v24Reachable, v24RecoverHome, v24DuckDist, v24PrecToggle, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
@@ -12548,7 +12820,7 @@ addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }cat
    ===================================================================== */
 (() => {
 if (!SPECTATE) return;
-const REC_BUILD = 'v0.0.33', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
+const REC_BUILD = 'v0.0.34', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
 try{ renderer.setAnimationLoop(null); }catch(e){}          // the recorder draws nothing in 3D: save the PC's GPU
 document.title = 'Like Flies recorder';
 const css = document.createElement('style');
@@ -12844,7 +13116,7 @@ const U = LY_M, S = {sel:-1, drag:null, orbit:null, pan:null, yaw:0.6, pitch:0.9
 const cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
 LY.cam = cam;
 const panel = document.createElement('div'); panel.id = 'lyPanel';
-panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.33 · layout: <span id="lySrc"></span></div>
+panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.34 · layout: <span id="lySrc"></span></div>
 <div id="lyList"></div>
 <div id="lySel"><div class="nm">Click a prop in the yard or in the list.</div></div>
 <div id="lyFoot">
