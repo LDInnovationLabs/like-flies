@@ -107,7 +107,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.35 · Grover stands and walks · steadier crawling on Grover · solid party cup</div>
+      <div class="eyebrow">Test v0.0.35b · Grover stands and walks · steadier crawling on Grover · landing surfaces on everything</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -115,7 +115,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
-    <p class="note"><b>New in v0.0.35:</b> Grover stands up straight when you look down and his legs walk when he moves, crawling over his back and shoulders is steady, climbing into his cap takes a deliberate 2.5 s hold-still, the duck is easier to grab, and the red party cup by the lawn chair is solid. Flight is unchanged from v0.0.34.</p>
+    <p class="note"><b>New in v0.0.35b:</b> every solid thing in the yard you can see now has a landing surface fitted to its model (flamingos, tricycle and the rest). <b>v0.0.35:</b> Grover stands up straight when you look down and his legs walk when he moves, crawling over his back and shoulders is steady, climbing into his cap takes a deliberate 2.5 s hold-still, the duck is easier to grab, and the red party cup by the lawn chair is solid. Flight is unchanged from v0.0.34.</p>
     <p class="note"><b>From v0.0.34:</b> the flight is v0.0.19's again (the newer dash and glide zone are switched off), presets you name on a virtual keyboard and share live with the room (Presets tab), a blanket comfort field for fast flying (Blanket tab, every part has its own switch), rings always start at 1, right stick click drops a test marker, flies spawn facing the yard, and Grover sees the alt build's thin white fly trails.</p>
     <p class="note"><b>From v0.0.33:</b> turning your head no longer dashes you (a dash needs real hand travel), the trigger takeoff hops you up a foot and a half, the flight data panel sits low and centered, Grover whistles, grins and gnashes, flies start on the trash in the cans, and as Grover you see a wispy trail behind every fly. Settings are on the <b>v33</b> tab.</p>
     <p class="note"><b>From v0.0.32:</b> turning goes the way you lean, dashes grow with your swing, glide with your hands on a hang-glider bar, a move meter on the flight data panel, a 20-foot measuring stick by the pool, and Grover can grab a race ring with the grip and let go anywhere (desktop Grover: K). Settings for all of it are on the <b>New</b> tab.</p>
@@ -4036,6 +4036,7 @@ const TUNE = [
   {g:'Blanket', k:'blRadius',  label:'Field size',             min:0.5, max:6, step:0.25, def:2, unit:' ft', hint:'Half the width of the box of dust around you, in feet at Grover\'s scale.'},
   {g:'Blanket', k:'blSize',    label:'Speck size',             min:0.5, max:8, step:0.5, def:2},
   {g:'Blanket', k:'blOpacity', label:'Brightness',             min:0.05, max:1, step:0.05, def:0.6},
+  {g:'v33', k:'autoSolid',   label:'Auto landing surfaces',   min:0, max:1, step:1, def:1, hint:'v0.0.35b: at load, anything you can see that had no landing surface gets one fitted to its model. 0: v0.0.35. Takes effect on reload.'},
   {g:'v33', k:'groverStand', label:'Grover stands straight',  min:0, max:1, step:1, def:1, hint:'v0.0.35: looking down no longer bends his knees; he still crouches when you crouch. 0: v0.0.34.'},
   {g:'v33', k:'groverWalk',  label:'Grover walk cycle',       min:0, max:1, step:1, def:1, hint:'v0.0.35: his feet swing and lift when he moves instead of sliding.'},
   {g:'v33', k:'crawlSticky', label:'Steady crawl on Grover',  min:0, max:0.6, step:0.05, def:0.25, unit:' s', hint:'v0.0.35: how long a new body part must be underfoot before the fly switches to it. 0: v0.0.34.'},
@@ -4076,7 +4077,7 @@ if (store.get('likeflies.migrated', 0) < 34){ for (const k of V34_FLIGHT_KEYS) t
 /* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
    so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
    flight data panel), the room and player number, and headset tracking are never sent. */
-const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS' || /^(humanTags|wingRootK|precInput|precMax|precGain|precDead|meter|ruler|crawlTick|ringNum|ringBob|hudPos|hudDown|groverMoods|flyTrails|trailTime|trashSpawn|ringOrder|blanket|bl[A-Z]\w*|groverStand|groverWalk|crawlSticky|crawlHumanSmooth|capDwell|duckReach)$/.test(t.k)).map(t => t.k));   // v0.0.24: tag view, wing root and precision hover are yours alone   // v0.0.17: the retro look is yours alone
+const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS' || /^(humanTags|wingRootK|precInput|precMax|precGain|precDead|meter|ruler|crawlTick|ringNum|ringBob|hudPos|hudDown|groverMoods|flyTrails|trailTime|trashSpawn|ringOrder|blanket|bl[A-Z]\w*|groverStand|groverWalk|crawlSticky|crawlHumanSmooth|capDwell|duckReach|autoSolid)$/.test(t.k)).map(t => t.k));   // v0.0.24: tag view, wing root and precision hover are yours alone   // v0.0.17: the retro look is yours alone
 const SHARED_TUNE = TUNE.filter(t => !PERSONAL_KEYS.has(t.k));
 const shareState = {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'};
 /* a snapshot is accepted only when every shared slider is there as a finite number; values are clamped to the slider range, unknown keys dropped */
@@ -5712,7 +5713,7 @@ function lyToJSON(lay){
   for (const id of LY_IDS){ const e = lay[id]; if (!e) continue;
     const r = v => Math.round(v * 1000) / 1000;
     if (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden) groups[id] = {dx:r(e.dx), dz:r(e.dz), turn:r(e.turn), scale:r(e.scale), hidden:!!e.hidden}; }
-  return {format:'like-flies-layout', version:1, build:'v0.0.35', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
+  return {format:'like-flies-layout', version:1, build:'v0.0.35b', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
 }
 function lyLoad(){
   const q = new URLSearchParams(location.search).get('layout');
@@ -6187,7 +6188,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.35 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.35b · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
     const {x, w:tw, y:ty} = TAB_RECTS[i], on = pg === panelPage;
@@ -7279,7 +7280,7 @@ function specWrap(conn){
   conn.send = m => { try{ specForward(m); }catch(e){} return send(m); };
 }
 function specHello(){
-  return {t:'hi', b:'v0.0.35', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
+  return {t:'hi', b:'v0.0.35b', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
     ua:navigator.userAgent.slice(0, 200), url:location.href.slice(0, 200), scr:[screen.width, screen.height, devicePixelRatio], dt:new Date().toISOString(),
     tune:Object.assign({}, tune), shared:typeof shareState !== 'undefined' ? {rev:shareState.rev, by:shareState.by} : null, ly:LY && LY.src, migrated:store.get('likeflies.migrated', 0)};
 }
@@ -11850,7 +11851,7 @@ window.__likeflies_g26 = {FLY26, FLY_ART, G26, g26Bind, g26Contact, g26Pose, g26
      anywhere: it floats right there. Moving a ring cancels running races. Courses can be saved and shared by link.
    - Recorder: player activity decides when the room is "empty", controller input and game events are recorded.
    ===================================================================== */
-const V32 = {ver:'v0.0.35'};
+const V32 = {ver:'v0.0.35b'};
 const _p32 = new V3(), _p32b = new V3(), _q32 = new THREE.Quaternion(), _s32 = new V3(), _m32 = new THREE.Matrix4(), _m32b = new THREE.Matrix4(), ONE32 = new V3(1, 1, 1);
 const ftU = () => 0.3048 * (tune.humanSize || 28);   // world units in one foot at Grover's scale
 
@@ -12770,6 +12771,119 @@ function v35CapHint(dwell){
 }
 window.__likeflies35 = {V35, v35RootY, v35Walk, v35WalkFoot, setCrawlPrim, solids:() => solids, sdPrim, gather, V24O:() => V24O};
 
+/* ---------- v0.0.35b: landing surfaces for everything you can see ----------
+   After every model has loaded and the layout is applied, scan every still, solid-looking mesh in the yard.
+   Points on a mesh that no collider covers are grouped into pieces, and each piece gets a box or a rounded
+   shape fitted to the model's own vertices (split smaller until it hugs the shape). Rings, Grover, flies, the
+   duck, plates, toys, grass, the lawn and anything that moves are left alone. Toggle: Auto landing surfaces. */
+const V35B = {ver:'v0.0.35b', done:false, solids:[], report:null, T0:0};
+function v35bEig(C){   /* Jacobi eigen-decomposition of a symmetric 3x3; returns columns as axes */
+  const a = [C[0].slice(), C[1].slice(), C[2].slice()], v = [[1,0,0],[0,1,0],[0,0,1]];
+  for (let it = 0; it < 24; it++){
+    let p = 0, q = 1; if (Math.abs(a[0][2]) > Math.abs(a[p][q])){ p = 0; q = 2; } if (Math.abs(a[1][2]) > Math.abs(a[p][q])){ p = 1; q = 2; }
+    if (Math.abs(a[p][q]) < 1e-9) break;
+    const th = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]), c = Math.cos(th), s = Math.sin(th);
+    for (let k = 0; k < 3; k++){ const x = a[k][p], y = a[k][q]; a[k][p] = c*x - s*y; a[k][q] = s*x + c*y; }
+    for (let k = 0; k < 3; k++){ const x = a[p][k], y = a[q][k]; a[p][k] = c*x - s*y; a[q][k] = s*x + c*y; }
+    for (let k = 0; k < 3; k++){ const x = v[k][p], y = v[k][q]; v[k][p] = c*x - s*y; v[k][q] = s*x + c*y; }
+  }
+  return [0,1,2].map(j => new V3(v[0][j], v[1][j], v[2][j]).normalize());
+}
+function v35bFrame(pts){   /* centre, axes and half extents of a point set along its principal axes */
+  const c = new V3(); for (const p of pts) c.add(p); c.divideScalar(pts.length);
+  const C = [[0,0,0],[0,0,0],[0,0,0]];
+  for (const p of pts){ const d = [p.x - c.x, p.y - c.y, p.z - c.z]; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) C[i][j] += d[i]*d[j]; }
+  let ax = v35bEig(C); if (ax[0].clone().cross(ax[1]).dot(ax[2]) < 0) ax[2].negate();
+  const mn = [1e9,1e9,1e9], mx = [-1e9,-1e9,-1e9], t = new V3();
+  for (const p of pts){ t.subVectors(p, c); for (let i = 0; i < 3; i++){ const u = t.dot(ax[i]); if (u < mn[i]) mn[i] = u; if (u > mx[i]) mx[i] = u; } }
+  const ctr = c.clone(); for (let i = 0; i < 3; i++) ctr.addScaledVector(ax[i], (mn[i] + mx[i]) / 2);
+  const h = [0,1,2].map(i => Math.max(0.15, (mx[i] - mn[i]) / 2));
+  const m4 = new THREE.Matrix4().makeBasis(ax[0], ax[1], ax[2]).setPosition(ctr);
+  return {m4, h, ax, ctr};
+}
+function v35bErr(pr, pts){ let e = 0; for (const p of pts) e += Math.abs(sdPrim(pr, p)); return e / pts.length; }
+function v35bFit(pts, depth, out, label){   /* box or ellipsoid, split along the long axis until it hugs the points */
+  if (pts.length < 3) return;
+  const F = v35bFrame(pts), h = F.h, ext = Math.max(h[0], h[1], h[2]);
+  const box = PR.obox(F.m4, h[0], h[1], h[2], 0, {label});
+  const ell = PR.ell(F.m4, h[0] * 1.02, h[1] * 1.02, h[2] * 1.02, {label});
+  const eb = v35bErr(box, pts), ee = v35bErr(ell, pts), best = ee < eb * 0.8 ? ell : box, err = Math.min(eb, ee);
+  if (depth < 5 && pts.length >= 16 && ext > 1.2 && err > Math.max(0.3, 0.05 * ext)){
+    const i = h.indexOf(ext), ax = F.ax[i], us = pts.map(p => p.clone().sub(F.ctr).dot(ax)).sort((a, b) => a - b), mid = us[us.length >> 1];
+    const A = [], B = []; for (const p of pts) (p.clone().sub(F.ctr).dot(ax) < mid ? A : B).push(p);
+    if (A.length >= 3 && B.length >= 3){ v35bFit(A, depth + 1, out, label); v35bFit(B, depth + 1, out, label); return; }
+  }
+  best.auto35b = 1; out.push(best);
+}
+function v35bCovered(v){   /* distance from a point to the nearest existing collider */
+  let d = 1e9; for (const s of solids){ if (s.auto35b || !s.sdf || !s.bc) continue; if (s.bc.distanceTo(v) - s.br > d) continue; for (const q of s.sdf) d = Math.min(d, sdPrim(q, v)); } return d;
+}
+function v35bLabel(o){ let a = o; while (a){ const n = a.name || ''; const m = /^LF_([A-Za-z]+)/.exec(n); if (m) return 'the ' + m[1].replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase(); a = a.parent; } return 'a yard thing'; }
+const V35B_BOX = {x0:-262, x1:252, z0:-128, z1:262, y0:0.6, y1:150};
+function v35bCandidates(){
+  const skip = new Set(); scene.updateMatrixWorld(true);
+  (PG.props || []).forEach(p => p.obj && p.obj.traverse(o => skip.add(o)));
+  (typeof TOYS !== 'undefined' && TOYS.forEach) && TOYS.forEach(t => { const o = t && (t.obj || t.g || t); o && o.traverse && o.traverse(x => skip.add(x)); });
+  for (const top of scene.children){ let ch = false; top.traverse(o => { if (o.isSkinnedMesh) ch = true; }); if (ch) top.traverse(o => skip.add(o)); }   // Grover and any rigged character
+  const list = [];
+  scene.traverse(o => {
+    if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || skip.has(o)) return;
+    let a = o, vis = true; while (a){ if (!a.visible) vis = false; if (/^(g26|G53)/.test(a.name || '')) vis = false; a = a.parent; } if (!vis) return;
+    const g = o.geometry; if (!g || !g.attributes || !g.attributes.position || g.type === 'TorusGeometry') return;
+    const mt = Array.isArray(o.material) ? o.material[0] : o.material; if (mt && mt.transparent && mt.opacity < 0.6) return;
+    if (mt && (mt === ringMatNext || mt === ringGlowN)) return;
+    list.push({o, p0:new V3().setFromMatrixPosition(o.matrixWorld)});
+  });
+  return list;
+}
+function v35bBuild(list){
+  const t0 = performance.now(), cell = 2.5, buckets = new Map(), rep = {meshes:0, moving:0, pts:0, open:0, pieces:0, prims:0, labels:{}};
+  const v = new V3(), a = new V3(), b = new V3(), c = new V3(), B = V35B_BOX;
+  let total = 0; for (const it of list) total += it.o.geometry.attributes.position.count;
+  const step = Math.max(1, Math.ceil(total / 60000));
+  const keep = p => p.x > B.x0 && p.x < B.x1 && p.z > B.z0 && p.z < B.z1 && p.y > B.y0 && p.y < B.y1;
+  for (const it of list){
+    const o = it.o; o.updateMatrixWorld(true);
+    if (new V3().setFromMatrixPosition(o.matrixWorld).distanceTo(it.p0) > 0.01){ rep.moving++; continue; }   // it moved, so it is not scenery
+    rep.meshes++; const P = o.geometry.attributes.position, I = o.geometry.index, M = o.matrixWorld, lab = v35bLabel(o), pts = [];
+    for (let i = 0; i < P.count; i += step){ v.fromBufferAttribute(P, i).applyMatrix4(M); if (keep(v)) pts.push(v.clone()); }
+    const nt = I ? I.count / 3 : P.count / 3;
+    for (let t = 0; t < nt; t += step){ const i0 = I ? I.getX(3*t) : 3*t, i1 = I ? I.getX(3*t+1) : 3*t+1, i2 = I ? I.getX(3*t+2) : 3*t+2;
+      a.fromBufferAttribute(P, i0).applyMatrix4(M); b.fromBufferAttribute(P, i1).applyMatrix4(M); c.fromBufferAttribute(P, i2).applyMatrix4(M);
+      v.copy(a).add(b).add(c).divideScalar(3); if (keep(v)) pts.push(v.clone()); }
+    for (const p of pts){ rep.pts++; if (v35bCovered(p) <= 0.8) continue; rep.open++;
+      const k = Math.floor(p.x / cell) + ',' + Math.floor(p.y / cell) + ',' + Math.floor(p.z / cell);
+      let e = buckets.get(k); if (!e) buckets.set(k, e = {pts:[], lab}); e.pts.push(p); }
+  }
+  const seen = new Set(), out = [];
+  for (const [k0] of buckets){ if (seen.has(k0)) continue;
+    const q = [k0], pts = []; seen.add(k0); let lab = buckets.get(k0).lab;
+    while (q.length){ const k = q.pop(), e = buckets.get(k); for (const p of e.pts) pts.push(p);
+      const [x, y, z] = k.split(',').map(Number);
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++){ const kk = (x+dx) + ',' + (y+dy) + ',' + (z+dz); if (!seen.has(kk) && buckets.has(kk)){ seen.add(kk); q.push(kk); } } }
+    if (pts.length < 3) continue;
+    const prims = []; v35bFit(pts, 0, prims, lab); if (!prims.length) continue;
+    const s = solidShape(prims, {label:lab}); s.auto35b = 1; out.push(s); rep.pieces++; rep.prims += prims.length; rep.labels[lab] = (rep.labels[lab] || 0) + 1;
+  }
+  V35B.solids = out; rep.ms = Math.round(performance.now() - t0); V35B.report = rep; V35B.done = true;
+  if (typeof recEv === 'function') try { recEv('auto-solids', {pieces:rep.pieces, prims:rep.prims, ms:rep.ms}); } catch(e){}
+  return rep;
+}
+function v35bClear(){ for (const s of V35B.solids){ const i = solids.indexOf(s); if (i >= 0) solids.splice(i, 1); } V35B.solids = []; V35B.done = false; }
+(function v35bWait(){
+  if (LY_EDIT) return;
+  let list = null, tries = 0;
+  const tick = () => {
+    tries++;
+    const ready = PROP_ART.jobs.every(j => PROP_ART.status[j.key]) && PG.inited;
+    if (!ready && tries < 240){ setTimeout(tick, 500); return; }
+    if (!list){ list = v35bCandidates(); setTimeout(tick, 1200); return; }   // look again in a moment: anything that moved is skipped
+    if (tune.autoSolid >= 0.5) try { v35bBuild(list); } catch(e){ console.warn('auto landing surfaces failed', e); }
+  };
+  setTimeout(tick, 1500);
+})();
+window.__likeflies35b = {V35B, build:() => { v35bClear(); return v35bBuild(v35bCandidates()); }, clear:v35bClear, covered:v35bCovered, candidates:v35bCandidates};
+
 window.__likeflies = {house:HOUSE30, ly:{LY, apply:lyApply, refresh:lyRefresh, parse:lyParse, json:lyToJSON, ids:LY_IDS, pts:LY_PTS, arr:LY_ARR}, pg:{PG, PG_RULES, v24WingRoot, TOYS, V24T, V24O, v24OccLeave, v24ToyDist, V24, V24S, PREC, PGH, v24Protects, v24Reachable, v24RecoverHome, v24DuckDist, v24PrecToggle, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
@@ -12885,7 +12999,7 @@ addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }cat
    ===================================================================== */
 (() => {
 if (!SPECTATE) return;
-const REC_BUILD = 'v0.0.35', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
+const REC_BUILD = 'v0.0.35b', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
 try{ renderer.setAnimationLoop(null); }catch(e){}          // the recorder draws nothing in 3D: save the PC's GPU
 document.title = 'Like Flies recorder';
 const css = document.createElement('style');
@@ -13181,7 +13295,7 @@ const U = LY_M, S = {sel:-1, drag:null, orbit:null, pan:null, yaw:0.6, pitch:0.9
 const cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
 LY.cam = cam;
 const panel = document.createElement('div'); panel.id = 'lyPanel';
-panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.35 · layout: <span id="lySrc"></span></div>
+panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.35b · layout: <span id="lySrc"></span></div>
 <div id="lyList"></div>
 <div id="lySel"><div class="nm">Click a prop in the yard or in the list.</div></div>
 <div id="lyFoot">
