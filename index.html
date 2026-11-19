@@ -107,7 +107,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
 <div class="menu" id="menu">
   <div class="card">
     <div>
-      <div class="eyebrow">Test v0.0.34 · v0.0.19 flight is back · Presets · Blanket · Rings from 1 · Alt trails</div>
+      <div class="eyebrow">Test v0.0.35 · Grover stands and walks · steadier crawling on Grover · solid party cup</div>
       <h1>Like Flies</h1>
     </div>
     <p class="lede">A backyard playground for tiny flies. Race the ring course through a chicken coop, under a lawn chair, past a rubber duck and over the sunflowers. The giant human walks the yard with two swatters, and practice flies stream around the course.</p>
@@ -115,7 +115,8 @@ summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:16px
       <button class="primary" id="vrBtn" type="button">Enter VR</button>
       <button class="secondary" id="flatBtn" type="button">Play on screen</button>
     </div>
-    <p class="note"><b>New in v0.0.34:</b> the flight is v0.0.19's again (the newer dash and glide zone are switched off), presets you name on a virtual keyboard and share live with the room (Presets tab), a blanket comfort field for fast flying (Blanket tab, every part has its own switch), rings always start at 1, right stick click drops a test marker, flies spawn facing the yard, and Grover sees the alt build's thin white fly trails.</p>
+    <p class="note"><b>New in v0.0.35:</b> Grover stands up straight when you look down and his legs walk when he moves, crawling over his back and shoulders is steady, climbing into his cap takes a deliberate 2.5 s hold-still, the duck is easier to grab, and the red party cup by the lawn chair is solid. Flight is unchanged from v0.0.34.</p>
+    <p class="note"><b>From v0.0.34:</b> the flight is v0.0.19's again (the newer dash and glide zone are switched off), presets you name on a virtual keyboard and share live with the room (Presets tab), a blanket comfort field for fast flying (Blanket tab, every part has its own switch), rings always start at 1, right stick click drops a test marker, flies spawn facing the yard, and Grover sees the alt build's thin white fly trails.</p>
     <p class="note"><b>From v0.0.33:</b> turning your head no longer dashes you (a dash needs real hand travel), the trigger takeoff hops you up a foot and a half, the flight data panel sits low and centered, Grover whistles, grins and gnashes, flies start on the trash in the cans, and as Grover you see a wispy trail behind every fly. Settings are on the <b>v33</b> tab.</p>
     <p class="note"><b>From v0.0.32:</b> turning goes the way you lean, dashes grow with your swing, glide with your hands on a hang-glider bar, a move meter on the flight data panel, a 20-foot measuring stick by the pool, and Grover can grab a race ring with the grip and let go anywhere (desktop Grover: K). Settings for all of it are on the <b>New</b> tab.</p>
     <p class="note"><a href="?edit" id="lyEditLink">Yard editor</a> (PC, mouse and keyboard): move, turn, resize or hide props and save a layout.</p>
@@ -4035,6 +4036,12 @@ const TUNE = [
   {g:'Blanket', k:'blRadius',  label:'Field size',             min:0.5, max:6, step:0.25, def:2, unit:' ft', hint:'Half the width of the box of dust around you, in feet at Grover\'s scale.'},
   {g:'Blanket', k:'blSize',    label:'Speck size',             min:0.5, max:8, step:0.5, def:2},
   {g:'Blanket', k:'blOpacity', label:'Brightness',             min:0.05, max:1, step:0.05, def:0.6},
+  {g:'v33', k:'groverStand', label:'Grover stands straight',  min:0, max:1, step:1, def:1, hint:'v0.0.35: looking down no longer bends his knees; he still crouches when you crouch. 0: v0.0.34.'},
+  {g:'v33', k:'groverWalk',  label:'Grover walk cycle',       min:0, max:1, step:1, def:1, hint:'v0.0.35: his feet swing and lift when he moves instead of sliding.'},
+  {g:'v33', k:'crawlSticky', label:'Steady crawl on Grover',  min:0, max:0.6, step:0.05, def:0.25, unit:' s', hint:'v0.0.35: how long a new body part must be underfoot before the fly switches to it. 0: v0.0.34.'},
+  {g:'v33', k:'crawlHumanSmooth', label:'View easing on Grover', min:0.06, max:0.5, step:0.02, def:0.18, unit:' s', hint:'v0.0.35: how gently the view follows his body while crawling on him (0.06 was v0.0.34).'},
+  {g:'v33', k:'capDwell',    label:'Hold still to enter cap', min:0.8, max:5, step:0.1, def:2.5, unit:' s', hint:'v0.0.35: sit still this long at the back of the cap to climb in (was 0.8 s).'},
+  {g:'v33', k:'duckReach',   label:'Duck grab reach',         min:1, max:4, step:0.25, def:2.5, unit:'x', hint:'v0.0.35: grab the duck from this many times the normal reach, so Grover need not reach into the pool.'},
   {g:'v33', k:'trashSpawn', label:'Spawn on the trash',      min:0, max:1, step:1, def:1, hint:'1: flies start on the trash under a can\'s tipped lid and fly out. 0: beside the can (v0.0.32).'},
 ];
 /* v0.0.18: defaults read from the menus in the v17 playtest video (V18-DEFAULTS-FROM-VIDEO.json). Every other setting keeps its v0.0.17 default. */
@@ -4045,7 +4052,7 @@ const V32_DEFAULTS = {rtScan:0.1, rtBri:0.12, rtCon:1.16, vhVig:0.4, vhTint:0, w
 for (const t of TUNE) if (Object.prototype.hasOwnProperty.call(V32_DEFAULTS, t.k)) t.def = V32_DEFAULTS[t.k];
 const groupOf = t => t.g || 'Flight';
 const PAGES = ['Presets', 'Activities', 'Yard', 'Flight', 'Powered glide', 'Crawl', 'Combat', 'Carry', 'Game', 'Play', 'Race', 'Retro', 'VHS', 'Blanket', 'New', 'v33'];
-const TAB_LABEL = {'Powered glide':'Glide', 'v33':'v33+34'};   // 'Race' shows the room board
+const TAB_LABEL = {'Powered glide':'Glide', 'v33':'v33-35'};   // 'Race' shows the room board
 const GROUP_TITLE = {'Play':'Playground test', 'Crawl':'Fly crawling', 'Combat':'Human combat', 'Carry':'Fly carry', 'Game':'Game and comfort', 'Retro':'Retro look (only you)', 'VHS':'VHS and CRT (only you)', 'New':'New in v0.0.32 (dash, glide, meter, rings)', 'v33':'New in v0.0.33 and v0.0.34 (hop, panel, Grover, trash, trails, rings from 1)', 'Blanket':'Blanket comfort field (v0.0.34)'};
 const DEFAULTS = {vignette:true, sound:true, hud:true};
 TUNE.forEach(t => DEFAULTS[t.k] = t.def);
@@ -4069,7 +4076,7 @@ if (store.get('likeflies.migrated', 0) < 34){ for (const k of V34_FLIGHT_KEYS) t
 /* v0.0.15: "Apply my tuning to everyone" shares EVERY tuning slider with the whole room, knockback and comfort sliders included,
    so everybody plays on the same sliders. Only the on/off preferences outside the slider list (comfort vignette, buzz sound,
    flight data panel), the room and player number, and headset tracking are never sent. */
-const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS' || /^(humanTags|wingRootK|precInput|precMax|precGain|precDead|meter|ruler|crawlTick|ringNum|ringBob|hudPos|hudDown|groverMoods|flyTrails|trailTime|trashSpawn|ringOrder|blanket|bl[A-Z]\w*)$/.test(t.k)).map(t => t.k));   // v0.0.24: tag view, wing root and precision hover are yours alone   // v0.0.17: the retro look is yours alone
+const PERSONAL_KEYS = new Set(TUNE.filter(t => t.g === 'Retro' || t.g === 'VHS' || /^(humanTags|wingRootK|precInput|precMax|precGain|precDead|meter|ruler|crawlTick|ringNum|ringBob|hudPos|hudDown|groverMoods|flyTrails|trailTime|trashSpawn|ringOrder|blanket|bl[A-Z]\w*|groverStand|groverWalk|crawlSticky|crawlHumanSmooth|capDwell|duckReach)$/.test(t.k)).map(t => t.k));   // v0.0.24: tag view, wing root and precision hover are yours alone   // v0.0.17: the retro look is yours alone
 const SHARED_TUNE = TUNE.filter(t => !PERSONAL_KEYS.has(t.k));
 const shareState = {rev:0, hs:0, id:'', by:'', v:null, seen:new Set(), note:'Sliders change only your game until you press "Apply my tuning to everyone".'};
 /* a snapshot is accepted only when every shared slider is there as a finite number; values are clamped to the slider range, unknown keys dropped */
@@ -5114,6 +5121,7 @@ const PROPS = [];
   solidShape([PR.cyl(48, 12.4, 32, 3.9, 0.4), PR.cyl(48, 6, 32, 0.55, 6)], {label:'the cup table'});   // v0.0.15: round top and its pole
   const cup = HK.group(scene, 48, 12.8, 32); HK.hex(2.4, 1.7, 5.6, 0xd8392b, cup, 0, 0, 0, 10); HK.hex(2.45, 2.45, 0.6, 0xf6f3ea, cup, 0, 5.2, 0, 10);
   PROPS.push({id:'cup', name:'Cup Crash', pts:2, c:new V3(48, 15, 32), r:5.5, obj:cup});
+  solidShape([PR.tube(48, 15.6, 32, 2.05, 0.3, 2.8), PR.cyl(48, 13.1, 32, 1.75, 0.3)], {label:'the red party cup'});   // v0.0.35: the cup was see-through to flies (Job flew through it on Nov 12); open top, so you can land on the rim or drop inside
   // wind chime on a shepherd's hook
   const hook = HK.group(scene, -62, 0, 46); HK.hex(0.5, 0.5, 52, 0x2b2b2b, hook, 0, 0, 0, 5); HK.box(8, 0.6, 0.6, 0x2b2b2b, hook, 4, 51, 0);
   const chime = HK.group(scene, -54, 50, 46);
@@ -5704,7 +5712,7 @@ function lyToJSON(lay){
   for (const id of LY_IDS){ const e = lay[id]; if (!e) continue;
     const r = v => Math.round(v * 1000) / 1000;
     if (e.dx || e.dz || e.turn || e.scale !== 1 || e.hidden) groups[id] = {dx:r(e.dx), dz:r(e.dz), turn:r(e.turn), scale:r(e.scale), hidden:!!e.hidden}; }
-  return {format:'like-flies-layout', version:1, build:'v0.0.34', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
+  return {format:'like-flies-layout', version:1, build:'v0.0.35', units:'dx and dz in meters from where the prop stands by default, turn in degrees (clockwise from above), scale 1 = normal', groups};
 }
 function lyLoad(){
   const q = new URLSearchParams(location.search).get('layout');
@@ -6179,7 +6187,7 @@ function drawPanel(){
   c.fillStyle = '#0d1813'; c.fillRect(0, 0, PW, PH);
   c.strokeStyle = 'rgba(127,227,214,0.5)'; c.lineWidth = 4; c.strokeRect(2, 2, PW - 4, PH - 4);
   c.textAlign = 'left'; c.fillStyle = '#7fe3d6'; c.font = 'bold 44px system-ui, sans-serif'; c.fillText('Settings', 30, 62);
-  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.34 · ' + inputMode, PW - 30, 60);
+  c.textAlign = 'right'; c.fillStyle = '#a7baa6'; c.font = '24px system-ui, sans-serif'; c.fillText('v0.0.35 · ' + inputMode, PW - 30, 60);
   tabRects(c);
   PAGES.forEach((pg, i) => {
     const {x, w:tw, y:ty} = TAB_RECTS[i], on = pg === panelPage;
@@ -7271,7 +7279,7 @@ function specWrap(conn){
   conn.send = m => { try{ specForward(m); }catch(e){} return send(m); };
 }
 function specHello(){
-  return {t:'hi', b:'v0.0.34', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
+  return {t:'hi', b:'v0.0.35', slot:net.slot, n:net.name || ('Fly ' + net.slot), ro:game.role, st:state, xr:renderer.xr.isPresenting ? 1 : 0, im:inputMode,
     ua:navigator.userAgent.slice(0, 200), url:location.href.slice(0, 200), scr:[screen.width, screen.height, devicePixelRatio], dt:new Date().toISOString(),
     tune:Object.assign({}, tune), shared:typeof shareState !== 'undefined' ? {rev:shareState.rev, by:shareState.by} : null, ly:LY && LY.src, migrated:store.get('likeflies.migrated', 0)};
 }
@@ -8126,7 +8134,7 @@ function g26Pose(m, now, dt){
   for (const s of [-1, 1]){
     const L = B.leg[s], lift = Math.max(0, m.hips[s < 0 ? 1 : 0].position.y - o.legLen);
     const hip = T.v1.copy(L.hip).multiplyScalar(ms).applyQuaternion(fq).add(R0);
-    const ank = T.v2.set(L.ank.x, L.ank.y + lift, L.ank.z).multiplyScalar(ms).applyQuaternion(fq); ank.x += R0.x; ank.z += R0.z;
+    const ank = T.v2.set(L.ank.x, L.ank.y + lift, L.ank.z).multiplyScalar(ms).applyQuaternion(fq); ank.x += R0.x; ank.z += R0.z; v35WalkFoot(m, s, ank, ms);   /* v0.0.35: walk cycle */
     let lt = L.lt * ms, ls = L.ls * ms; const d = T.v3.subVectors(ank, hip); let Ld = d.length();
     if (Ld < 0.12 * ms){ d.multiplyScalar(0.12 * ms / Math.max(Ld, 1e-6)); Ld = 0.12 * ms; ank.addVectors(hip, d); }
     if (Ld > lt + ls){ const st = Ld / (lt + ls); lt *= st; ls *= st; }
@@ -8282,7 +8290,7 @@ function poseHuman(m, H, Hq, hands, now){
   }
   pqB.setFromAxisAngle(UPV, m.bodyYaw); pqF.setFromAxisAngle(UPV, m.feetYaw);
   const fx = -Math.sin(headYaw), fz = -Math.cos(headYaw);
-  m.root.position.set(H.x - fx*0.09*ms, Math.min(0, H.y - m.EY*ms), H.z - fz*0.09*ms);
+  m.root.position.set(H.x - fx*0.09*ms, v35RootY(m, H, Hq, ms, dt), H.z - fz*0.09*ms); v35Walk(m, dt, ms);   // v0.0.35
   m.root.scale.setScalar(ms);
   m.legsG.quaternion.copy(pqF); m.torsoG.quaternion.copy(pqB);
   m.headPivot.position.copy(m.root.position).addScaledVector(UPV, m.neckTop*ms);
@@ -9088,6 +9096,10 @@ function storeOnHost(cr){
   part.getWorldQuaternion(crQ).invert(); cr.lN.copy(cr.N).applyQuaternion(crQ); cr.lF.copy(cr.F).applyQuaternion(crQ);
 }
 function setCrawlPrim(cr, pr, now){
+  if (tune.crawlSticky > 0 && cr.pr && cr.pr.owner != null && pr.owner != null && pr.owner === cr.pr.owner && pr.part !== cr.pr.part && cr.pr.part && cr.pr.part.parent){   // v0.0.35
+    if (cr.swPart !== pr.part){ cr.swPart = pr.part; cr.swT = now; }
+    if (now - cr.swT < tune.crawlSticky) pr = cr.pr;
+  } else cr.swPart = null;
   if (pr !== cr.pr){
     const wasPart = cr.host && cr.host.part;
     cr.pr = pr; cr.label = pr.label || 'something';
@@ -9192,7 +9204,8 @@ function crawlStep(dt, now, xr){
   if (d0 > cH + Math.max(0.6, 1.2 * tune.flyScale)){ crawlRelease(now, false, 'surface lost ' + d0.toFixed(2) + ' ' + (cr.pr && cr.pr.label)); return; }      // the surface went away (walked off a thin edge, or the human moved off)
   if (cr.C.x < YARD.x0 + 0.5 || cr.C.x > YARD.x1 - 0.5 || cr.C.z < YARD.z0 + 1 || cr.C.z > YARD.z1 + 8 || cr.C.y > 96){ cr.C.addScaledVector(cr.cv, -dt); cr.cv.set(0, 0, 0); }
   // 5. smooth the normal so facets and seams don't jerk the view (the view still follows the surface fully)
-  cr.N.lerp(crU, tune.normSmooth > 0.005 ? 1 - Math.exp(-dt / tune.normSmooth) : 1).normalize();
+  { const ns = cr.host && !cr.host.prop ? Math.max(tune.normSmooth, tune.crawlHumanSmooth) : tune.normSmooth;   // v0.0.35: gentler on Grover's moving body
+    cr.N.lerp(crU, ns > 0.005 ? 1 - Math.exp(-dt / ns) : 1).normalize(); }
   // 6. heading rides along the surface; snap and smooth turns spin it around the normal
   if (cr.turn){ cr.F.applyAxisAngle(cr.N, cr.turn); cr.turn = 0; }
   cr.F.addScaledVector(cr.N, -cr.F.dot(cr.N));
@@ -9210,7 +9223,7 @@ function crawlStep(dt, now, xr){
   frameQuat(cr.N, cr.F, crQ);
   if (tune.surfOrient < 100){ crQ2.setFromUnitVectors(cr.N, V3UP).multiply(crQ); crQ2.slerp(crQ, tune.surfOrient / 100); crQ.copy(crQ2); }
   { const P = cr.host && cr.host.prop, moving = P && (P.mode === PG_MODE.held || P.mode === PG_MODE.fly);   // v0.0.21B: a prop in a hand or in the air does not swing your horizon around: it follows very slowly
-    cr.Qs.slerp(crQ, 1 - Math.exp(-dt / (moving ? 1.5 : 0.06))); }
+    cr.Qs.slerp(crQ, 1 - Math.exp(-dt / (moving ? 1.5 : (cr.host && !cr.host.prop ? tune.crawlHumanSmooth : 0.06)))); }
   cr.blend = Math.min(1, cr.blend + dt / Math.max(0.01, tune.landTime));
   const e = smoothstep(0, 1, cr.blend);
   rig.quaternion.copy(cr.q0).slerp(cr.Qs, e);
@@ -10989,7 +11002,7 @@ function pgHandPose(i, outP, outQ){ const m = game.local; if (!m) return false; 
 function pgNearestProp(i, maxD){
   const m = game.local; if (!m) return null; const c = m.cHand[i]; if (!c.ok) return null; let best = null, bd = Infinity;
   const raw = renderer.xr.isPresenting && HANDS[i].has ? _gw2.copy(HANDS[i].pos).applyMatrix4(rig.matrixWorld) : null;   // v0.0.22: the tracked hand too (the drawn hand is pushed out of the table)
-  for (const p of PG.props){ if (p.mode === PG_MODE.broken || p.mode === PG_MODE.held) continue; let d = pgPropDist(p, c.b); if (raw) d = Math.min(d, pgPropDist(p, raw)); if (d < maxD && d < bd){ bd = d; best = p; } }
+  for (const p of PG.props){ if (p.mode === PG_MODE.broken || p.mode === PG_MODE.held) continue; let d = pgPropDist(p, c.b); if (raw) d = Math.min(d, pgPropDist(p, raw)); const lim35 = maxD * (p.kind === 'duck' && maxD < 0.5 * pgU() ? tune.duckReach : 1); if (d < lim35 && d < bd)   /* v0.0.35 */{ bd = d; best = p; } }
   return best;
 }
 /* returns true when this hand took (or holds) a prop, so the swatter rack ignores this grip */
@@ -11782,9 +11795,9 @@ function v24OccTick(dt, now){
     if (d > 2 * R) V24O.armed = true;
     const onHim = game.crawl.host && game.crawl.host.owner === PG_AI_SLOT;
     if (onHim && now - V24O.hintT > 30){ V24O.hintT = now; popup('Crawl into the back of his cap to become Grover', 2.4); }
-    if (d < R && V24O.armed && now - V24O.exitArmT > 4){ V24O.dwell += dt; if (V24O.dwell > 0.8){ V24O.dwell = 0; V24O.armed = false; pgRequest({op:'occ'}); popup('Squeezing in under the cap...', 1.2); } }
-    else V24O.dwell = 0;
-  } else V24O.dwell = 0;
+    if (d < R && V24O.armed && now - V24O.exitArmT > 4 && (game.crawl.speed || 0) < 0.35 * tune.crawlSpeed * flyK()){ V24O.dwell += dt; v35CapHint(V24O.dwell); if (V24O.dwell > tune.capDwell){   /* v0.0.35: hold still, with a countdown */ V24O.dwell = 0; V24O.armed = false; pgRequest({op:'occ'}); popup('Squeezing in under the cap...', 1.2); } }
+    else { V24O.dwell = 0; V35.hintN = -1; }
+  } else { V24O.dwell = 0; V35.hintN = -1; }
   // the cap: lifts when someone gets in or out, then goes back on (on the idle Grover everyone sees)
   const m = PG.aiM && PG.aiM.gm; if (m && m.capHinge){ const t = now - V24O.capT; let a = 0;
     if (t < 1.6){ a = t < 0.3 ? t / 0.3 : t < 0.7 ? 1 : 1 - (t - 0.7) / 0.9; a = Math.max(0, a); }
@@ -11837,7 +11850,7 @@ window.__likeflies_g26 = {FLY26, FLY_ART, G26, g26Bind, g26Contact, g26Pose, g26
      anywhere: it floats right there. Moving a ring cancels running races. Courses can be saved and shared by link.
    - Recorder: player activity decides when the room is "empty", controller input and game events are recorded.
    ===================================================================== */
-const V32 = {ver:'v0.0.34'};
+const V32 = {ver:'v0.0.35'};
 const _p32 = new V3(), _p32b = new V3(), _q32 = new THREE.Quaternion(), _s32 = new V3(), _m32 = new THREE.Matrix4(), _m32b = new THREE.Matrix4(), ONE32 = new V3(1, 1, 1);
 const ftU = () => 0.3048 * (tune.humanSize || 28);   // world units in one foot at Grover's scale
 
@@ -12705,6 +12718,58 @@ function v34Tick(dt, t){
 window.__likeflies34 = {V34, PRE, KB, BL, TR, preAll, preSaveAs, preLoad, preDelete, preOnMsg, preSnap, preKeys, kbKeys, kbPress, prePress, blTick, trails34, blPts, blLines, v34Marker,
   press:(x, y) => panelPress(x, y, true), openMenu, closeMenu, page:p => { panelPage = p; drawPanel(); }, panelImage:() => { drawPanel(); return pCanvas.toDataURL(); }};
 
+/* =====================================================================
+   v0.0.35: GROVER AND YARD FIXES (built Nov 17, 2026 while Job was out; flight untouched from v0.0.34)
+   - The red party cup on the side table is solid now (you can land on its rim and crawl inside).
+   - Grover stands up straight: looking down no longer drops his hips (the crouch came from measuring the eyes, which
+     dip when the head tilts, instead of the neck), plus a small dead zone. He still crouches when you really crouch.
+   - Grover's legs walk: when he moves (stick or real steps) the feet swing and lift in a walk cycle instead of sliding.
+   - Crawling on Grover: the fly stays on the body part it is on until a new part has been underfoot for a moment, so
+     the seam from his back to his shoulders no longer flips the view back and forth; the view also eases more there.
+   - Getting into Grover takes a deliberate 2.5 s hold-still at the back of the cap, with a countdown, instead of 0.8 s.
+   - The duck can be grabbed from a little farther away, so Grover doesn't have to reach into the pool.
+   ===================================================================== */
+const V35 = {ver:'v0.0.35', hintN:-1};
+const _v35a = new V3(), _v35b = new V3(), _v35q = new THREE.Quaternion();
+function v35RootY(m, H, Hq, ms, dt){
+  const old = Math.min(0, H.y - m.EY * ms);
+  if (tune.groverStand < 0.5) return old;
+  _v35a.set(0, (m.EY - m.neckTop) * ms, -0.09 * ms).applyQuaternion(Hq);    // eyes relative to the neck: tilting the head moves the eyes, not the neck
+  const neckY = H.y - _v35a.y, drop = m.neckTop * ms - neckY, dead = 0.07 * ms;
+  const target = -Math.max(0, drop - dead);
+  m.v35y = m.v35y == null ? target : m.v35y + (target - m.v35y) * (1 - Math.exp(-(dt || 0.016) / 0.1));
+  return Math.min(0, m.v35y);
+}
+function v35Walk(m, dt, ms){
+  if (!m.root || !m.space) return;
+  m.root.updateWorldMatrix(true, false); m.root.getWorldPosition(_v35a);
+  const W = m.v35w || (m.v35w = {ph:0, amp:0, dx:0, dz:-1, prev:_v35a.clone(), sp:0});
+  if (!(dt > 0)){ W.prev.copy(_v35a); return; }
+  m.space.getWorldScale(_v35b); const wsc = Math.max(1e-6, _v35b.x) * ms;   // world units per model metre
+  const d = _v35b.subVectors(_v35a, W.prev); d.y = 0; W.prev.copy(_v35a);
+  if (d.length() > 2 * wsc){ W.sp = 0; return; }   // a teleport or respawn
+  const sp = d.length() / wsc / dt;
+  W.sp += (sp - W.sp) * (1 - Math.exp(-dt / 0.15));
+  if (tune.groverWalk < 0.5 || W.sp < 0.25){ W.amp += (0 - W.amp) * (1 - Math.exp(-dt / 0.12)); if (W.amp < 0.02) W.ph = 0; return; }
+  m.space.getWorldQuaternion(_v35q).invert(); d.applyQuaternion(_v35q); d.y = 0;   // movement direction in the body's own space
+  if (d.lengthSq() > 1e-12){ d.normalize(); W.dx += (d.x - W.dx) * 0.3; W.dz += (d.z - W.dz) * 0.3; const L = Math.hypot(W.dx, W.dz) || 1; W.dx /= L; W.dz /= L; }
+  const ampT = Math.min(0.32, 0.12 + 0.12 * W.sp);   // half a stride, model metres
+  W.amp += (ampT - W.amp) * (1 - Math.exp(-dt / 0.12));
+  W.ph += dt * W.sp / Math.max(0.05, 4 * W.amp) * Math.PI * 2;
+  m.feetYaw = m.bodyYaw;   // walking: the feet face where the body faces (no turn-in-place stepping)
+}
+function v35WalkFoot(m, s, ank, ms){
+  const W = m.v35w; if (!W || W.amp < 0.02 || tune.groverWalk < 0.5) return;
+  const ph = W.ph + (s < 0 ? 0 : Math.PI), sw = Math.sin(ph) * W.amp * ms;
+  ank.x += W.dx * sw; ank.z += W.dz * sw;
+  ank.y += Math.max(0, Math.cos(ph)) * 0.09 * (W.amp / 0.32) * ms;   // the foot lifts while it swings forward
+}
+function v35CapHint(dwell){
+  const left = Math.ceil(tune.capDwell - dwell);
+  if (left !== V35.hintN && left > 0){ V35.hintN = left; popup('Hold still to climb into Grover... ' + left, 0.8); }
+}
+window.__likeflies35 = {V35, v35RootY, v35Walk, v35WalkFoot, setCrawlPrim, solids:() => solids, sdPrim, gather, V24O:() => V24O};
+
 window.__likeflies = {house:HOUSE30, ly:{LY, apply:lyApply, refresh:lyRefresh, parse:lyParse, json:lyToJSON, ids:LY_IDS, pts:LY_PTS, arr:LY_ARR}, pg:{PG, PG_RULES, v24WingRoot, TOYS, V24T, V24O, v24OccLeave, v24ToyDist, V24, V24S, PREC, PGH, v24Protects, v24Reachable, v24RecoverHome, v24DuckDist, v24PrecToggle, PG_MODE, PG_MODE_NAME, PLATE_HOME, BB, apply:pgApply, onSnap:pgOnSnap, validSnap:pgValidSnap, snapMsg:pgSnapMsg, tick:pgTick, request:pgRequest, humanHand:pgHumanHand, letGo:pgLetGo, heldTarget:pgHeldTarget, nearest:pgNearestProp, cards:pgCards, panel:pgDrawPanel, SOC, socFoot, socUpdate, socMode, aiWanted:pgAiWanted, press:pgPressButton, riderCheck:pgRiderCheck, prims:pgPrims, onMsg:pgOnMessage, HANDS, MAX_SLOTS, sendState:() => sendState(true), V22, VC, FLYG, LBL, throwVel:pgThrowVel, propDist:pgPropDist, legAvoid, HEADX, headQinBody, vcBuild, crawlPlace, crawlFollowHost, wingPose:v22WingPose, socOwnFront}, act:{ACT, store:actStore, guideTick, renderDom:actRenderDom, vrMenu:o => (o ? openMenu() : closeMenu()), guideShort:GUIDE_SHORT, ghosts:ghostStore, GUIDE, tick:actTick, apply:actApply, onMsg:actOnMessage, swept:actSwept, sweepPair:actSweepPair, pushRemote:actPushRemote, rtt:ACT.rtt, onSnap:actOnSnap, validSnap:actValidSnap, reach:actReach, check:actCheckPlace, exportCode:actExportCode, importCode:actImportCode, cards:actCards, panelPress:actPanelPress, join:actTagJoin, leave:actTagLeave, crumbStart:actCrumbStart, crumbConfirm:actCrumbConfirm, search:actCrumbSearch, ghostWatch, ghostValid, ghostPlay, ghostStop, ghostOnMsg:ghostOnMessage, pushPose:actPushPose, isHost:actIsHost, world:ACT_WORLD}, fly18:{art:() => FLY_ART, onState:(j, d) => onState(j, d), remotes:() => net.remotes, migrated:() => v18Migrated, preset:V18_PRESET}, retro:{RU, overlay:retroOverlay, osd:retroOSD, crt, burst:retroBurst, scan:retroScan}, dev:{grillLid:open => { const G = GRILL_LID; if (G.lid){ G.lid.quaternion.copy(G.rest); if (open) G.lid.quaternion.multiply(G.open); } }, FLY_ART, PROP_ART, LIFE_REF:() => LIFE, makeFlyAvatar, flapArt, upgradeAvatar, buildFlyModel, wingGeo, wingMat, buildHuman, LIFE, HK, solids, legMesh, legs:(obj, sc, mode, o) => { legN = 0; drawLegs(obj, sc, mode, o); legMesh.count = legN; legMesh.instanceMatrix.needsUpdate = true; }}, net, game, foods, setRole, rig, camera, scene, renderer, tune:() => tune, startCrawl, crawlRelease, fieldAt:p => { const v = new V3(p[0], p[1], p[2]); field(v, gather(v, 6)); return {d:FR.d, label:FR.pr.label}; }, keys, setLook:(y, pt) => { yaw = y; pitch = pt; }, legCount:() => legMesh.count, hit:imp => flyHit(new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), vel:() => vel.clone(), now:() => clock.elapsedTime, levVig:() => game.levVig, panelImage:pg => { panelPage = pg; drawPanel(); return pCanvas.toDataURL(); }, crawlHands:(l, r, n) => { const out = new V3(); [[HAND.left, l], [HAND.right, r]].forEach(([h, v]) => { h.has = !!v; h.isHand = !!v; if (v) h.pos.set(v[0], v[1], v[2]); h.stickX = h.stickY = 0; }); for (let i = 0; i < (n || 30); i++) crawlInput(true, out, 0.016); return out.toArray(); }, humanWalkTest:(sx, sy, secs) => { for (let t = 0; t < secs; t += 0.02) humanWalk(0.02, sx, sy, camera.getWorldQuaternion(hwQ)); const h = new V3(); camera.getWorldPosition(h); return h.toArray(); }, updateBotsTest:(dt, t) => updateBots(dt, t), botHitTest:(b, imp) => botHit(b, new V3(imp[0], imp[1], imp[2]), 0, clock.elapsedTime), MERGE_INFO, race:{host:() => raceHost(), mine:() => JSON.parse(JSON.stringify(race.mine)), resubmit:() => raceResubmitMissing(), state:() => JSON.parse(JSON.stringify(Object.assign({}, race, {prevHead:race.prevHead.toArray(), outPos:[], sides:race.sides.slice()}))), ledger:() => JSON.parse(JSON.stringify(ledger)), board:boardRows, compSig, localSig, pid:() => racePid, nearestRing:p => nearestRing(new V3(...p)), course:() => rings.map((r, i) => ({i, name:r.name, c:r.mesh.position.toArray(), n:ringNormal(i).toArray(), rad:r.rad, opening:r.rad - RACE_TUBE})), clock:raceClock, now:raceNow, hostAccept:raceHostAccept, validate:raceValidate, tick:raceTick, colors:() => rings.map(r => r.mesh.material.color.getHexString()), arrowDot:() => { const tg = raceTarget(); if (tg < 0 || !raceArrow.visible) return null; raceArrow.updateWorldMatrix(true, false); const p = new V3().setFromMatrixPosition(raceArrow.matrixWorld), f = new V3(0, 0, 1).transformDirection(raceArrow.matrixWorld); return f.dot(rings[tg].mesh.position.clone().sub(p).normalize()); }, hud:raceHudLine}, worldPrims, sdPrim, primBox, drawFoodBars, foodPrims, SUN_SOLIDS, panelPressApply:() => panelPress(PW / 2, SHARE_Y + 30, true), publishTune, shareState, SHARED_TUNE, PERSONAL_KEYS, onTuneSet, onTunePub, hostAcceptTune, tuneHost, RINGS, BOT_PATH, YARD, SPREAD_INFO, spreadPt, COOP_ROUTE, SPAWNS, PROPS, solids, sdMin, occluded, humanBlockers, flatSwat:side => { flatSwatSide = side; flatSwatT = clock.elapsedTime; }, rings:() => rings, ringIndex:() => race.done, swat:() => { flatSwatT = clock.elapsedTime; }, clap:() => { flatClapT = clock.elapsedTime; }};   // for local testing
 
 /* ---------- page menu, VR entry ---------- */
@@ -12820,7 +12885,7 @@ addEventListener('pagehide', () => { try{ if (net.peer) net.peer.destroy(); }cat
    ===================================================================== */
 (() => {
 if (!SPECTATE) return;
-const REC_BUILD = 'v0.0.34', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
+const REC_BUILD = 'v0.0.35', EMPTY_GRACE = 30, SILENT = 15, CK_EVERY = 10000;
 try{ renderer.setAnimationLoop(null); }catch(e){}          // the recorder draws nothing in 3D: save the PC's GPU
 document.title = 'Like Flies recorder';
 const css = document.createElement('style');
@@ -13116,7 +13181,7 @@ const U = LY_M, S = {sel:-1, drag:null, orbit:null, pan:null, yaw:0.6, pitch:0.9
 const cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
 LY.cam = cam;
 const panel = document.createElement('div'); panel.id = 'lyPanel';
-panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.34 · layout: <span id="lySrc"></span></div>
+panel.innerHTML = `<h1>Yard editor</h1><div class="sub">Like Flies v0.0.35 · layout: <span id="lySrc"></span></div>
 <div id="lyList"></div>
 <div id="lySel"><div class="nm">Click a prop in the yard or in the list.</div></div>
 <div id="lyFoot">
